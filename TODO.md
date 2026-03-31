@@ -1,7 +1,7 @@
 # TODO: Skybound Battle Royale
 
 - [x] Task 1: Project Scaffolding
-- [ ] Task 2: Supabase Schema & Auth
+- [x] Task 2: Supabase Schema & Auth
 - [ ] Task 3: Game State (Zustand Store)
 - [ ] Task 4: Basic 3D Environment
 - [ ] Task 5: Flight Physics (Local Player)
