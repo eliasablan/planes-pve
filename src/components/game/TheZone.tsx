@@ -96,20 +96,22 @@ export function TheZone({ initialRadius = 1500 }) {
 
   return (
     <group>
-      {/* Current Gas Ring (Floor) */}
-      <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.99, 1.01, 128]} />
-        <meshBasicMaterial color="#ff0000" transparent opacity={0.8} side={THREE.DoubleSide} />
+      {/* Floor Ring: High visibility red */}
+      <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.4, 0]}>
+        <ringGeometry args={[0.98, 1.02, 128]} />
+        <meshBasicMaterial color="#ff0000" transparent opacity={1} side={THREE.DoubleSide} />
       </mesh>
       
-      {/* Vertical "Gas" Wall (Removed -Math.PI/2 rotation to make it vertical) */}
+      {/* Vertical GAS Wall: Semi-opaque cylinder */}
       <mesh ref={wallRef} position={[0, 0, 0]}>
-        <cylinderGeometry args={[1, 1, 4000, 128, 1, true]} />
-        <meshBasicMaterial color="#ff0000" transparent opacity={0.2} side={THREE.BackSide} />
+        <cylinderGeometry args={[1, 1, 5000, 128, 1, true]} />
+        <meshBasicMaterial color="#ff0000" transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
-      <mesh ref={wallRef} position={[0, 0, 0]}>
-        <cylinderGeometry args={[1, 1, 4000, 128, 1, true]} />
-        <meshBasicMaterial color="#ff0000" transparent opacity={0.1} side={THREE.FrontSide} />
+
+      {/* Exterior Gas Fog (Optional visual depth) */}
+      <mesh ref={wallRef} position={[0, 0, 0]} scale={[1.05, 1.05, 1]}>
+        <cylinderGeometry args={[1, 1, 5000, 64, 1, true]} />
+        <meshBasicMaterial color="#aa0000" transparent opacity={0.1} side={THREE.BackSide} />
       </mesh>
 
 
