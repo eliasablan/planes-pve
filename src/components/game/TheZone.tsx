@@ -102,11 +102,16 @@ export function TheZone({ initialRadius = 1500 }) {
         <meshBasicMaterial color="#ff0000" transparent opacity={0.8} side={THREE.DoubleSide} />
       </mesh>
       
-      {/* Current Gas Wall */}
-      <mesh ref={wallRef} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Vertical "Gas" Wall (Removed -Math.PI/2 rotation to make it vertical) */}
+      <mesh ref={wallRef} position={[0, 0, 0]}>
         <cylinderGeometry args={[1, 1, 4000, 128, 1, true]} />
-        <meshBasicMaterial color="#ff0000" transparent opacity={0.1} side={THREE.DoubleSide} wireframe />
+        <meshBasicMaterial color="#ff0000" transparent opacity={0.2} side={THREE.BackSide} />
       </mesh>
+      <mesh ref={wallRef} position={[0, 0, 0]}>
+        <cylinderGeometry args={[1, 1, 4000, 128, 1, true]} />
+        <meshBasicMaterial color="#ff0000" transparent opacity={0.1} side={THREE.FrontSide} />
+      </mesh>
+
 
       {/* Target Safe Area Ring (Mini-map like reference in 3D) */}
       <mesh ref={targetMeshRef} rotation={[-Math.PI / 2, 0, 0]}>

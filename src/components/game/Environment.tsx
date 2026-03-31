@@ -37,12 +37,13 @@ export function Environment() {
       <Sky distance={450000} sunPosition={[10, 10, 10]} inclination={0} azimuth={0.25} />
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
       
-      <ambientLight intensity={0.2} />
+      <ambientLight intensity={0.3} />
       <directionalLight
         position={[50, 100, 50]}
         intensity={1.5}
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0001}
         shadow-camera-left={-1200}
         shadow-camera-right={1200}
         shadow-camera-top={1200}
@@ -54,9 +55,8 @@ export function Environment() {
         <planeGeometry args={[20000, 20000]} />
         <meshStandardMaterial 
           color="#003566" 
-          roughness={0.05}
-          metalness={0.8}
-          envMapIntensity={1}
+          roughness={0.1}
+          metalness={0.5}
         />
       </mesh>
 
@@ -65,7 +65,7 @@ export function Environment() {
         {/* Base Island Layer */}
         <mesh receiveShadow position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1000, 128]} />
-          <meshStandardMaterial color="#386641" roughness={0.9} metalness={0.1} />
+          <meshStandardMaterial color="#2d6a4f" roughness={1} metalness={0} />
         </mesh>
         
         {/* Sandy Shore */}
