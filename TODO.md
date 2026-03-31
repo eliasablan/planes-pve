@@ -4,7 +4,7 @@
 - [x] Task 2: Supabase Schema & Auth
 - [x] Task 3: Game State (Zustand Store)
 - [x] Task 4: Basic 3D Environment
-- [ ] Task 5: Flight Physics (Local Player)
+- [x] Task 5: Flight Physics (Local Player)
 - [ ] Task 6: Multiplayer (Supabase Realtime)
 - [ ] Task 7: Combat System (MG & Missiles)
 - [ ] Task 8: The Zone (Battle Royale)
