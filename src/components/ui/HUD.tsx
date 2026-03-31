@@ -2,19 +2,27 @@
 
 import { useGameStore } from "@/store/useGameStore";
 import { Progress } from "@/components/ui/progress";
-import { Crosshair, Shield, Zap, Target } from "lucide-react";
+import { Crosshair, Shield, Zap, Target, MousePointer2, Keyboard } from "lucide-react";
 import { Minimap } from "./Minimap";
+import { useControls } from "@/hooks/useControls";
 
 export function HUD() {
   const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll, selectedWeapon } = useGameStore();
+  const { mouseControlEnabled } = useControls();
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 font-mono">
       {/* Top Section: Kill Log & Score */}
       <div className="flex justify-between items-start w-full">
         <div className="flex flex-col gap-2">
-          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md">
+          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md flex justify-between items-center gap-8">
             <div className="text-primary font-bold text-xl tracking-tighter">SCORE: {score}</div>
+            
+            {/* Mouse Toggle Indicator */}
+            <div className={`flex items-center gap-2 px-3 py-1 rounded border ${mouseControlEnabled ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/20 text-white/40'}`}>
+              {mouseControlEnabled ? <MousePointer2 className="w-4 h-4" /> : <Keyboard className="w-4 h-4" />}
+              <span className="text-[10px] font-black uppercase tracking-widest">Mouse {mouseControlEnabled ? 'ON' : 'OFF'} [M]</span>
+            </div>
           </div>
           {/* Flight Instruments Mini */}
           <div className="bg-black/50 p-3 rounded border border-primary/10 backdrop-blur-md flex gap-4 text-[10px] font-bold text-white/70">

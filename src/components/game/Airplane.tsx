@@ -83,13 +83,25 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     // 4. ROTATION (Torque)
     const torque = new THREE.Vector3(0, 0, 0);
     
-    // Mouse Smoothing
-    const targetMousePitch = -controls.mouseY * rotationSpeed * 1.5;
-    const targetMouseYaw = -controls.mouseX * rotationSpeed * 1.0;
-    torque.add(right.clone().multiplyScalar(targetMousePitch * delta));
-    torque.add(up.clone().multiplyScalar(targetMouseYaw * delta));
+    // Mouse Influence (Conditional)
+    if (controls.mouseControlEnabled) {
+      const targetMousePitch = -controls.mouseY * rotationSpeed * 1.5;
+      const targetMouseYaw = -controls.mouseX * rotationSpeed * 1.0;
+      torque.add(right.clone().multiplyScalar(targetMousePitch * delta));
+      torque.add(up.clone().multiplyScalar(targetMouseYaw * delta));
 
-    // Keyboard (Refined for Arrow Keys)
+      // Dynamic camera follow lerp (Only when mouse enabled)
+      const camLerp = 0.08;
+      state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, controls.mouseX * 3, camLerp);
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2.5 - controls.mouseY, camLerp);
+    } else {
+      // Reset camera to default center if mouse disabled
+      const camLerp = 0.05;
+      state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, 0, camLerp);
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2.5, camLerp);
+    }
+
+    // Keyboard Overrides (Always active)
     if (controls.pitchUp) torque.add(right.clone().multiplyScalar(rotationSpeed * delta));
     if (controls.pitchDown) torque.add(right.clone().multiplyScalar(-rotationSpeed * delta));
     if (controls.yawLeft) torque.add(up.clone().multiplyScalar(rotationSpeed * 0.8 * delta));
@@ -113,10 +125,6 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       state.camera.position.x += (Math.random() - 0.5) * shake;
       state.camera.position.y += (Math.random() - 0.5) * shake;
     }
-
-    const camLerp = 0.08;
-    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, controls.mouseX * 3, camLerp);
-    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2.5 - controls.mouseY, camLerp);
 
     // Propeller animation
     if (propellerRef.current) {

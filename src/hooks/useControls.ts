@@ -14,6 +14,7 @@ export type Controls = {
   brake: boolean;
   selectMG: boolean;
   selectMissile: boolean;
+  mouseControlEnabled: boolean;
   mouseX: number;
   mouseY: number;
 };
@@ -33,6 +34,7 @@ export function useControls() {
     brake: false,
     selectMG: false,
     selectMissile: false,
+    mouseControlEnabled: true,
     mouseX: 0,
     mouseY: 0,
   });
@@ -53,6 +55,7 @@ export function useControls() {
         case "1": setControls((c) => ({ ...c, selectMG: true })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
         case "x": setControls((c) => ({ ...c, flare: true })); break;
+        case "m": setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); break;
       }
     };
 

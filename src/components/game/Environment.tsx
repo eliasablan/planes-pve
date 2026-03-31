@@ -56,6 +56,22 @@ export function Environment() {
           <meshStandardMaterial color="#2d6a4f" roughness={0.8} />
         </mesh>
         
+        {/* RELIEF: Central Mountain Range */}
+        <group position={[0, -2, 0]}>
+          <mesh position={[0, 50, 0]} castShadow receiveShadow>
+            <coneGeometry args={[300, 100, 8]} />
+            <meshStandardMaterial color="#40916c" roughness={0.9} />
+          </mesh>
+          <mesh position={[200, 30, -100]} castShadow receiveShadow>
+            <coneGeometry args={[200, 60, 6]} />
+            <meshStandardMaterial color="#3a5a40" roughness={0.9} />
+          </mesh>
+          <mesh position={[-150, 20, 150]} castShadow receiveShadow>
+            <coneGeometry args={[150, 40, 7]} />
+            <meshStandardMaterial color="#344e41" roughness={0.9} />
+          </mesh>
+        </group>
+
         {/* Terrain Details (Trees & Rocks) */}
         {details.map((item, i) => (
           <group key={i} position={item.position as any} scale={item.scale}>
