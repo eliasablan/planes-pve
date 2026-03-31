@@ -24,6 +24,10 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const rotationSpeed = 2;
   const damping = 0.98;
   
+  // Broadcasting throttling
+  const lastBroadcast = useRef(0);
+  const broadcastInterval = 1000 / 30; // 30Hz
+
   // Combat timers
   const lastShot = useRef(0);
   const mgInterval = 150; // ms

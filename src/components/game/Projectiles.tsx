@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { RigidBody, RapierRigidBody, vec3 } from "@react-three/rapier";
+import { RigidBody, RapierRigidBody, vec3, quat } from "@react-three/rapier";
 import { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
 
@@ -22,7 +22,8 @@ export function Bullet({ position, rotation, onHit }: BulletProps) {
 
   useFrame((state, delta) => {
     if (!rb.current || !alive) return;
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion(...rotation));
+    const q = new THREE.Quaternion(...rotation);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     rb.current.setLinvel(vec3(forward).multiplyScalar(100), true);
   });
 
@@ -32,7 +33,7 @@ export function Bullet({ position, rotation, onHit }: BulletProps) {
     <RigidBody
       ref={rb}
       position={position}
-      rotation={rotation}
+      rotation={[rotation[0], rotation[1], rotation[2], rotation[3]] as any}
       sensor
       onIntersectionEnter={onHit}
       colliders="ball"
@@ -56,7 +57,8 @@ export function Missile({ position, rotation, targetId, onHit }: BulletProps & {
 
   useFrame((state, delta) => {
     if (!rb.current || !alive) return;
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion(...rotation));
+    const q = new THREE.Quaternion(...rotation);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     rb.current.setLinvel(vec3(forward).multiplyScalar(50), true);
     // Simple homing logic could be added here
   });
@@ -67,18 +69,18 @@ export function Missile({ position, rotation, targetId, onHit }: BulletProps & {
     <RigidBody
       ref={rb}
       position={position}
-      rotation={rotation}
+      rotation={[rotation[0], rotation[1], rotation[2], rotation[3]] as any}
       sensor
       onIntersectionEnter={onHit}
       colliders="ball"
     >
       <group>
-        <mesh>
-          <cylinderGeometry args={[0.1, 0.1, 0.5]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.1, 0.1, 0.5]} />
           <meshStandardMaterial color="red" />
         </mesh>
-        <mesh position={[0, 0, 0.3]}>
-          <coneGeometry args={[0.1, 0.2]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh position={[0, 0, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.1, 0.2]} />
           <meshStandardMaterial color="darkred" />
         </mesh>
       </group>
