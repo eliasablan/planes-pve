@@ -40,6 +40,12 @@ interface GameState {
   players: Record<string, PlayerState>;
   killLog: KillLogEntry[];
   
+  // Flight Data
+  altitude: number;
+  speed: number;
+  pitch: number;
+  roll: number;
+  
   // Actions
   setHp: (hp: number) => void;
   reduceHp: (amount: number) => void;
@@ -50,6 +56,7 @@ interface GameState {
   setFlares: (flares: number) => void;
   useFlare: () => void;
   
+  setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number }) => void;
   setGameStatus: (status: GameStatus) => void;
   setMatchId: (id: string | null) => void;
   setStartTime: (time: number | null) => void;
@@ -78,6 +85,11 @@ export const useGameStore = create<GameState>((set) => ({
   
   players: {},
   killLog: [],
+
+  altitude: 0,
+  speed: 0,
+  pitch: 0,
+  roll: 0,
   
   // Actions
   setHp: (hp) => set({ hp }),
@@ -89,6 +101,7 @@ export const useGameStore = create<GameState>((set) => ({
   setFlares: (flares) => set({ flares }),
   useFlare: () => set((state) => ({ flares: Math.max(0, state.flares - 1) })),
   
+  setFlightData: (data) => set(data),
   setGameStatus: (status) => set({ gameStatus: status }),
   setMatchId: (id) => set({ currentMatchId: id }),
   setStartTime: (time) => set({ startTime: time }),

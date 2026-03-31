@@ -12,11 +12,12 @@ import { Bullet, Missile } from "./Projectiles";
 
 export function Airplane({ userId, username, roomName }: { userId: string, username: string, roomName: string }) {
   const rb = useRef<RapierRigidBody>(null);
+  const propellerRef = useRef<THREE.Mesh>(null);
   const controls = useControls();
   const hp = useGameStore((s) => s.hp);
-  const { useAmmo, useMissile, useFlare } = useGameStore();
+  const { useAmmo, useMissile, useFlare, setFlightData, setHp } = useGameStore();
   
-  // Local state for projectiles (to avoid global store lag for visuals)
+  // Local state for projectiles
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
   // Physics constants
@@ -39,24 +40,49 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     const translation = rb.current.translation();
     const currentRotation = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
     
+    // Rotate propeller
+    if (propellerRef.current) {
+      propellerRef.current.rotation.z += delta * 20;
+    }
+
     // Calculate direction vectors
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(currentRotation);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(currentRotation);
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(currentRotation);
 
-    // Apply movement physics (Throttle, Pitch, Yaw, Roll)
+    // Calculate flight data
+    const linVel = rb.current.linvel();
+    const currentSpeed = Math.sqrt(linVel.x**2 + linVel.y**2 + linVel.z**2);
+    
+    // Calculate Pitch and Roll from Euler angles
+    const euler = new THREE.Euler().setFromQuaternion(currentRotation, 'YXZ');
+    
+    setFlightData({
+      altitude: translation.y,
+      speed: currentSpeed * 3.6, // Convert to "km/h" approx
+      pitch: (euler.x * 180) / Math.PI,
+      roll: (euler.z * 180) / Math.PI
+    });
+
+    // Apply movement physics
     if (controls.throttleUp) rb.current.applyImpulse(vec3(forward).multiplyScalar(throttlePower * delta), true);
     if (controls.throttleDown) rb.current.applyImpulse(vec3(forward).multiplyScalar(-throttlePower * 0.5 * delta), true);
 
     const torque = new THREE.Vector3(0, 0, 0);
     
-    // Mouse based rotation (Pitch and Yaw)
-    // We add mouse influence to existing keyboard controls
-    const mousePitch = -controls.mouseY * rotationSpeed * 2 * delta;
-    const mouseYaw = -controls.mouseX * rotationSpeed * delta;
+    // Smooth mouse steering (Reduced sensitivity for better control)
+    const targetMousePitch = -controls.mouseY * rotationSpeed * 1.2;
+    const targetMouseYaw = -controls.mouseX * rotationSpeed * 0.8;
     
-    torque.add(right.clone().multiplyScalar(mousePitch));
-    torque.add(up.clone().multiplyScalar(mouseYaw));
+    // We add mouse influence to existing keyboard controls
+    torque.add(right.clone().multiplyScalar(targetMousePitch * delta));
+    torque.add(up.clone().multiplyScalar(targetMouseYaw * delta));
+
+    // Dynamic camera offset based on mouse (displacement)
+    const camTarget = state.camera.position;
+    const lerpFactor = 0.05;
+    state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, controls.mouseX * 2, lerpFactor);
+    state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2 - controls.mouseY, lerpFactor);
 
     if (controls.pitchUp) torque.add(right.clone().multiplyScalar(rotationSpeed * delta));
     if (controls.pitchDown) torque.add(right.clone().multiplyScalar(-rotationSpeed * delta));
@@ -78,11 +104,8 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       const bulletId = crypto.randomUUID();
       const bulletPos: [number, number, number] = [translation.x, translation.y, translation.z];
       const bulletRot: [number, number, number, number] = [rotation.x, rotation.y, rotation.z, rotation.w];
-      
       setBullets((prev) => [...prev, { id: bulletId, pos: bulletPos, rot: bulletRot }]);
       setTimeout(() => setBullets((prev) => prev.filter(b => b.id !== bulletId)), 2000);
-      
-      // Raycast or Broadcast hit would go here
     }
 
     // Broadcast position
@@ -103,16 +126,24 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     }
   });
 
+  const handleCollision = (e: any) => {
+    // If we hit something hard (like the ground) at high speed
+    if (e.other.rigidBodyObject?.name === "ground") {
+      setHp(0); // Instant death on ground collision
+    }
+  };
+
   return (
     <>
       <RigidBody
         ref={rb}
         colliders="cuboid"
-        position={[0, 10, 0]}
+        position={[0, 50, 0]}
         linearDamping={0.5}
         angularDamping={0.5}
+        onCollisionEnter={handleCollision}
       >
-        <PerspectiveCamera makeDefault position={[0, 2, 5]} fov={75} />
+        <PerspectiveCamera makeDefault position={[0, 2, 6]} fov={75} />
         
         <group>
           {/* Smoke Trails based on HP */}
@@ -127,15 +158,49 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
             </Trail>
           )}
 
-          {/* Fuselage */}
+          {/* FUSELAGE */}
           <mesh castShadow>
-            <boxGeometry args={[0.5, 0.5, 2]} />
-            <meshStandardMaterial color={hp < 15 ? "darkred" : "gray"} />
+            <boxGeometry args={[0.6, 0.6, 2.5]} />
+            <meshStandardMaterial color={hp < 15 ? "#222" : "#4a4e69"} />
           </mesh>
-          <mesh castShadow position={[0, 0, 0]}>
-            <boxGeometry args={[3, 0.1, 0.8]} />
-            <meshStandardMaterial color="darkgray" />
+
+          {/* COCKPIT */}
+          <mesh castShadow position={[0, 0.4, 0]}>
+            <boxGeometry args={[0.4, 0.3, 0.8]} />
+            <meshStandardMaterial color="#8ecae6" transparent opacity={0.6} />
           </mesh>
+
+          {/* PROPELLER */}
+          <group position={[0, 0, -1.3]}>
+            <mesh ref={propellerRef}>
+              <boxGeometry args={[2, 0.1, 0.05]} />
+              <meshStandardMaterial color="#222" />
+            </mesh>
+            <mesh>
+              <sphereGeometry args={[0.15, 8, 8]} />
+              <meshStandardMaterial color="#333" />
+            </mesh>
+          </group>
+
+          {/* WINGS */}
+          <mesh castShadow position={[0, 0, 0.2]}>
+            <boxGeometry args={[4.5, 0.08, 1]} />
+            <meshStandardMaterial color="#4a4e69" />
+          </mesh>
+
+          {/* TAIL UNIT */}
+          <group position={[0, 0, 1.1]}>
+            {/* Horizontal Stabilizer */}
+            <mesh castShadow>
+              <boxGeometry args={[1.5, 0.05, 0.6]} />
+              <meshStandardMaterial color="#4a4e69" />
+            </mesh>
+            {/* Vertical Stabilizer */}
+            <mesh castShadow position={[0, 0.4, 0]}>
+              <boxGeometry args={[0.05, 0.8, 0.5]} />
+              <meshStandardMaterial color="#4a4e69" />
+            </mesh>
+          </group>
         </group>
       </RigidBody>
 
