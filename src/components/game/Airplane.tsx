@@ -21,9 +21,11 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
   // Physics constants
-  const throttlePower = 25;
-  const rotationSpeed = 2;
-  const damping = 0.98;
+  const throttlePower = 35;
+  const minSpeed = 15; // Stall speed
+  const maxSpeed = 80;
+  const rotationSpeed = 2.5;
+  const damping = 0.99;
   
   // Broadcasting throttling
   const lastBroadcast = useRef(0);
@@ -42,7 +44,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     
     // Rotate propeller
     if (propellerRef.current) {
-      propellerRef.current.rotation.z += delta * 20;
+      propellerRef.current.rotation.z += delta * 30;
     }
 
     // Calculate direction vectors
@@ -54,12 +56,31 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     const linVel = rb.current.linvel();
     const currentSpeed = Math.sqrt(linVel.x**2 + linVel.y**2 + linVel.z**2);
     
-    // Calculate Pitch and Roll from Euler angles
+    // Apply Minimum Speed (Force forward impulse if below minSpeed)
+    if (currentSpeed < minSpeed) {
+      rb.current.applyImpulse(vec3(forward).multiplyScalar(throttlePower * 0.5 * delta), true);
+    }
+
+    // Dynamic FOV and Camera Shake based on speed
+    const speedFactor = THREE.MathUtils.clamp((currentSpeed - minSpeed) / (maxSpeed - minSpeed), 0, 1);
+    const camera = state.camera as THREE.PerspectiveCamera;
+    if (camera.fov !== undefined) {
+      camera.fov = THREE.MathUtils.lerp(75, 95, speedFactor);
+      camera.updateProjectionMatrix();
+    }
+
+    // Subtle Camera Shake
+    if (speedFactor > 0.5) {
+      const shakeAmount = (speedFactor - 0.5) * 0.05;
+      state.camera.position.x += (Math.random() - 0.5) * shakeAmount;
+      state.camera.position.y += (Math.random() - 0.5) * shakeAmount;
+    }
+
+    // Calculate Pitch and Roll
     const euler = new THREE.Euler().setFromQuaternion(currentRotation, 'YXZ');
-    
     setFlightData({
       altitude: translation.y,
-      speed: currentSpeed * 3.6, // Convert to "km/h" approx
+      speed: currentSpeed * 3.6,
       pitch: (euler.x * 180) / Math.PI,
       roll: (euler.z * 180) / Math.PI
     });

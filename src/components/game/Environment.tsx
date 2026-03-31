@@ -1,10 +1,26 @@
 "use client";
 
-import { Sky, ContactShadows } from "@react-three/drei";
+import { Sky, ContactShadows, Float, Stars } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
+import { useMemo } from "react";
 import * as THREE from "three";
 
 export function Environment() {
+  // Generate random positions for trees and rocks
+  const details = useMemo(() => {
+    const items = [];
+    for (let i = 0; i < 200; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * 900;
+      items.push({
+        position: [Math.cos(angle) * radius, -1.5, Math.sin(angle) * radius],
+        scale: 0.5 + Math.random() * 2,
+        type: Math.random() > 0.3 ? "tree" : "rock"
+      });
+    }
+    return items;
+  }, []);
+
   return (
     <>
       <Sky 
@@ -13,6 +29,7 @@ export function Environment() {
         inclination={0} 
         azimuth={0.25} 
       />
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
       
       <ambientLight intensity={0.4} />
       <directionalLight
@@ -24,7 +41,7 @@ export function Environment() {
 
       {/* Stylized Ocean */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
-        <planeGeometry args={[20000, 10000]} />
+        <planeGeometry args={[20000, 20000]} />
         <meshStandardMaterial 
           color="#0077be" 
           roughness={0.1}
@@ -32,21 +49,37 @@ export function Environment() {
         />
       </mesh>
 
-      {/* Main Stylized Island */}
+      {/* Main Island */}
       <RigidBody type="fixed" colliders="hull" name="ground">
         <mesh receiveShadow position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1000, 64]} />
           <meshStandardMaterial color="#2d6a4f" roughness={0.8} />
         </mesh>
         
-        {/* Central Terrain Details */}
-        <mesh castShadow receiveShadow position={[0, -1, 0]}>
-          <cylinderGeometry args={[400, 500, 10, 32]} />
-          <meshStandardMaterial color="#40916c" />
-        </mesh>
+        {/* Terrain Details (Trees & Rocks) */}
+        {details.map((item, i) => (
+          <group key={i} position={item.position as any} scale={item.scale}>
+            {item.type === "tree" ? (
+              <>
+                <mesh position={[0, 1, 0]} castShadow>
+                  <cylinderGeometry args={[0.2, 0.3, 2, 8]} />
+                  <meshStandardMaterial color="#582f0e" />
+                </mesh>
+                <mesh position={[0, 2.5, 0]} castShadow>
+                  <coneGeometry args={[1, 3, 8]} />
+                  <meshStandardMaterial color="#1b4332" />
+                </mesh>
+              </>
+            ) : (
+              <mesh castShadow>
+                <dodecahedronGeometry args={[1, 0]} />
+                <meshStandardMaterial color="#495057" />
+              </mesh>
+            )}
+          </group>
+        ))}
       </RigidBody>
       
-      {/* Decorative Atmosphere */}
       <fog attach="fog" args={["#8ecae6", 500, 5000]} />
 
       <ContactShadows 
