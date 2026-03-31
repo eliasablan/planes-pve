@@ -15,7 +15,16 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const propellerRef = useRef<THREE.Mesh>(null);
   const controls = useControls();
   const { hp, selectedWeapon, ammo, missiles, flares, zoneRadius, zoneCenter } = useGameStore();
-  const { useAmmo, useMissile, useFlare, setFlightData, setHp, setSelectedWeapon, setShowLargeMap } = useGameStore();
+  const { 
+    useAmmo, 
+    useMissile, 
+    useFlare, 
+    setFlightData, 
+    setHp, 
+    setSelectedWeapon, 
+    setShowLargeMap,
+    setLocalPlayerPosition 
+  } = useGameStore();
   
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
@@ -54,6 +63,8 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     const translation = rb.current.translation();
     const currentRotation = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
     
+    setLocalPlayerPosition([translation.x, translation.z]);
+
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(currentRotation);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(currentRotation);
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(currentRotation);

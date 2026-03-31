@@ -57,8 +57,12 @@ export function useControls() {
         case "1": setControls((c) => ({ ...c, selectMG: true })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
         case "x": setControls((c) => ({ ...c, flare: true })); break;
-        case "o": setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); break;
-        case "m": setControls((c) => ({ ...c, showLargeMap: true })); break;
+        case "o": 
+          if (!e.repeat) setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); 
+          break;
+        case "m": 
+          if (!e.repeat) setControls((c) => ({ ...c, showLargeMap: !c.showLargeMap })); 
+          break;
       }
     };
 
@@ -77,7 +81,6 @@ export function useControls() {
         case "1": setControls((c) => ({ ...c, selectMG: false })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: false })); break;
         case "x": setControls((c) => ({ ...c, flare: false })); break;
-        case "m": setControls((c) => ({ ...c, showLargeMap: false })); break;
       }
     };
 
