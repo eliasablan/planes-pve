@@ -12,6 +12,8 @@ export type Controls = {
   fireMG: boolean;
   fireMissile: boolean;
   fireFlare: boolean;
+  mouseX: number;
+  mouseY: number;
 };
 
 export function useControls() {
@@ -27,6 +29,8 @@ export function useControls() {
     fireMG: false,
     fireMissile: false,
     fireFlare: false,
+    mouseX: 0,
+    mouseY: 0,
   });
 
   useEffect(() => {
@@ -62,11 +66,33 @@ export function useControls() {
       }
     };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      // Normalize mouse coordinates (-1 to 1)
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = (e.clientY / window.innerHeight) * 2 - 1;
+      setControls((c) => ({ ...c, mouseX: x, mouseY: y }));
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) setControls((c) => ({ ...c, fireMG: true }));
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) setControls((c) => ({ ...c, fireMG: false }));
+    };
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
 

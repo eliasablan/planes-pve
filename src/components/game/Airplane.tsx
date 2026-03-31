@@ -49,6 +49,15 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     if (controls.throttleDown) rb.current.applyImpulse(vec3(forward).multiplyScalar(-throttlePower * 0.5 * delta), true);
 
     const torque = new THREE.Vector3(0, 0, 0);
+    
+    // Mouse based rotation (Pitch and Yaw)
+    // We add mouse influence to existing keyboard controls
+    const mousePitch = -controls.mouseY * rotationSpeed * 2 * delta;
+    const mouseYaw = -controls.mouseX * rotationSpeed * delta;
+    
+    torque.add(right.clone().multiplyScalar(mousePitch));
+    torque.add(up.clone().multiplyScalar(mouseYaw));
+
     if (controls.pitchUp) torque.add(right.clone().multiplyScalar(rotationSpeed * delta));
     if (controls.pitchDown) torque.add(right.clone().multiplyScalar(-rotationSpeed * delta));
     if (controls.yawLeft) torque.add(up.clone().multiplyScalar(rotationSpeed * 0.5 * delta));
