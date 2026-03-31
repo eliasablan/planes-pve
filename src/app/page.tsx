@@ -158,15 +158,25 @@ export default function Home() {
         )}
 
         {/* Global Footer info */}
-        <div className="mt-12 flex flex-col items-center gap-4 opacity-30">
+        <div className="mt-12 flex flex-col items-center gap-4 opacity-60">
           <div className="flex gap-10 text-[9px] font-black tracking-[0.4em] text-primary/80 uppercase">
             <span>Encrypted Datafeed</span>
             <span>Realtime Sync: OK</span>
-            <span>All Sectors Online</span>
           </div>
           <div className="h-[1px] w-64 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
       </div>
+
+      {/* Fixed Signature */}
+      <a 
+        href="https://eliasablan.dev" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black tracking-[0.2em] text-white/20 hover:text-primary transition-all uppercase flex items-center gap-2 group bg-black/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 hover:border-primary/30 pointer-events-auto whitespace-nowrap"
+      >
+        <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+        Developed by Elias Ablan
+      </a>
     </main>
   );
 }

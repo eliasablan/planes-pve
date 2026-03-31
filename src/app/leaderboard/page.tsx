@@ -93,9 +93,20 @@ export default async function Leaderboard() {
         </CardContent>
       </Card>
 
-      <div className="mt-8 text-[8px] font-black text-white/10 tracking-[0.5em] uppercase">
-        Global Ranking Protocol // secure_v2.0
+      <div className="mt-8 text-[8px] font-black text-white/10 tracking-[0.5em] uppercase flex flex-col items-center gap-2">
+        <span>Global Ranking Protocol // secure_v2.0</span>
       </div>
+
+      {/* Fixed Signature */}
+      <a 
+        href="https://eliasablan.dev" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black tracking-[0.2em] text-white/20 hover:text-primary transition-all uppercase flex items-center gap-2 group bg-black/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 hover:border-primary/30 pointer-events-auto whitespace-nowrap"
+      >
+        <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+        Developed by Elias Ablan
+      </a>
     </main>
   );
 }
