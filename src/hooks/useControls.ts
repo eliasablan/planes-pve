@@ -9,9 +9,10 @@ export type Controls = {
   pitchDown: boolean;
   yawLeft: boolean;
   yawRight: boolean;
-  fireMG: boolean;
-  fireMissile: boolean;
-  fireFlare: boolean;
+  fire: boolean;
+  flare: boolean;
+  selectMG: boolean;
+  selectMissile: boolean;
   mouseX: number;
   mouseY: number;
 };
@@ -26,9 +27,10 @@ export function useControls() {
     pitchDown: false,
     yawLeft: false,
     yawRight: false,
-    fireMG: false,
-    fireMissile: false,
-    fireFlare: false,
+    fire: false,
+    flare: false,
+    selectMG: false,
+    selectMissile: false,
     mouseX: 0,
     mouseY: 0,
   });
@@ -44,9 +46,10 @@ export function useControls() {
         case "arrowdown": setControls((c) => ({ ...c, pitchDown: true })); break;
         case "q": setControls((c) => ({ ...c, yawLeft: true })); break;
         case "e": setControls((c) => ({ ...c, yawRight: true })); break;
-        case " ": setControls((c) => ({ ...c, fireMG: true })); break;
-        case "r": setControls((c) => ({ ...c, fireMissile: true })); break;
-        case "f": setControls((c) => ({ ...c, fireFlare: true })); break;
+        case " ": setControls((c) => ({ ...c, fire: true })); break;
+        case "1": setControls((c) => ({ ...c, selectMG: true })); break;
+        case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
+        case "x": setControls((c) => ({ ...c, flare: true })); break;
       }
     };
 
@@ -60,25 +63,25 @@ export function useControls() {
         case "arrowdown": setControls((c) => ({ ...c, pitchDown: false })); break;
         case "q": setControls((c) => ({ ...c, yawLeft: false })); break;
         case "e": setControls((c) => ({ ...c, yawRight: false })); break;
-        case " ": setControls((c) => ({ ...c, fireMG: false })); break;
-        case "r": setControls((c) => ({ ...c, fireMissile: false })); break;
-        case "f": setControls((c) => ({ ...c, fireFlare: false })); break;
+        case " ": setControls((c) => ({ ...c, fire: false })); break;
+        case "1": setControls((c) => ({ ...c, selectMG: false })); break;
+        case "2": setControls((c) => ({ ...c, selectMissile: false })); break;
+        case "x": setControls((c) => ({ ...c, flare: false })); break;
       }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Normalize mouse coordinates (-1 to 1)
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = (e.clientY / window.innerHeight) * 2 - 1;
       setControls((c) => ({ ...c, mouseX: x, mouseY: y }));
     };
 
     const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 0) setControls((c) => ({ ...c, fireMG: true }));
+      if (e.button === 0) setControls((c) => ({ ...c, fire: true }));
     };
 
     const handleMouseUp = (e: MouseEvent) => {
-      if (e.button === 0) setControls((c) => ({ ...c, fireMG: false }));
+      if (e.button === 0) setControls((c) => ({ ...c, fire: false }));
     };
 
     window.addEventListener("keydown", handleKeyDown);

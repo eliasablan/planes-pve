@@ -14,8 +14,8 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const rb = useRef<RapierRigidBody>(null);
   const propellerRef = useRef<THREE.Mesh>(null);
   const controls = useControls();
-  const hp = useGameStore((s) => s.hp);
-  const { useAmmo, useMissile, useFlare, setFlightData, setHp } = useGameStore();
+  const { hp, selectedWeapon, ammo, missiles, flares } = useGameStore();
+  const { useAmmo, useMissile, useFlare, setFlightData, setHp, setSelectedWeapon } = useGameStore();
   
   // Local state for projectiles
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
@@ -33,10 +33,18 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
 
   // Combat timers
   const lastShot = useRef(0);
-  const mgInterval = 150; // ms
+  const lastMissile = useRef(0);
+  const lastFlare = useRef(0);
+  const mgInterval = 150; 
+  const missileInterval = 2000;
+  const flareInterval = 1000;
 
   useFrame((state, delta) => {
     if (!rb.current || hp <= 0) return;
+
+    // Weapon Selection Logic
+    if (controls.selectMG) setSelectedWeapon('mg');
+    if (controls.selectMissile) setSelectedWeapon('missile');
 
     const rotation = rb.current.rotation();
     const translation = rb.current.translation();
@@ -56,7 +64,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     const linVel = rb.current.linvel();
     const currentSpeed = Math.sqrt(linVel.x**2 + linVel.y**2 + linVel.z**2);
     
-    // Apply Minimum Speed (Force forward impulse if below minSpeed)
+    // Apply Minimum Speed
     if (currentSpeed < minSpeed) {
       rb.current.applyImpulse(vec3(forward).multiplyScalar(throttlePower * 0.5 * delta), true);
     }
@@ -118,19 +126,32 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     rb.current.setLinvel(vec3(rb.current.linvel()).multiplyScalar(damping), true);
     rb.current.setAngvel(vec3(rb.current.angvel()).multiplyScalar(damping), true);
 
-    // Shooting logic
-    if (controls.fireMG && Date.now() - lastShot.current > mgInterval) {
-      lastShot.current = Date.now();
-      useAmmo();
-      const bulletId = crypto.randomUUID();
-      const bulletPos: [number, number, number] = [translation.x, translation.y, translation.z];
-      const bulletRot: [number, number, number, number] = [rotation.x, rotation.y, rotation.z, rotation.w];
-      setBullets((prev) => [...prev, { id: bulletId, pos: bulletPos, rot: bulletRot }]);
-      setTimeout(() => setBullets((prev) => prev.filter(b => b.id !== bulletId)), 2000);
+    // Shooting Logic
+    const now = Date.now();
+    if (controls.fire) {
+      if (selectedWeapon === 'mg' && now - lastShot.current > mgInterval && ammo > 0) {
+        lastShot.current = now;
+        useAmmo();
+        const bulletId = crypto.randomUUID();
+        const bulletPos: [number, number, number] = [translation.x, translation.y, translation.z];
+        const bulletRot: [number, number, number, number] = [rotation.x, rotation.y, rotation.z, rotation.w];
+        setBullets((prev) => [...prev, { id: bulletId, pos: bulletPos, rot: bulletRot }]);
+        setTimeout(() => setBullets((prev) => prev.filter(b => b.id !== bulletId)), 2000);
+      } else if (selectedWeapon === 'missile' && now - lastMissile.current > missileInterval && missiles > 0) {
+        lastMissile.current = now;
+        useMissile();
+        // Missile firing logic...
+      }
+    }
+
+    // Flare Logic
+    if (controls.flare && now - lastFlare.current > flareInterval && flares > 0) {
+      lastFlare.current = now;
+      useFlare();
+      // Flare visual effect logic...
     }
 
     // Broadcast position
-    const now = Date.now();
     if (now - lastBroadcast.current > broadcastInterval) {
       lastBroadcast.current = now;
       supabase.channel(`room:${roomName}`).send({

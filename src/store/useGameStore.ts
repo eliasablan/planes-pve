@@ -46,6 +46,7 @@ interface GameState {
   pitch: number;
   roll: number;
   zoneRadius: number;
+  selectedWeapon: 'mg' | 'missile';
   
   // Actions
   setHp: (hp: number) => void;
@@ -57,6 +58,7 @@ interface GameState {
   setFlares: (flares: number) => void;
   useFlare: () => void;
   
+  setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number }) => void;
   setZoneRadius: (radius: number) => void;
   setGameStatus: (status: GameStatus) => void;
@@ -93,6 +95,7 @@ export const useGameStore = create<GameState>((set) => ({
   pitch: 0,
   roll: 0,
   zoneRadius: 1000,
+  selectedWeapon: 'mg',
   
   // Actions
   setHp: (hp) => set({ hp }),
@@ -104,6 +107,7 @@ export const useGameStore = create<GameState>((set) => ({
   setFlares: (flares) => set({ flares }),
   useFlare: () => set((state) => ({ flares: Math.max(0, state.flares - 1) })),
   
+  setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setFlightData: (data) => set(data),
   setZoneRadius: (zoneRadius) => set({ zoneRadius }),
   setGameStatus: (status) => set({ gameStatus: status }),

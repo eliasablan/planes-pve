@@ -38,14 +38,14 @@ export function TheZone({ maxRadius = 1000, totalDuration = 300000 }) { // 5 min
     <group>
       {/* Floor Ring */}
       <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}>
-        <ringGeometry args={[0.99, 1.05, 128]} />
+        <ringGeometry args={[0.99, 1.01, 128]} />
         <meshBasicMaterial color="#ff0000" transparent opacity={0.8} side={THREE.DoubleSide} />
       </mesh>
       
-      {/* Vertical "Gas" Wall */}
-      <mesh ref={wallRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 500, 0]}>
-        <cylinderGeometry args={[1, 1, 1000, 128, 1, true]} />
-        <meshBasicMaterial color="#ff0000" transparent opacity={0.15} side={THREE.DoubleSide} />
+      {/* Vertical "Gas" Wall (Aligned with the ring) */}
+      <mesh ref={wallRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <cylinderGeometry args={[1, 1, 2000, 128, 1, true]} />
+        <meshBasicMaterial color="#ff0000" transparent opacity={0.15} side={THREE.DoubleSide} wireframe />
       </mesh>
     </group>
   );

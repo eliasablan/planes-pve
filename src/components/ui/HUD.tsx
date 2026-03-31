@@ -6,7 +6,7 @@ import { Crosshair, Shield, Zap, Target } from "lucide-react";
 import { Minimap } from "./Minimap";
 
 export function HUD() {
-  const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll } = useGameStore();
+  const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll, selectedWeapon } = useGameStore();
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 font-mono">
@@ -94,19 +94,19 @@ export function HUD() {
 
         {/* Right: Weapons */}
         <div className="flex gap-4">
-          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md flex flex-col items-center min-w-[80px]">
-            <Zap className="w-4 h-4 mb-1 text-primary" />
-            <span className="text-[10px] font-bold text-white/50 uppercase">MG-20</span>
+          <div className={`bg-black/50 p-4 rounded border transition-all duration-300 flex flex-col items-center min-w-[100px] backdrop-blur-md ${selectedWeapon === 'mg' ? 'border-primary ring-2 ring-primary/50 scale-110 shadow-[0_0_20px_rgba(var(--primary),0.3)]' : 'border-primary/20 opacity-60'}`}>
+            <Zap className={`w-4 h-4 mb-1 ${selectedWeapon === 'mg' ? 'text-primary' : 'text-primary/50'}`} />
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter text-center">MG-20 [1]</span>
             <span className="text-2xl font-black">{ammo}</span>
           </div>
-          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md flex flex-col items-center min-w-[80px]">
-            <Target className="w-4 h-4 mb-1 text-destructive" />
-            <span className="text-[10px] font-bold text-white/50 uppercase">AGM-65</span>
+          <div className={`bg-black/50 p-4 rounded border transition-all duration-300 flex flex-col items-center min-w-[100px] backdrop-blur-md ${selectedWeapon === 'missile' ? 'border-destructive ring-2 ring-destructive/50 scale-110 shadow-[0_0_20px_rgba(255,0,0,0.3)]' : 'border-primary/20 opacity-60'}`}>
+            <Target className={`w-4 h-4 mb-1 ${selectedWeapon === 'missile' ? 'text-destructive' : 'text-destructive/50'}`} />
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter text-center">AGM-65 [2]</span>
             <span className="text-2xl font-black">{missiles}</span>
           </div>
-          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md flex flex-col items-center min-w-[80px]">
+          <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md flex flex-col items-center min-w-[100px] opacity-80">
             <Shield className="w-4 h-4 mb-1 text-blue-400" />
-            <span className="text-[10px] font-bold text-white/50 uppercase">CM-FLR</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-tighter text-center">FLARE [X]</span>
             <span className="text-2xl font-black">{flares}</span>
           </div>
         </div>
