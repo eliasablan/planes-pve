@@ -1,110 +1,129 @@
 "use client";
 
-import { Sky, ContactShadows, Float, Stars } from "@react-three/drei";
+import { Sky, ContactShadows, Stars, Environment as DreiEnvironment } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 export function Environment() {
-  // Generate random positions for trees and rocks
+  const oceanRef = useRef<THREE.Mesh>(null);
+
+  // Generate more detailed terrain items
   const details = useMemo(() => {
     const items = [];
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 300; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = Math.random() * 900;
+      const radius = 150 + Math.random() * 800; // Keep mostly away from center mountain
       items.push({
         position: [Math.cos(angle) * radius, -1.5, Math.sin(angle) * radius],
-        scale: 0.5 + Math.random() * 2,
-        type: Math.random() > 0.3 ? "tree" : "rock"
+        scale: 0.4 + Math.random() * 1.5,
+        type: Math.random() > 0.2 ? "tree" : "rock",
+        rotation: [0, Math.random() * Math.PI, 0]
       });
     }
     return items;
   }, []);
 
+  useFrame(({ clock }) => {
+    if (oceanRef.current) {
+      // Subtle oscillation for stylized water
+      oceanRef.current.position.y = -5 + Math.sin(clock.getElapsedTime() * 0.5) * 0.1;
+    }
+  });
+
   return (
     <>
-      <Sky 
-        distance={450000} 
-        sunPosition={[0, 1, 0]} 
-        inclination={0} 
-        azimuth={0.25} 
-      />
+      <Sky distance={450000} sunPosition={[10, 10, 10]} inclination={0} azimuth={0.25} />
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
       
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.2} />
       <directionalLight
-        position={[-50, 50, 50]}
+        position={[50, 100, 50]}
         intensity={1.5}
         castShadow
         shadow-mapSize={[4096, 4096]}
+        shadow-camera-left={-1200}
+        shadow-camera-right={1200}
+        shadow-camera-top={1200}
+        shadow-camera-bottom={-1200}
       />
 
-      {/* Stylized Ocean */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
+      {/* High Fidelity PBR Ocean */}
+      <mesh ref={oceanRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
         <planeGeometry args={[20000, 20000]} />
         <meshStandardMaterial 
-          color="#0077be" 
-          roughness={0.1}
-          metalness={0.1}
+          color="#003566" 
+          roughness={0.05}
+          metalness={0.8}
+          envMapIntensity={1}
         />
       </mesh>
 
-      {/* Main Island */}
+      {/* Main Island with PBR Materials */}
       <RigidBody type="fixed" colliders="hull" name="ground">
+        {/* Base Island Layer */}
         <mesh receiveShadow position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[1000, 64]} />
-          <meshStandardMaterial color="#2d6a4f" roughness={0.8} />
+          <circleGeometry args={[1000, 128]} />
+          <meshStandardMaterial color="#386641" roughness={0.9} metalness={0.1} />
         </mesh>
         
-        {/* RELIEF: Central Mountain Range */}
+        {/* Sandy Shore */}
+        <mesh receiveShadow position={[0, -2.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[1050, 128]} />
+          <meshStandardMaterial color="#f2e8cf" roughness={1} />
+        </mesh>
+
+        {/* RELIEF: PBR Mountain Range */}
         <group position={[0, -2, 0]}>
-          <mesh position={[0, 50, 0]} castShadow receiveShadow>
-            <coneGeometry args={[300, 100, 8]} />
-            <meshStandardMaterial color="#40916c" roughness={0.9} />
+          <mesh position={[0, 60, 0]} castShadow receiveShadow>
+            <coneGeometry args={[350, 120, 12]} />
+            <meshStandardMaterial color="#6a994e" roughness={0.8} />
           </mesh>
-          <mesh position={[200, 30, -100]} castShadow receiveShadow>
-            <coneGeometry args={[200, 60, 6]} />
-            <meshStandardMaterial color="#3a5a40" roughness={0.9} />
+          <mesh position={[250, 40, -150]} castShadow receiveShadow>
+            <coneGeometry args={[220, 80, 10]} />
+            <meshStandardMaterial color="#386641" roughness={0.8} />
           </mesh>
-          <mesh position={[-150, 20, 150]} castShadow receiveShadow>
-            <coneGeometry args={[150, 40, 7]} />
-            <meshStandardMaterial color="#344e41" roughness={0.9} />
+          <mesh position={[-200, 30, 200]} castShadow receiveShadow>
+            <coneGeometry args={[180, 60, 10]} />
+            <meshStandardMaterial color="#1b4332" roughness={0.8} />
           </mesh>
         </group>
 
-        {/* Terrain Details (Trees & Rocks) */}
+        {/* Terrain Details with improved geometries */}
         {details.map((item, i) => (
-          <group key={i} position={item.position as any} scale={item.scale}>
+          <group key={i} position={item.position as any} scale={item.scale} rotation={item.rotation as any}>
             {item.type === "tree" ? (
               <>
                 <mesh position={[0, 1, 0]} castShadow>
-                  <cylinderGeometry args={[0.2, 0.3, 2, 8]} />
-                  <meshStandardMaterial color="#582f0e" />
+                  <cylinderGeometry args={[0.15, 0.25, 2, 6]} />
+                  <meshStandardMaterial color="#432818" roughness={1} />
                 </mesh>
-                <mesh position={[0, 2.5, 0]} castShadow>
-                  <coneGeometry args={[1, 3, 8]} />
-                  <meshStandardMaterial color="#1b4332" />
-                </mesh>
+                <group position={[0, 2.2, 0]}>
+                  <mesh castShadow>
+                    <coneGeometry args={[1.2, 2.5, 6]} />
+                    <meshStandardMaterial color="#2d6a4f" roughness={0.9} />
+                  </mesh>
+                  <mesh position={[0, 1.2, 0]} castShadow scale={0.8}>
+                    <coneGeometry args={[1.2, 2.5, 6]} />
+                    <meshStandardMaterial color="#1b4332" roughness={0.9} />
+                  </mesh>
+                </group>
               </>
             ) : (
-              <mesh castShadow>
-                <dodecahedronGeometry args={[1, 0]} />
-                <meshStandardMaterial color="#495057" />
+              <mesh castShadow position={[0, 0.5, 0]}>
+                <dodecahedronGeometry args={[1.2, 1]} />
+                <meshStandardMaterial color="#adb5bd" roughness={0.6} metalness={0.2} />
               </mesh>
             )}
           </group>
         ))}
       </RigidBody>
       
-      <fog attach="fog" args={["#8ecae6", 500, 5000]} />
+      <DreiEnvironment preset="night" />
+      <fog attach="fog" args={["#001d3d", 500, 8000]} />
 
-      <ContactShadows 
-        position={[0, 0, 0]} 
-        opacity={0.4} 
-        scale={2000} 
-        blur={2} 
-        far={50} 
-      />
+      <ContactShadows position={[0, 0, 0]} opacity={0.4} scale={2000} blur={2} far={50} />
     </>
   );
 }

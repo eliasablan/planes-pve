@@ -67,7 +67,6 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     if (controls.throttleDown) currentThrottle.current = Math.max(currentThrottle.current - delta * 20, 0);
     if (controls.brake) currentThrottle.current = Math.max(currentThrottle.current - delta * 40, 0);
 
-    // Apply forward thrust
     rb.current.applyImpulse(vec3(forward).multiplyScalar(currentThrottle.current * delta), true);
 
     // 2. LIFT & STALL PHYSICS
@@ -162,7 +161,6 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   });
 
   const handleCollision = (e: any) => {
-    // Prevent death during first seconds or high-altitude spawns
     if (Date.now() - spawnTime.current < invulnerabilityDuration) return;
     if (e.other.rigidBodyObject?.name === "ground") {
       setHp(0);
@@ -180,40 +178,77 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
         onCollisionEnter={handleCollision}
       >
         <PerspectiveCamera makeDefault position={[0, 2, 6]} fov={75} />
+        
         <group>
+          {/* TRAIL EFFECTS */}
           {hp < 75 && (
-            <Trail width={1} length={5} color={hp < 40 ? "black" : "white"} attenuation={(t) => t * t}>
-              <mesh position={[0, 0, 1]} />
+            <Trail width={1.5} length={8} color={hp < 40 ? "#111" : "#fff"} attenuation={(t) => t * t}>
+              <mesh position={[0, 0, 1.2]} />
             </Trail>
           )}
+
+          {/* FUSELAGE: High-Gloss Metallic */}
           <mesh castShadow>
-            <boxGeometry args={[0.6, 0.6, 2.5]} />
-            <meshStandardMaterial color={hp < 15 ? "#222" : "#4a4e69"} />
+            <cylinderGeometry args={[0.4, 0.5, 2.8, 8]} />
+            <meshStandardMaterial 
+              color={hp < 15 ? "#1a1a1a" : "#ced4da"} 
+              metalness={0.9} 
+              roughness={0.1}
+            />
           </mesh>
-          <mesh castShadow position={[0, 0.4, 0]}>
-            <boxGeometry args={[0.4, 0.3, 0.8]} />
-            <meshStandardMaterial color="#8ecae6" transparent opacity={0.6} />
+
+          {/* COCKPIT: Glass Material */}
+          <mesh castShadow position={[0, 0.35, -0.2]}>
+            <sphereGeometry args={[0.35, 16, 16]} scale={[1, 0.6, 1.5]} />
+            <meshPhysicalMaterial 
+              color="#a2d2ff" 
+              transmission={1} 
+              thickness={0.5} 
+              roughness={0} 
+              ior={1.5}
+              transparent
+              opacity={0.4}
+            />
           </mesh>
-          <group position={[0, 0, -1.3]}>
+
+          {/* PROPELLER */}
+          <group position={[0, 0, -1.5]}>
             <mesh ref={propellerRef}>
-              <boxGeometry args={[2, 0.1, 0.05]} />
-              <meshStandardMaterial color="#222" />
-            </mesh>
-            <mesh>
-              <sphereGeometry args={[0.15, 8, 8]} />
-              <meshStandardMaterial color="#333" />
+              <boxGeometry args={[2.2, 0.12, 0.04]} />
+              <meshStandardMaterial color="#212529" metalness={0.5} />
             </mesh>
           </group>
-          <mesh castShadow position={[0, 0, 0.2]}>
-            <boxGeometry args={[4.5, 0.08, 1]} />
-            <meshStandardMaterial color="#4a4e69" />
+
+          {/* WINGS */}
+          <mesh castShadow position={[0, 0, -0.1]}>
+            <boxGeometry args={[5, 0.06, 1.2]} />
+            <meshStandardMaterial color="#adb5bd" metalness={0.7} roughness={0.3} />
           </mesh>
-          <group position={[0, 0, 1.1]}>
-            <mesh castShadow><boxGeometry args={[1.5, 0.05, 0.6]} /><meshStandardMaterial color="#4a4e69" /></mesh>
-            <mesh castShadow position={[0, 0.4, 0]}><boxGeometry args={[0.05, 0.8, 0.5]} /><meshStandardMaterial color="#4a4e69" /></mesh>
+          
+          {/* WING TIPS */}
+          <mesh position={[2.5, 0, -0.1]}>
+            <boxGeometry args={[0.1, 0.1, 0.4]} />
+            <meshStandardMaterial color="#ef233c" emissive="#ef233c" emissiveIntensity={2} />
+          </mesh>
+          <mesh position={[-2.5, 0, -0.1]}>
+            <boxGeometry args={[0.1, 0.1, 0.4]} />
+            <meshStandardMaterial color="#2b9348" emissive="#2b9348" emissiveIntensity={2} />
+          </mesh>
+
+          {/* TAIL UNIT */}
+          <group position={[0, 0, 1.2]}>
+            <mesh castShadow>
+              <boxGeometry args={[1.8, 0.04, 0.7]} />
+              <meshStandardMaterial color="#adb5bd" metalness={0.7} />
+            </mesh>
+            <mesh castShadow position={[0, 0.45, 0.1]}>
+              <boxGeometry args={[0.04, 1, 0.6]} />
+              <meshStandardMaterial color="#adb5bd" metalness={0.7} />
+            </mesh>
           </group>
         </group>
       </RigidBody>
+
       {bullets.map((b) => (
         <Bullet key={b.id} position={b.pos} rotation={b.rot} onHit={() => {}} />
       ))}

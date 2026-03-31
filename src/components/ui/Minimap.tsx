@@ -7,9 +7,8 @@ export function Minimap() {
   const { players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter } = useGameStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Map settings
-  const mapSize = 180;
-  const worldSize = 4000; // Visible world diameter in minimap
+  const mapSize = 160;
+  const worldSize = 4000;
   const scale = mapSize / worldSize;
 
   useEffect(() => {
@@ -20,72 +19,77 @@ export function Minimap() {
 
     const render = () => {
       ctx.clearRect(0, 0, mapSize, mapSize);
-      
-      const centerX = mapSize / 2;
-      const centerY = mapSize / 2;
+      const cx = mapSize / 2;
+      const cy = mapSize / 2;
 
-      // 1. Draw Background (Ocean)
-      ctx.fillStyle = "#003049";
+      // 1. BASE MAP (OCEAN)
+      ctx.fillStyle = "#001d3d";
       ctx.fillRect(0, 0, mapSize, mapSize);
 
-      // 2. Draw Island (Fixed at 0,0)
-      ctx.fillStyle = "#2d6a4f";
+      // 2. GRID LINES
+      ctx.strokeStyle = "rgba(0, 53, 102, 0.5)";
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < mapSize; i += 20) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, mapSize); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(mapSize, i); ctx.stroke();
+      }
+
+      // 3. ISLAND
+      ctx.fillStyle = "#1b4332";
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 1000 * scale, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2);
       ctx.fill();
-
-      // 3. Draw NEXT Safe Area (White dashed line)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = "#2d6a4f";
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(
-        centerX + targetZoneCenter[0] * scale, 
-        centerY + targetZoneCenter[1] * scale, 
-        targetZoneRadius * scale, 0, Math.PI * 2
-      );
       ctx.stroke();
 
-      // 4. Draw CURRENT Gas Zone (Red line + shade)
-      ctx.setLineDash([]);
-      ctx.strokeStyle = "#ff0000";
-      ctx.lineWidth = 2;
-      const zX = centerX + zoneCenter[0] * scale;
-      const zY = centerY + zoneCenter[1] * scale;
-      const zR = zoneRadius * scale;
-      
+      // 4. NEXT SAFE AREA (WHITE DASHED)
+      ctx.setLineDash([2, 2]);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
       ctx.beginPath();
-      ctx.arc(zX, zY, zR, 0, Math.PI * 2);
+      ctx.arc(cx + targetZoneCenter[0] * scale, cy + targetZoneCenter[1] * scale, targetZoneRadius * scale, 0, Math.PI * 2);
       ctx.stroke();
+
+      // 5. CURRENT GAS ZONE
+      ctx.setLineDash([]);
+      const gx = cx + zoneCenter[0] * scale;
+      const gy = cy + zoneCenter[1] * scale;
+      const gr = zoneRadius * scale;
       
-      // Outside shade
-      ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+      // Outer Gas Fill
+      ctx.fillStyle = "rgba(255, 0, 0, 0.15)";
       ctx.beginPath();
       ctx.rect(0, 0, mapSize, mapSize);
-      ctx.arc(zX, zY, zR, 0, Math.PI * 2, true);
+      ctx.arc(gx, gy, gr, 0, Math.PI * 2, true);
       ctx.fill();
 
-      // 5. Draw Local Player (Center Triangle - assuming 0,0 for now or add localPos)
-      ctx.fillStyle = "#fff";
+      // Zone Border
+      ctx.strokeStyle = "#ff0000";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY - 6);
-      ctx.lineTo(centerX + 4, centerY + 6);
-      ctx.lineTo(centerX - 4, centerY + 6);
-      ctx.closePath();
-      ctx.fill();
+      ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // 6. Draw Remote Players
+      // 6. REMOTE CONTACTS
       Object.values(players).forEach(p => {
-        const px = centerX + p.position[0] * scale;
-        const py = centerY + p.position[2] * scale;
-        
+        const px = cx + p.position[0] * scale;
+        const py = cy + p.position[2] * scale;
         if (px > 0 && px < mapSize && py > 0 && py < mapSize) {
-          ctx.fillStyle = "#ffcc00";
-          ctx.beginPath();
-          ctx.arc(px, py, 3, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = "#ffc300";
+          ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+          // Radar pulse feel
+          ctx.strokeStyle = "rgba(255, 195, 0, 0.3)";
+          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.stroke();
         }
       });
+
+      // 7. LOCAL PLAYER (CENTER)
+      ctx.fillStyle = "#fff";
+      ctx.shadowBlur = 8; ctx.shadowColor = "#fff";
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 5); ctx.lineTo(cx + 3.5, cy + 4); ctx.lineTo(cx - 3.5, cy + 4);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
 
       requestAnimationFrame(render);
     };
@@ -95,13 +99,10 @@ export function Minimap() {
   }, [players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale]);
 
   return (
-    <div className="relative border-4 border-white/20 rounded-lg overflow-hidden shadow-2xl bg-black/60 backdrop-blur-md">
-      <div className="absolute top-0 left-0 w-full bg-destructive/40 text-[8px] font-black text-center py-0.5 uppercase tracking-widest text-white">Gas Warning</div>
-      <canvas 
-        ref={canvasRef} 
-        width={mapSize} 
-        height={mapSize} 
-      />
+    <div className="relative border-2 border-primary/30 bg-black/40 backdrop-blur-md p-1 shadow-2xl">
+      <div className="absolute -top-2 left-2 px-2 bg-black text-[7px] font-black text-primary tracking-widest border border-primary/20">GPS//LINK</div>
+      <canvas ref={canvasRef} width={mapSize} height={mapSize} className="opacity-90" />
+      <div className="absolute bottom-1 right-1 text-[7px] font-bold text-white/30">ZOOM 1.0x</div>
     </div>
   );
 }
