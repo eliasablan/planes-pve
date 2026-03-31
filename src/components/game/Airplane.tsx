@@ -31,6 +31,8 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const currentThrottle = useRef(25);
   const lastBroadcast = useRef(0);
   const broadcastInterval = 1000 / 30; // 30Hz
+  const spawnTime = useRef(Date.now());
+  const invulnerabilityDuration = 3000; // 3 seconds
 
   // Combat timers
   const lastShot = useRef(0);
@@ -69,39 +71,30 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     rb.current.applyImpulse(vec3(forward).multiplyScalar(currentThrottle.current * delta), true);
 
     // 2. LIFT & STALL PHYSICS
-    // Lift is proportional to speed. At speed 0, gravity wins.
     const liftFactor = Math.min(currentSpeed / stallSpeed, 1.1);
     const liftForce = new THREE.Vector3(0, gravityConst, 0).multiplyScalar(liftFactor);
     const weightForce = new THREE.Vector3(0, -gravityConst, 0);
-    
-    // Apply net vertical force (Lift vs Gravity)
     rb.current.applyImpulse(vec3(liftForce.add(weightForce)).multiplyScalar(delta), true);
 
-    // 3. DRAG (Natural air resistance)
+    // 3. DRAG
     rb.current.setLinvel(vec3(rb.current.linvel()).multiplyScalar(dragCoeff), true);
 
     // 4. ROTATION (Torque)
     const torque = new THREE.Vector3(0, 0, 0);
-    
-    // Mouse Influence (Conditional)
     if (controls.mouseControlEnabled) {
       const targetMousePitch = -controls.mouseY * rotationSpeed * 1.5;
       const targetMouseYaw = -controls.mouseX * rotationSpeed * 1.0;
       torque.add(right.clone().multiplyScalar(targetMousePitch * delta));
       torque.add(up.clone().multiplyScalar(targetMouseYaw * delta));
-
-      // Dynamic camera follow lerp (Only when mouse enabled)
       const camLerp = 0.08;
       state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, controls.mouseX * 3, camLerp);
       state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2.5 - controls.mouseY, camLerp);
     } else {
-      // Reset camera to default center if mouse disabled
       const camLerp = 0.05;
       state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, 0, camLerp);
       state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 2.5, camLerp);
     }
 
-    // Keyboard Overrides (Always active)
     if (controls.pitchUp) torque.add(right.clone().multiplyScalar(rotationSpeed * delta));
     if (controls.pitchDown) torque.add(right.clone().multiplyScalar(-rotationSpeed * delta));
     if (controls.yawLeft) torque.add(up.clone().multiplyScalar(rotationSpeed * 0.8 * delta));
@@ -119,14 +112,12 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       camera.fov = THREE.MathUtils.lerp(75, 95, speedFactor);
       camera.updateProjectionMatrix();
     }
-
     if (speedFactor > 0.6) {
       const shake = (speedFactor - 0.6) * 0.08;
       state.camera.position.x += (Math.random() - 0.5) * shake;
       state.camera.position.y += (Math.random() - 0.5) * shake;
     }
 
-    // Propeller animation
     if (propellerRef.current) {
       propellerRef.current.rotation.z += delta * (currentThrottle.current + currentSpeed);
     }
@@ -165,18 +156,14 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       supabase.channel(`room:${roomName}`).send({
         type: "broadcast",
         event: "move",
-        payload: {
-          id: userId,
-          username,
-          position: [translation.x, translation.y, translation.z],
-          rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
-          hp,
-        }
+        payload: { id: userId, username, position: [translation.x, translation.y, translation.z], rotation: [rotation.x, rotation.y, rotation.z, rotation.w], hp }
       });
     }
   });
 
   const handleCollision = (e: any) => {
+    // Prevent death during first seconds or high-altitude spawns
+    if (Date.now() - spawnTime.current < invulnerabilityDuration) return;
     if (e.other.rigidBodyObject?.name === "ground") {
       setHp(0);
     }
@@ -187,33 +174,26 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       <RigidBody
         ref={rb}
         colliders="cuboid"
-        position={[0, 50, 0]}
+        position={[0, 250, 0]}
         linearDamping={0.5}
         angularDamping={0.5}
         onCollisionEnter={handleCollision}
       >
         <PerspectiveCamera makeDefault position={[0, 2, 6]} fov={75} />
-        
         <group>
           {hp < 75 && (
             <Trail width={1} length={5} color={hp < 40 ? "black" : "white"} attenuation={(t) => t * t}>
               <mesh position={[0, 0, 1]} />
             </Trail>
           )}
-
-          {/* FUSELAGE */}
           <mesh castShadow>
             <boxGeometry args={[0.6, 0.6, 2.5]} />
             <meshStandardMaterial color={hp < 15 ? "#222" : "#4a4e69"} />
           </mesh>
-
-          {/* COCKPIT */}
           <mesh castShadow position={[0, 0.4, 0]}>
             <boxGeometry args={[0.4, 0.3, 0.8]} />
             <meshStandardMaterial color="#8ecae6" transparent opacity={0.6} />
           </mesh>
-
-          {/* PROPELLER */}
           <group position={[0, 0, -1.3]}>
             <mesh ref={propellerRef}>
               <boxGeometry args={[2, 0.1, 0.05]} />
@@ -224,22 +204,17 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
               <meshStandardMaterial color="#333" />
             </mesh>
           </group>
-
-          {/* WINGS */}
           <mesh castShadow position={[0, 0, 0.2]}>
             <boxGeometry args={[4.5, 0.08, 1]} />
             <meshStandardMaterial color="#4a4e69" />
           </mesh>
-
-          {/* TAIL UNIT */}
           <group position={[0, 0, 1.1]}>
             <mesh castShadow><boxGeometry args={[1.5, 0.05, 0.6]} /><meshStandardMaterial color="#4a4e69" /></mesh>
             <mesh castShadow position={[0, 0.4, 0]}><boxGeometry args={[0.05, 0.8, 0.5]} /><meshStandardMaterial color="#4a4e69" /></mesh>
           </group>
         </group>
       </RigidBody>
-
-      {Object.values(bullets).map((b) => (
+      {bullets.map((b) => (
         <Bullet key={b.id} position={b.pos} rotation={b.rot} onHit={() => {}} />
       ))}
     </>
