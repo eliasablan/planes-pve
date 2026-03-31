@@ -63,3 +63,24 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Helper functions to increment stats safely
+CREATE OR REPLACE FUNCTION increment_kills(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE profiles
+  SET total_kills = total_kills + 1,
+      ranking_points = ranking_points + 10
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION increment_wins(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE profiles
+  SET total_wins = total_wins + 1,
+      ranking_points = ranking_points + 50
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
