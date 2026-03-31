@@ -15,16 +15,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const propellerRef = useRef<THREE.Mesh>(null);
   const controls = useControls();
   const { hp, selectedWeapon, ammo, missiles, flares, zoneRadius, zoneCenter } = useGameStore();
-  const { 
-    useAmmo, 
-    useMissile, 
-    useFlare, 
-    setFlightData, 
-    setHp, 
-    setSelectedWeapon, 
-    setShowLargeMap,
-    setLocalPlayerPosition 
-  } = useGameStore();
+  const { useAmmo, useMissile, useFlare, setFlightData, setHp, setSelectedWeapon, setShowLargeMap, setLocalPlayerPosition } = useGameStore();
   
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
@@ -41,7 +32,6 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const invulnerabilityDuration = 3000;
   const lastDamage = useRef(0);
 
-  // COMBAT REFS (RESTORED)
   const lastShot = useRef(0);
   const lastMissile = useRef(0);
   const lastFlare = useRef(0);
@@ -77,18 +67,26 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       return;
     }
 
+    // 1. THROTTLE & THRUST
     if (controls.throttleUp) currentThrottle.current = Math.min(currentThrottle.current + delta * 20, maxThrust);
     if (controls.throttleDown) currentThrottle.current = Math.max(currentThrottle.current - delta * 20, 0);
     if (controls.brake) currentThrottle.current = Math.max(currentThrottle.current - delta * 40, 0);
-    rb.current.applyImpulse(vec3(forward).multiplyScalar(currentThrottle.current * delta), true);
 
+    // Dynamic Gravity Influence (Dive to gain speed, Climb to lose it)
+    const gravityInfluence = -forward.y * gravityConst * 1.5; 
+    const totalForwardThrust = currentThrottle.current + gravityInfluence;
+    rb.current.applyImpulse(vec3(forward).multiplyScalar(totalForwardThrust * delta), true);
+
+    // 2. LIFT & STALL PHYSICS
     const liftFactor = Math.min(currentSpeed / stallSpeed, 1.1);
     const liftForce = new THREE.Vector3(0, gravityConst, 0).multiplyScalar(liftFactor);
     const weightForce = new THREE.Vector3(0, -gravityConst, 0);
     rb.current.applyImpulse(vec3(liftForce.add(weightForce)).multiplyScalar(delta), true);
 
+    // 3. DRAG
     rb.current.setLinvel(vec3(rb.current.linvel()).multiplyScalar(dragCoeff), true);
 
+    // 4. ROTATION (Torque)
     const torque = new THREE.Vector3(0, 0, 0);
     if (controls.mouseControlEnabled) {
       const targetMousePitch = -controls.mouseY * rotationSpeed * 1.5;
@@ -112,6 +110,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     rb.current.applyTorqueImpulse(vec3(torque), true);
     rb.current.setAngvel(vec3(rb.current.angvel()).multiplyScalar(0.96), true);
 
+    // 5. CAMERA DYNAMICS
     const speedFactor = THREE.MathUtils.clamp(currentSpeed / (maxThrust * 1.2), 0, 1);
     const camera = state.camera as THREE.PerspectiveCamera;
     if (camera.fov !== undefined) {
@@ -123,6 +122,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       propellerRef.current.rotation.z += delta * (currentThrottle.current + currentSpeed);
     }
 
+    // 6. TELEMETRY
     const euler = new THREE.Euler().setFromQuaternion(currentRotation, 'YXZ');
     setFlightData({
       altitude: translation.y + 5, 
@@ -132,6 +132,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       heading: (euler.y * 180) / Math.PI
     });
 
+    // 7. SHOOTING & BROADCAST
     const now = Date.now();
     if (controls.fire) {
       if (selectedWeapon === 'mg' && now - lastShot.current > mgInterval && ammo > 0) {

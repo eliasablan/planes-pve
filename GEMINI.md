@@ -1,0 +1,1 @@
+\n## Engineering Standards\n- ALWAYS use the 'writing-plans' and 'executing-plans' flow for any code implementation or refactor.\n- ALWAYS perform full validation (typescript check, build) after any change before claiming completion.

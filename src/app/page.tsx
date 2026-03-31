@@ -112,7 +112,7 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col items-center md:items-start">
                     <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Neural Rank</span>
-                    <span className="text-xs font-black text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20 uppercase">Class-A</span>
+                    <span className="text-xs font-black text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20 uppercase whitespace-nowrap">Class-A</span>
                   </div>
                   <div className="flex flex-col items-center md:items-start">
                     <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Exp. Level</span>
