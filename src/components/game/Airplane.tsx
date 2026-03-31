@@ -6,20 +6,28 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { useControls } from "@/hooks/useControls";
 import { PerspectiveCamera } from "@react-three/drei";
+import { supabase } from "@/lib/supabase";
+import { useGameStore } from "@/store/useGameStore";
 
-export function Airplane() {
+export function Airplane({ userId, username, roomName }: { userId: string, username: string, roomName: string }) {
   const rb = useRef<RapierRigidBody>(null);
   const controls = useControls();
+  const hp = useGameStore((s) => s.hp);
   
   // Physics constants
   const throttlePower = 25;
   const rotationSpeed = 2;
   const damping = 0.98;
   
+  // Broadcasting throttling
+  const lastBroadcast = useRef(0);
+  const broadcastInterval = 1000 / 30; // 30Hz
+
   useFrame((state, delta) => {
     if (!rb.current) return;
 
     const rotation = rb.current.rotation();
+    const translation = rb.current.translation();
     const currentRotation = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
     
     // Calculate direction vectors based on current rotation
@@ -58,6 +66,23 @@ export function Airplane() {
     
     const angVel = rb.current.angvel();
     rb.current.setAngvel(vec3(angVel).multiplyScalar(damping), true);
+
+    // Broadcast position
+    const now = Date.now();
+    if (now - lastBroadcast.current > broadcastInterval) {
+      lastBroadcast.current = now;
+      supabase.channel(`room:${roomName}`).send({
+        type: "broadcast",
+        event: "move",
+        payload: {
+          id: userId,
+          username,
+          position: [translation.x, translation.y, translation.z],
+          rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
+          hp,
+        }
+      });
+    }
   });
 
   return (
