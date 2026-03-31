@@ -8,5 +8,5 @@
 - [x] Task 6: Multiplayer (Supabase Realtime)
 - [x] Task 7: Combat System (MG & Missiles)
 - [x] Task 8: The Zone (Battle Royale)
-- [ ] Task 9: HUD & UI Scenes
+- [x] Task 9: HUD & UI Scenes
 - [ ] Task 10: Persistence & Leaderboard
