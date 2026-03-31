@@ -29,16 +29,22 @@ export default function Scene({
     setGameStatus("playing");
   };
 
+  const handleExit = () => {
+    resetGame();
+    // Redirect back to main page state (this is handled by parent Home component)
+    window.location.reload(); 
+  };
+
   const handleRestart = () => {
     resetGame();
-    window.location.reload(); // Simple reload to reset state
+    window.location.reload(); 
   };
 
   return (
     <MultiplayerProvider userId={userId} username={username} roomName={roomName}>
       <div className="w-full h-full absolute inset-0 bg-black overflow-hidden select-none">
         {gameStatus === "lobby" && (
-          <Lobby roomName={roomName} onStart={handleStart} />
+          <Lobby roomName={roomName} onStart={handleStart} onExit={handleExit} />
         )}
 
         {(gameStatus === "playing" || gameStatus === "countdown") && (

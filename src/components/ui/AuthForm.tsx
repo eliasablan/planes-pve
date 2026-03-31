@@ -6,25 +6,40 @@ import { useGameStore } from "@/store/useGameStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, User, Lock, Loader2 } from "lucide-react";
+import { ShieldCheck, User, Lock, Loader2, Cpu } from "lucide-react";
 
 export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState(""); // Supabase needs email, we can use username@game.com
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   
   const setUser = useGameStore((s) => s.setUser);
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return null;
+    }
+    return data;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Simple hack to support "username" only: we use username@skybound.io as email
-    const emailToUse = `${username.toLowerCase()}@skybound.io`;
+    let emailToUse = username.toLowerCase();
+    if (!emailToUse.includes('@')) {
+      emailToUse = `${emailToUse}@skybound.io`;
+    }
 
     try {
       if (isLogin) {
@@ -34,10 +49,10 @@ export function AuthForm() {
         });
         if (error) throw error;
         if (data.user) {
-          setUser({ id: data.user.id, username: username });
+          const profile = await fetchProfile(data.user.id);
+          setUser(profile);
         }
       } else {
-        // Sign up
         const { data, error } = await supabase.auth.signUp({
           email: emailToUse,
           password,
@@ -47,7 +62,9 @@ export function AuthForm() {
         });
         if (error) throw error;
         if (data.user) {
-          setUser({ id: data.user.id, username: username });
+          // Profile is created by trigger in DB
+          const profile = await fetchProfile(data.user.id);
+          setUser(profile);
         }
       }
     } catch (err: any) {
@@ -58,63 +75,66 @@ export function AuthForm() {
   };
 
   return (
-    <Card className="w-full max-w-md bg-black/80 border-primary/30 backdrop-blur-xl shadow-[0_0_50px_rgba(var(--primary),0.1)]">
-      <CardHeader className="text-center">
-        <div className="mx-auto bg-primary/20 p-3 rounded-full w-fit mb-4">
-          <ShieldCheck className="w-8 h-8 text-primary" />
+    <Card className="w-full max-w-md bg-white/5 border-white/10 backdrop-blur-2xl shadow-2xl rounded-2xl relative overflow-hidden border-t-white/20">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+      
+      <CardHeader className="text-center pt-8">
+        <div className="mx-auto bg-primary/10 p-4 rounded-2xl border border-primary/20 w-fit mb-6 shadow-[0_0_20px_rgba(var(--primary),0.15)]">
+          <Cpu className="w-8 h-8 text-primary" />
         </div>
-        <CardTitle className="text-3xl font-black tracking-tighter text-white">
-          PILOT IDENTIFICATION
+        <CardTitle className="text-4xl font-black tracking-tight text-white mb-1">
+          {isLogin ? "IDENTITY LINK" : "NEW UPLINK"}
         </CardTitle>
-        <CardDescription className="text-primary/60 font-bold uppercase text-[10px] tracking-widest">
-          {isLogin ? "Authorization Required" : "Register New Pilot Unit"}
+        <CardDescription className="text-primary/60 font-bold uppercase text-[10px] tracking-[0.3em]">
+          {isLogin ? "System Access Authorization" : "Register Pilot Biometrics"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <div className="relative">
-              <User className="absolute left-3 top-3 w-4 h-4 text-primary/50" />
+
+      <CardContent className="px-8 pb-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="group relative">
+              <User className="absolute left-4 top-4 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="PILOT NAME"
+                placeholder="PILOT DESIGNATION"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="bg-white/5 border-white/10 pl-10 h-12 font-bold tracking-widest"
+                className="bg-white/5 border-white/10 pl-12 h-14 rounded-xl font-bold tracking-wider text-white placeholder:text-white/20 focus:border-primary/50 transition-all"
                 required
               />
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 w-4 h-4 text-primary/50" />
+            <div className="group relative">
+              <Lock className="absolute left-4 top-4 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
               <Input
                 type="password"
-                placeholder="ACCESS CODE"
+                placeholder="SECURE ACCESS CODE"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-white/5 border-white/10 pl-10 h-12 font-bold tracking-widest"
+                className="bg-white/5 border-white/10 pl-12 h-14 rounded-xl font-bold tracking-wider text-white placeholder:text-white/20 focus:border-primary/50 transition-all"
                 required
               />
             </div>
           </div>
 
           {error && (
-            <div className="bg-destructive/20 border border-destructive text-destructive text-[10px] p-2 font-bold text-center animate-shake">
-              ERROR: {error.toUpperCase()}
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] p-3 rounded-xl font-bold text-center animate-in fade-in zoom-in-95">
+              CRITICAL ERROR: {error.toUpperCase()}
             </div>
           )}
 
           <Button 
-            className="w-full h-14 text-lg font-black tracking-widest skew-x-[-10deg] rounded-none transition-all hover:scale-[1.02]"
+            className="w-full h-14 text-sm font-black tracking-[0.2em] rounded-xl transition-all shadow-xl bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98]"
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin mr-2" /> : (isLogin ? "AUTHORIZE" : "REGISTER UNIT")}
+            {loading ? <Loader2 className="animate-spin mr-2" /> : (isLogin ? "ESTABLISH LINK" : "INITIALIZE UNIT")}
           </Button>
 
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="w-full text-[10px] font-bold text-white/40 hover:text-primary transition-colors py-2 uppercase tracking-widest"
+            className="w-full text-[10px] font-black text-white/30 hover:text-primary transition-all py-2 uppercase tracking-[0.2em]"
           >
-            {isLogin ? "Create New Pilot ID »" : "Existing Unit Login »"}
+            {isLogin ? "Generate New ID" : "Return to Login"}
           </button>
         </form>
       </CardContent>

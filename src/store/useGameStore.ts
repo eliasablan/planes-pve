@@ -19,6 +19,14 @@ export type KillLogEntry = {
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "finished";
 
+export type UserProfile = {
+  id: string;
+  username: string;
+  total_kills: number;
+  total_wins: number;
+  ranking_points: number;
+};
+
 interface GameState {
   // Local Player
   hp: number;
@@ -53,7 +61,7 @@ interface GameState {
   selectedWeapon: 'mg' | 'missile';
   showLargeMap: boolean;
   localPlayerPosition: [number, number];
-  user: { id: string, username: string } | null;
+  user: UserProfile | null;
   
   // Actions
   setHp: (hp: number) => void;
@@ -67,7 +75,7 @@ interface GameState {
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
-  setUser: (user: { id: string, username: string } | null) => void;
+  setUser: (user: UserProfile | null) => void;
   setLocalPlayerPosition: (pos: [number, number]) => void;
   setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number, heading: number }) => void;
   setZoneData: (data: { radius: number, center: [number, number] }) => void;
