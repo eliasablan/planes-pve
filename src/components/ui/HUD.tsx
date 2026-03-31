@@ -2,7 +2,8 @@
 
 import { useGameStore } from "@/store/useGameStore";
 import { Progress } from "@/components/ui/progress";
-import { Crosshair, Shield, Zap, Target, Gauge, ArrowUpCircle } from "lucide-react";
+import { Crosshair, Shield, Zap, Target } from "lucide-react";
+import { Minimap } from "./Minimap";
 
 export function HUD() {
   const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll } = useGameStore();
@@ -10,7 +11,7 @@ export function HUD() {
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 font-mono">
       {/* Top Section: Kill Log & Score */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start w-full">
         <div className="flex flex-col gap-2">
           <div className="bg-black/50 p-4 rounded border border-primary/20 backdrop-blur-md">
             <div className="text-primary font-bold text-xl tracking-tighter">SCORE: {score}</div>
@@ -27,15 +28,22 @@ export function HUD() {
             </div>
           </div>
         </div>
-        
-        <div className="flex flex-col gap-2 items-end">
-          {killLog.map((log) => (
-            <div key={log.id} className="bg-black/50 px-3 py-1 rounded text-sm border-r-4 border-primary backdrop-blur-sm">
-              <span className="text-primary font-bold">{log.killer}</span>
-              <span className="mx-2 text-white/50">✈️</span>
-              <span className="text-destructive font-bold">{log.victim}</span>
-            </div>
-          ))}
+
+        <div className="flex gap-4">
+          <div className="flex flex-col gap-2 items-end">
+            {killLog.map((log) => (
+              <div key={log.id} className="bg-black/50 px-3 py-1 rounded text-sm border-r-4 border-primary backdrop-blur-sm">
+                <span className="text-primary font-bold">{log.killer}</span>
+                <span className="mx-2 text-white/50">✈️</span>
+                <span className="text-destructive font-bold">{log.victim}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Minimap in top right */}
+          <div className="pointer-events-auto">
+            <Minimap />
+          </div>
         </div>
       </div>
 

@@ -45,6 +45,7 @@ interface GameState {
   speed: number;
   pitch: number;
   roll: number;
+  zoneRadius: number;
   
   // Actions
   setHp: (hp: number) => void;
@@ -57,6 +58,7 @@ interface GameState {
   useFlare: () => void;
   
   setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number }) => void;
+  setZoneRadius: (radius: number) => void;
   setGameStatus: (status: GameStatus) => void;
   setMatchId: (id: string | null) => void;
   setStartTime: (time: number | null) => void;
@@ -90,6 +92,7 @@ export const useGameStore = create<GameState>((set) => ({
   speed: 0,
   pitch: 0,
   roll: 0,
+  zoneRadius: 1000,
   
   // Actions
   setHp: (hp) => set({ hp }),
@@ -102,6 +105,7 @@ export const useGameStore = create<GameState>((set) => ({
   useFlare: () => set((state) => ({ flares: Math.max(0, state.flares - 1) })),
   
   setFlightData: (data) => set(data),
+  setZoneRadius: (zoneRadius) => set({ zoneRadius }),
   setGameStatus: (status) => set({ gameStatus: status }),
   setMatchId: (id) => set({ currentMatchId: id }),
   setStartTime: (time) => set({ startTime: time }),
