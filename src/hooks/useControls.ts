@@ -11,6 +11,7 @@ export type Controls = {
   yawRight: boolean;
   fire: boolean;
   flare: boolean;
+  brake: boolean;
   selectMG: boolean;
   selectMissile: boolean;
   mouseX: number;
@@ -29,6 +30,7 @@ export function useControls() {
     yawRight: false,
     fire: false,
     flare: false,
+    brake: false,
     selectMG: false,
     selectMissile: false,
     mouseX: 0,
@@ -44,8 +46,9 @@ export function useControls() {
         case "d": setControls((c) => ({ ...c, rollRight: true })); break;
         case "arrowup": setControls((c) => ({ ...c, pitchUp: true })); break;
         case "arrowdown": setControls((c) => ({ ...c, pitchDown: true })); break;
-        case "q": setControls((c) => ({ ...c, yawLeft: true })); break;
-        case "e": setControls((c) => ({ ...c, yawRight: true })); break;
+        case "arrowleft": setControls((c) => ({ ...c, yawLeft: true })); break;
+        case "arrowright": setControls((c) => ({ ...c, yawRight: true })); break;
+        case "shift": setControls((c) => ({ ...c, brake: true })); break;
         case " ": setControls((c) => ({ ...c, fire: true })); break;
         case "1": setControls((c) => ({ ...c, selectMG: true })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
@@ -61,8 +64,9 @@ export function useControls() {
         case "d": setControls((c) => ({ ...c, rollRight: false })); break;
         case "arrowup": setControls((c) => ({ ...c, pitchUp: false })); break;
         case "arrowdown": setControls((c) => ({ ...c, pitchDown: false })); break;
-        case "q": setControls((c) => ({ ...c, yawLeft: false })); break;
-        case "e": setControls((c) => ({ ...c, yawRight: false })); break;
+        case "arrowleft": setControls((c) => ({ ...c, yawLeft: false })); break;
+        case "arrowright": setControls((c) => ({ ...c, yawRight: false })); break;
+        case "shift": setControls((c) => ({ ...c, brake: false })); break;
         case " ": setControls((c) => ({ ...c, fire: false })); break;
         case "1": setControls((c) => ({ ...c, selectMG: false })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: false })); break;
