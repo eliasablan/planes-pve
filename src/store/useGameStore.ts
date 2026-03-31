@@ -46,6 +46,9 @@ interface GameState {
   pitch: number;
   roll: number;
   zoneRadius: number;
+  zoneCenter: [number, number]; // [x, z]
+  targetZoneRadius: number;
+  targetZoneCenter: [number, number];
   selectedWeapon: 'mg' | 'missile';
   
   // Actions
@@ -60,7 +63,8 @@ interface GameState {
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number }) => void;
-  setZoneRadius: (radius: number) => void;
+  setZoneData: (data: { radius: number, center: [number, number] }) => void;
+  setTargetZoneData: (data: { radius: number, center: [number, number] }) => void;
   setGameStatus: (status: GameStatus) => void;
   setMatchId: (id: string | null) => void;
   setStartTime: (time: number | null) => void;
@@ -95,6 +99,9 @@ export const useGameStore = create<GameState>((set) => ({
   pitch: 0,
   roll: 0,
   zoneRadius: 1000,
+  zoneCenter: [0, 0],
+  targetZoneRadius: 1000,
+  targetZoneCenter: [0, 0],
   selectedWeapon: 'mg',
   
   // Actions
@@ -109,7 +116,8 @@ export const useGameStore = create<GameState>((set) => ({
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setFlightData: (data) => set(data),
-  setZoneRadius: (zoneRadius) => set({ zoneRadius }),
+  setZoneData: (data) => set({ zoneRadius: data.radius, zoneCenter: data.center }),
+  setTargetZoneData: (data) => set({ targetZoneRadius: data.radius, targetZoneCenter: data.center }),
   setGameStatus: (status) => set({ gameStatus: status }),
   setMatchId: (id) => set({ currentMatchId: id }),
   setStartTime: (time) => set({ startTime: time }),
