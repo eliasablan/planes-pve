@@ -128,7 +128,8 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       altitude: translation.y + 5, 
       speed: currentSpeed * 10,
       pitch: (euler.x * 180) / Math.PI,
-      roll: (euler.z * 180) / Math.PI
+      roll: (euler.z * 180) / Math.PI,
+      heading: (euler.y * 180) / Math.PI
     });
 
     const now = Date.now();

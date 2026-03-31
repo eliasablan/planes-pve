@@ -8,7 +8,15 @@ interface MinimapProps {
 }
 
 export function Minimap({ large = false }: MinimapProps) {
-  const { players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter } = useGameStore();
+  const { 
+    players, 
+    localPlayerPosition, 
+    heading,
+    zoneRadius, 
+    zoneCenter, 
+    targetZoneRadius, 
+    targetZoneCenter 
+  } = useGameStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const mapSize = large ? 600 : 180;
@@ -40,20 +48,26 @@ export function Minimap({ large = false }: MinimapProps) {
       }
 
       // 3. TOPOGRAPHY / COASTLINE
-      // Island Base
-      ctx.fillStyle = "#1b4332";
+      // Island Base (Sandy coast)
+      ctx.fillStyle = "#c2b280";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 1050 * scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Grass Layer
+      ctx.fillStyle = "#2d6a4f";
       ctx.beginPath();
       ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2);
       ctx.fill();
       
       // Mountains (Topography)
-      ctx.fillStyle = "#2d6a4f";
-      // Peak 1
+      ctx.fillStyle = "#1b4332";
+      // Peak 1 (0, 0)
       ctx.beginPath(); ctx.arc(cx, cy, 250 * scale, 0, Math.PI * 2); ctx.fill();
-      // Peak 2
-      ctx.beginPath(); ctx.arc(cx + 250 * scale, cy - 150 * scale, 180 * scale, 0, Math.PI * 2); ctx.fill();
-      // Peak 3
-      ctx.beginPath(); ctx.arc(cx - 200 * scale, cy + 200 * scale, 150 * scale, 0, Math.PI * 2); ctx.fill();
+      // Peak 2 (300, -200)
+      ctx.beginPath(); ctx.arc(cx + 300 * scale, cy - 200 * scale, 150 * scale, 0, Math.PI * 2); ctx.fill();
+      // Peak 3 (-250, 300)
+      ctx.beginPath(); ctx.arc(cx - 250 * scale, cy + 300 * scale, 120 * scale, 0, Math.PI * 2); ctx.fill();
 
       // Coastline stroke
       ctx.strokeStyle = "#40916c";
@@ -101,22 +115,31 @@ export function Minimap({ large = false }: MinimapProps) {
       });
 
       // LOCAL PLAYER
+      const lpx = cx + localPlayerPosition[0] * scale;
+      const lpy = cy + localPlayerPosition[1] * scale;
+      
+      ctx.save();
+      ctx.translate(lpx, lpy);
+      ctx.rotate((-heading * Math.PI) / 180); // Rotate by heading
+      
       ctx.fillStyle = "#fff";
       ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
       ctx.beginPath();
-      ctx.moveTo(cx, cy - (large ? 10 : 6));
-      ctx.lineTo(cx + (large ? 7 : 4), cy + (large ? 8 : 5));
-      ctx.lineTo(cx - (large ? 7 : 4), cy + (large ? 8 : 5));
+      ctx.moveTo(0, -(large ? 10 : 6));
+      ctx.lineTo((large ? 7 : 4), (large ? 8 : 5));
+      ctx.lineTo(-(large ? 7 : 4), (large ? 8 : 5));
       ctx.closePath();
       ctx.fill();
       ctx.shadowBlur = 0;
+      ctx.restore();
 
       requestAnimationFrame(render);
     };
 
     const animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale, mapSize]);
+  }, [players, localPlayerPosition, heading, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale, mapSize]);
+
 
   return (
     <div className={`relative border-4 border-white/20 bg-black/60 backdrop-blur-xl shadow-2xl overflow-hidden ${large ? 'rounded-2xl' : 'rounded-lg'}`}>

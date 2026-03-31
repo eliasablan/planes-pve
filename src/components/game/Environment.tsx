@@ -2,7 +2,7 @@
 
 import { Sky, Stars, Environment as DreiEnvironment } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
 
 export function Environment() {
@@ -12,7 +12,7 @@ export function Environment() {
       const angle = Math.random() * Math.PI * 2;
       const radius = 150 + Math.random() * 800;
       items.push({
-        position: [Math.cos(angle) * radius, -1.45, Math.sin(angle) * radius],
+        position: [Math.cos(angle) * radius, -0.95, Math.sin(angle) * radius],
         scale: 0.5 + Math.random() * 1.5,
         type: Math.random() > 0.3 ? "tree" : "rock",
       });
@@ -27,38 +27,39 @@ export function Environment() {
       
       <ambientLight intensity={0.6} />
       <directionalLight
-        position={[100, 200, 100]}
+        position={[150, 300, 150]}
         intensity={1.5}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.005} // Increased bias to kill shadow acne stripes
-        shadow-camera-left={-1500}
-        shadow-camera-right={1500}
-        shadow-camera-top={1500}
-        shadow-camera-bottom={-1500}
+        shadow-bias={0.0001} // Bias positivo para superficies planas
+        shadow-normalBias={0.05} // Fundamental para eliminar rayas (shadow acne)
+        shadow-camera-left={-1200}
+        shadow-camera-right={1200}
+        shadow-camera-top={1200}
+        shadow-camera-bottom={-1200}
       />
 
-      {/* OCEAN - Deep floor */}
+      {/* MAR: Profundidad clara */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]} receiveShadow>
         <planeGeometry args={[10000, 10000]} />
         <meshStandardMaterial color="#003566" roughness={0.2} metalness={0.1} />
       </mesh>
 
       <RigidBody type="fixed" colliders="hull" name="ground">
-        {/* GRASS LAYER - Slightly elevated to avoid sea fighting */}
-        <mesh receiveShadow position={[0, -1.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        {/* CAPA DE PASTO: Elevada a -1.0 */}
+        <mesh receiveShadow position={[0, -1.0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1000, 64]} />
           <meshStandardMaterial color="#2d6a4f" />
         </mesh>
         
-        {/* SAND SHORE - Slightly below grass */}
-        <mesh receiveShadow position={[0, -1.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        {/* CAPA DE ARENA: Bajada a -1.2 para evitar Z-fighting */}
+        <mesh receiveShadow position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1050, 64]} />
           <meshStandardMaterial color="#c2b280" />
         </mesh>
 
-        {/* MOUNTAINS */}
-        <group position={[0, -1.5, 0]}>
+        {/* MONTAÑAS: Ancladas a la capa de pasto */}
+        <group position={[0, -1.0, 0]}>
           <mesh position={[0, 40, 0]} castShadow receiveShadow>
             <coneGeometry args={[250, 80, 8]} />
             <meshStandardMaterial color="#1b4332" />
@@ -73,7 +74,7 @@ export function Environment() {
           </mesh>
         </group>
 
-        {/* PROPS */}
+        {/* OBJETOS: Ajustados a la nueva altura del pasto */}
         {details.map((item, i) => (
           <group key={i} position={item.position as any} scale={item.scale}>
             {item.type === "tree" ? (
