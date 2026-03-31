@@ -15,6 +15,7 @@ export type Controls = {
   selectMG: boolean;
   selectMissile: boolean;
   mouseControlEnabled: boolean;
+  showLargeMap: boolean;
   mouseX: number;
   mouseY: number;
 };
@@ -35,6 +36,7 @@ export function useControls() {
     selectMG: false,
     selectMissile: false,
     mouseControlEnabled: true,
+    showLargeMap: false,
     mouseX: 0,
     mouseY: 0,
   });
@@ -55,7 +57,8 @@ export function useControls() {
         case "1": setControls((c) => ({ ...c, selectMG: true })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
         case "x": setControls((c) => ({ ...c, flare: true })); break;
-        case "m": setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); break;
+        case "o": setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); break;
+        case "m": setControls((c) => ({ ...c, showLargeMap: true })); break;
       }
     };
 
@@ -74,6 +77,7 @@ export function useControls() {
         case "1": setControls((c) => ({ ...c, selectMG: false })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: false })); break;
         case "x": setControls((c) => ({ ...c, flare: false })); break;
+        case "m": setControls((c) => ({ ...c, showLargeMap: false })); break;
       }
     };
 

@@ -7,7 +7,7 @@ import { Minimap } from "./Minimap";
 import { useControls } from "@/hooks/useControls";
 
 export function HUD() {
-  const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll, selectedWeapon } = useGameStore();
+  const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll, selectedWeapon, showLargeMap } = useGameStore();
   const { mouseControlEnabled } = useControls();
 
   const isLowHealth = hp < 30;
@@ -20,6 +20,18 @@ export function HUD() {
         className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle,transparent_50%,rgba(255,0,0,0.4)_100%)]"
         style={{ opacity: Math.max(0, (100 - hp) / 100) }}
       />
+
+      {/* LARGE COMMAND MAP OVERLAY */}
+      {showLargeMap && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md pointer-events-auto">
+          <div className="animate-in zoom-in-95 duration-200">
+            <Minimap large />
+            <div className="text-center mt-4 text-[10px] font-black tracking-[0.5em] text-primary/80 animate-pulse">
+              -- TACTICAL OVERLAY ACTIVE --
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOP HEADER */}
       <div className="flex justify-between items-start w-full relative z-20">
@@ -36,9 +48,14 @@ export function HUD() {
             </div>
           </div>
 
-          <div className={`inline-flex items-center gap-2 px-3 py-1 bg-black border border-white/20 self-start ${mouseControlEnabled ? 'text-primary' : 'text-white/40'}`}>
-            {mouseControlEnabled ? <MousePointer2 className="w-4 h-4" /> : <Keyboard className="w-4 h-4" />}
-            <span className="text-[10px] font-bold">STEERING: {mouseControlEnabled ? 'MOUSE' : 'KEYS'} [M]</span>
+          <div className="flex gap-2">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 bg-black border border-white/20 transition-colors ${mouseControlEnabled ? 'text-primary' : 'text-white/40'}`}>
+              {mouseControlEnabled ? <MousePointer2 className="w-4 h-4" /> : <Keyboard className="w-4 h-4" />}
+              <span className="text-[10px] font-bold">STEERING: {mouseControlEnabled ? 'MOUSE' : 'KEYS'} [O]</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-black border border-white/20 text-white/60">
+              <span className="text-[10px] font-bold text-primary">MAP [M]</span>
+            </div>
           </div>
         </div>
 
@@ -52,17 +69,15 @@ export function HUD() {
               </div>
             ))}
           </div>
-          <Minimap />
+          {!showLargeMap && <Minimap />}
         </div>
       </div>
 
       {/* CENTRAL AREA */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-12 pointer-events-none">
-        {/* SMALL RETICLE */}
         <div className="relative w-16 h-16 opacity-80">
           <Crosshair className="w-full h-full text-primary stroke-[2px]" />
         </div>
-
         {isLowHealth && (
           <div className="bg-destructive text-white px-6 py-2 text-xl font-black tracking-widest animate-pulse border-4 border-white">
             CRITICAL DAMAGE
@@ -72,19 +87,15 @@ export function HUD() {
 
       {/* BOTTOM SECTION */}
       <div className="flex justify-between items-end w-full relative z-20">
-        
-        {/* TELEMETRY */}
         <div className="flex gap-4 items-end">
           <div className="bg-black p-4 border border-white/40 flex flex-col items-center min-w-[100px]">
             <span className="text-[10px] text-white/60 mb-1">ALTITUDE</span>
             <span className="text-3xl font-black tracking-tighter">{Math.round(altitude)}<span className="text-xs ml-1 text-white/40">FT</span></span>
           </div>
-          
           <div className="bg-black p-4 border border-white/40 flex flex-col items-center min-w-[100px]">
             <span className="text-[10px] text-white/60 mb-1">VELOCITY</span>
             <span className="text-3xl font-black tracking-tighter">{Math.round(speed)}<span className="text-xs ml-1 text-white/40">KM/H</span></span>
           </div>
-
           <div className="w-64 bg-black p-4 border border-white/40 mb-0.5">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-black tracking-widest">HULL INTEGRITY</span>
@@ -94,7 +105,6 @@ export function HUD() {
           </div>
         </div>
 
-        {/* WEAPONS */}
         <div className="flex gap-2">
           <div className={`bg-black p-4 border-2 transition-all min-w-[110px] flex flex-col items-center ${selectedWeapon === 'mg' ? 'border-primary scale-110' : 'border-white/10 opacity-40'}`}>
             <span className="text-[10px] font-black mb-1">MG-20 [1]</span>

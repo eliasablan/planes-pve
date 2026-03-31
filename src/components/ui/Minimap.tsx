@@ -3,11 +3,15 @@
 import { useGameStore } from "@/store/useGameStore";
 import { useEffect, useRef } from "react";
 
-export function Minimap() {
+interface MinimapProps {
+  large?: boolean;
+}
+
+export function Minimap({ large = false }: MinimapProps) {
   const { players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter } = useGameStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  const mapSize = 160;
+  const mapSize = large ? 600 : 180;
   const worldSize = 4000;
   const scale = mapSize / worldSize;
 
@@ -22,32 +26,50 @@ export function Minimap() {
       const cx = mapSize / 2;
       const cy = mapSize / 2;
 
-      // 1. BASE MAP (OCEAN)
+      // 1. OCEAN BASE
       ctx.fillStyle = "#001d3d";
       ctx.fillRect(0, 0, mapSize, mapSize);
 
-      // 2. GRID LINES
-      ctx.strokeStyle = "rgba(0, 53, 102, 0.5)";
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < mapSize; i += 20) {
+      // 2. GRID
+      ctx.strokeStyle = "rgba(0, 53, 102, 0.4)";
+      ctx.lineWidth = large ? 1 : 0.5;
+      const step = large ? 40 : 20;
+      for (let i = 0; i < mapSize; i += step) {
         ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, mapSize); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(mapSize, i); ctx.stroke();
       }
 
-      // 3. ISLAND
+      // 3. TOPOGRAPHY / COASTLINE
+      // Island Base
       ctx.fillStyle = "#1b4332";
       ctx.beginPath();
       ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#2d6a4f";
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      
+      // Mountains (Topography)
+      ctx.fillStyle = "#2d6a4f";
+      // Peak 1
+      ctx.beginPath(); ctx.arc(cx, cy, 250 * scale, 0, Math.PI * 2); ctx.fill();
+      // Peak 2
+      ctx.beginPath(); ctx.arc(cx + 250 * scale, cy - 150 * scale, 180 * scale, 0, Math.PI * 2); ctx.fill();
+      // Peak 3
+      ctx.beginPath(); ctx.arc(cx - 200 * scale, cy + 200 * scale, 150 * scale, 0, Math.PI * 2); ctx.fill();
+
+      // Coastline stroke
+      ctx.strokeStyle = "#40916c";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2); ctx.stroke();
 
       // 4. NEXT SAFE AREA (WHITE DASHED)
-      ctx.setLineDash([2, 2]);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(cx + targetZoneCenter[0] * scale, cy + targetZoneCenter[1] * scale, targetZoneRadius * scale, 0, Math.PI * 2);
+      ctx.arc(
+        cx + targetZoneCenter[0] * scale, 
+        cy + targetZoneCenter[1] * scale, 
+        targetZoneRadius * scale, 0, Math.PI * 2
+      );
       ctx.stroke();
 
       // 5. CURRENT GAS ZONE
@@ -56,39 +78,37 @@ export function Minimap() {
       const gy = cy + zoneCenter[1] * scale;
       const gr = zoneRadius * scale;
       
-      // Outer Gas Fill
-      ctx.fillStyle = "rgba(255, 0, 0, 0.15)";
+      ctx.fillStyle = "rgba(255, 0, 0, 0.25)";
       ctx.beginPath();
       ctx.rect(0, 0, mapSize, mapSize);
       ctx.arc(gx, gy, gr, 0, Math.PI * 2, true);
       ctx.fill();
 
-      // Zone Border
       ctx.strokeStyle = "#ff0000";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(gx, gy, gr, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 6. REMOTE CONTACTS
+      // 6. PLAYERS
       Object.values(players).forEach(p => {
         const px = cx + p.position[0] * scale;
         const py = cy + p.position[2] * scale;
         if (px > 0 && px < mapSize && py > 0 && py < mapSize) {
           ctx.fillStyle = "#ffc300";
-          ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
-          // Radar pulse feel
-          ctx.strokeStyle = "rgba(255, 195, 0, 0.3)";
-          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(px, py, large ? 5 : 3, 0, Math.PI * 2); ctx.fill();
         }
       });
 
-      // 7. LOCAL PLAYER (CENTER)
+      // LOCAL PLAYER
       ctx.fillStyle = "#fff";
-      ctx.shadowBlur = 8; ctx.shadowColor = "#fff";
+      ctx.shadowBlur = 10; ctx.shadowColor = "#fff";
       ctx.beginPath();
-      ctx.moveTo(cx, cy - 5); ctx.lineTo(cx + 3.5, cy + 4); ctx.lineTo(cx - 3.5, cy + 4);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(cx, cy - (large ? 10 : 6));
+      ctx.lineTo(cx + (large ? 7 : 4), cy + (large ? 8 : 5));
+      ctx.lineTo(cx - (large ? 7 : 4), cy + (large ? 8 : 5));
+      ctx.closePath();
+      ctx.fill();
       ctx.shadowBlur = 0;
 
       requestAnimationFrame(render);
@@ -96,13 +116,22 @@ export function Minimap() {
 
     const animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale]);
+  }, [players, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale, mapSize]);
 
   return (
-    <div className="relative border-2 border-primary/30 bg-black/40 backdrop-blur-md p-1 shadow-2xl">
-      <div className="absolute -top-2 left-2 px-2 bg-black text-[7px] font-black text-primary tracking-widest border border-primary/20">GPS//LINK</div>
-      <canvas ref={canvasRef} width={mapSize} height={mapSize} className="opacity-90" />
-      <div className="absolute bottom-1 right-1 text-[7px] font-bold text-white/30">ZOOM 1.0x</div>
+    <div className={`relative border-4 border-white/20 bg-black/60 backdrop-blur-xl shadow-2xl overflow-hidden ${large ? 'rounded-2xl' : 'rounded-lg'}`}>
+      <div className={`absolute top-0 left-0 w-full bg-primary/20 text-white font-black text-center uppercase tracking-widest ${large ? 'py-2 text-sm' : 'py-0.5 text-[8px]'}`}>
+        {large ? 'Full Tactical Command Map' : 'GPS Link'}
+      </div>
+      <canvas ref={canvasRef} width={mapSize} height={mapSize} />
+      {large && (
+        <div className="absolute bottom-4 left-6 flex flex-col gap-2 bg-black/80 p-4 border border-white/20 text-[10px] font-bold">
+          <div className="flex items-center gap-2"><div className="w-3 h-3 bg-white" /> LOCAL UNIT</div>
+          <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#ffc300]" /> HOSTILE CONTACT</div>
+          <div className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-red-600" /> GAS PERIMETER</div>
+          <div className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-dashed border-white" /> NEXT SAFE ZONE</div>
+        </div>
+      )}
     </div>
   );
 }
