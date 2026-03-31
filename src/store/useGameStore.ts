@@ -53,6 +53,7 @@ interface GameState {
   selectedWeapon: 'mg' | 'missile';
   showLargeMap: boolean;
   localPlayerPosition: [number, number];
+  user: { id: string, username: string } | null;
   
   // Actions
   setHp: (hp: number) => void;
@@ -66,6 +67,7 @@ interface GameState {
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
+  setUser: (user: { id: string, username: string } | null) => void;
   setLocalPlayerPosition: (pos: [number, number]) => void;
   setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number, heading: number }) => void;
   setZoneData: (data: { radius: number, center: [number, number] }) => void;
@@ -111,6 +113,7 @@ export const useGameStore = create<GameState>((set) => ({
   selectedWeapon: 'mg',
   showLargeMap: false,
   localPlayerPosition: [0, 0],
+  user: null,
   
   // Actions
   setHp: (hp) => set({ hp }),
@@ -124,6 +127,7 @@ export const useGameStore = create<GameState>((set) => ({
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),
+  setUser: (user) => set({ user }),
   setLocalPlayerPosition: (localPlayerPosition) => set({ localPlayerPosition }),
   setFlightData: (data) => set(data),
   setZoneData: (data) => set({ zoneRadius: data.radius, zoneCenter: data.center }),
