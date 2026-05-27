@@ -38,6 +38,7 @@ interface GameState {
   flares: number;
   maxFlares: number;
   score: number;
+  localKills: number;
   
   // Game Context
   gameStatus: GameStatus;
@@ -72,6 +73,8 @@ interface GameState {
   useMissile: () => void;
   setFlares: (flares: number) => void;
   useFlare: () => void;
+  addScore: (points: number) => void;
+  addLocalKill: () => void;
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
@@ -101,6 +104,7 @@ export const useGameStore = create<GameState>((set) => ({
   flares: 2,
   maxFlares: 2,
   score: 0,
+  localKills: 0,
   
   gameStatus: "lobby",
   currentMatchId: null,
@@ -132,6 +136,8 @@ export const useGameStore = create<GameState>((set) => ({
   useMissile: () => set((state) => ({ missiles: Math.max(0, state.missiles - 1) })),
   setFlares: (flares) => set({ flares }),
   useFlare: () => set((state) => ({ flares: Math.max(0, state.flares - 1) })),
+  addScore: (points) => set((state) => ({ score: state.score + points })),
+  addLocalKill: () => set((state) => ({ localKills: state.localKills + 1 })),
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),
@@ -164,7 +170,8 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   
   removePlayer: (id) => set((state) => {
-    const { [id]: _, ...remaining } = state.players;
+    const { [id]: removedPlayer, ...remaining } = state.players;
+    void removedPlayer;
     return { players: remaining };
   }),
   
@@ -181,6 +188,7 @@ export const useGameStore = create<GameState>((set) => ({
     missiles: 2,
     flares: 2,
     score: 0,
+    localKills: 0,
     gameStatus: "lobby",
     killLog: []
   })

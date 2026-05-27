@@ -12,6 +12,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { HUD } from "../ui/HUD";
 import { Lobby } from "../ui/Lobby";
 import { GameOver } from "../ui/GameOver";
+import { resetLocalMatch, startLocalMatch } from "@/lib/matchLifecycle";
 
 export default function Scene({ 
   userId = "player-1", 
@@ -22,21 +23,20 @@ export default function Scene({
   username?: string, 
   roomName?: string 
 }) {
-  const { gameStatus, setGameStatus, players, hp, setStartTime, resetGame } = useGameStore();
+  const { gameStatus, players, hp } = useGameStore();
 
   const handleStart = () => {
-    setStartTime(Date.now());
-    setGameStatus("playing");
+    startLocalMatch();
   };
 
   const handleExit = () => {
-    resetGame();
+    resetLocalMatch();
     // Redirect back to main page state (this is handled by parent Home component)
     window.location.reload(); 
   };
 
   const handleRestart = () => {
-    resetGame();
+    resetLocalMatch();
     window.location.reload(); 
   };
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Skull, RefreshCw, Zap, Target } from "lucide-react";
 
 export function GameOver({ winner, onRestart }: { winner?: string, onRestart: () => void }) {
-  const { score, hp } = useGameStore();
+  const { score, hp, localKills } = useGameStore();
   const isWinner = hp > 0;
 
   return (
@@ -64,7 +64,7 @@ export function GameOver({ winner, onRestart }: { winner?: string, onRestart: ()
                 <Target className="w-3 h-3" />
                 <span className="text-[9px] font-black tracking-widest uppercase">Kills</span>
               </div>
-              <div className="text-4xl font-black text-white">--</div>
+              <div className="text-4xl font-black text-white">{localKills}</div>
               <span className="text-[10px] font-bold text-white/20 uppercase tracking-tighter">Units Down</span>
             </div>
           </div>

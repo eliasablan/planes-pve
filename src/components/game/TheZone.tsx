@@ -12,13 +12,12 @@ export function TheZone({ initialRadius = 1500 }) {
   
   const { startTime, setZoneData, setTargetZoneData } = useGameStore();
   
-  const [phase, setPhase] = useState(0);
+  const [, setPhase] = useState(0);
   const [currentRadius, setCurrentRadius] = useState(initialRadius);
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([0, 0]);
   const [targetRadius, setTargetRadius] = useState(initialRadius);
   const [targetCenter, setTargetCenter] = useState<[number, number]>([0, 0]);
   
-  const lastDamage = useRef(0);
   const phaseDuration = 60000;
 
   useEffect(() => {
@@ -41,7 +40,7 @@ export function TheZone({ initialRadius = 1500 }) {
     return () => clearInterval(interval);
   }, [startTime, initialRadius, currentRadius, currentCenter, setTargetZoneData]);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!startTime) return;
 
     const lerpFactor = delta * 0.1;
@@ -65,17 +64,6 @@ export function TheZone({ initialRadius = 1500 }) {
       // NEXT SAFE AREA
       targetMeshRef.current.position.set(targetCenter[0], -1.35, targetCenter[1]);
       targetMeshRef.current.scale.set(targetRadius, targetRadius, 1);
-    }
-
-    const playerPos = state.camera.position;
-    const dx = playerPos.x - newX;
-    const dz = playerPos.z - newZ;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-
-    if (distance > newRadius && Date.now() - lastDamage.current > 1000) {
-      lastDamage.current = Date.now();
-      const damage = Math.min(25, phase * 2 + 5);
-      useGameStore.getState().reduceHp(damage);
     }
   });
 
