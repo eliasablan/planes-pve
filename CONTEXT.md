@@ -23,16 +23,17 @@ The product is currently implemented as a Next.js App Router application with a 
 - **Leaderboard**: Server-rendered page that reads Supabase profiles ordered by ranking points.
 - **PvE spin-off**: A separate single-player version of the airplane combat game where the pilot fights system-controlled enemies instead of other pilots. Avoid treating it as a multiplayer room variant.
 - **High score**: The best score achieved in a single PvE run. Avoid using PvP ranking points as the primary PvE score term.
-- **Global ranking**: A top-score table for the PvE spin-off ordered by high score and attributed to player-entered arcade names, not authenticated profiles.
+- **Local scoreboard**: The initial PvE top-score table stored in browser `localStorage`. It is scoped to one browser/device and is safe for a Vercel deployment with no configured database.
+- **Global ranking**: A future top-score table for the PvE spin-off ordered by high score and attributed to player-entered arcade names, not authenticated profiles.
 - **Arcade score entry**: A saved PvE ranking record created at the end of a run when the score qualifies for the top 10. It records arcade name, score, wave reached, kills, and creation time.
-- **PvE score store**: The PostgreSQL-backed persistence boundary for arcade score entries in the PvE spin-off. It is separate from the PvP Supabase schema.
-- **Score submission**: The server-side request made after a PvE run to validate an arcade name, check whether the score qualifies for the top 10, save the arcade score entry, and return the updated global ranking.
+- **PvE score store**: The persistence boundary for arcade score entries in the PvE spin-off. The initial implementation is localStorage-only; the future global implementation is expected to use PostgreSQL and remain separate from the PvP Supabase schema.
+- **Score submission**: The future server-side request made after a PvE run to validate an arcade name, check whether the score qualifies for the top 10, save the arcade score entry, and return the updated global ranking. The current local scoreboard performs lightweight client-side validation instead.
 - **Light score validation**: Basic server-side checks for PvE score submissions, such as valid arcade names, plausible score ranges for wave and kills, and simple abuse limits. It is not authoritative anticheat.
 - **Arcade name**: The 3-12 character name entered after a qualifying PvE run. It is displayed in uppercase on the global ranking and is not a login identity.
 - **Run**: One continuous PvE attempt from takeoff until defeat. A run contains many waves and produces one final score.
 - **Combat HUD**: The minimal in-run PvE overlay showing score, wave, enemies remaining, health, machine-gun ammunition, missiles, nearby pickup awareness, and combat-boundary warnings.
 - **Radar**: A compact PvE awareness display showing relative direction of nearby enemy aircraft and pickups. Avoid using the multiplayer tactical minimap as the primary PvE navigation UI.
-- **Arcade flow**: The PvE out-of-run UI sequence: start screen, pause screen, game over summary, conditional arcade-name entry, and updated ranking screen. Avoid multiplayer lobby and profile screens in the initial PvE spin-off.
+- **Arcade flow**: The PvE out-of-run UI sequence: start screen, pause screen, game over summary, conditional arcade-name entry, and updated local scoreboard. Avoid multiplayer lobby and profile screens in the initial PvE spin-off.
 - **Arcade flight**: The PvE flight feel target: responsive, readable, and forgiving enough for combat survival while still preserving airplane momentum and spatial skill.
 - **Graduated collision**: A PvE collision model where strong terrain or water impacts can destroy the airplane, while glancing terrain contact and light enemy collisions cause damage and pushback instead of instant defeat.
 - **Simplified enemy flight**: A PvE enemy movement model with its own heading, speed, turning, pursuit, and attack behavior, without requiring the full player flight physics simulation.
@@ -134,7 +135,7 @@ New Supabase auth users create profiles through a database trigger using `raw_us
 ## Source Map
 
 - `src/app/page.tsx`: authenticated landing page and entry into the game scene
-- `src/app/leaderboard/page.tsx`: Supabase-backed leaderboard
+- `src/app/leaderboard/page.tsx`: localStorage-backed PvE scoreboard surface
 - `src/components/game/Scene.tsx`: game scene composition and UI state switching
 - `src/components/game/Airplane.tsx`: local player simulation, weapons, telemetry, broadcasting, and zone damage
 - `src/components/game/Environment.tsx`: 3D island, ocean, mountains, props, lighting, and fog
