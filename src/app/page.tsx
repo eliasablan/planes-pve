@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Gauge, Play, RotateCcw, Shield, Target, Waves } from "lucide-react";
+import { BookOpen, Gauge, Play, RotateCcw, Shield, Target, Trophy, Waves } from "lucide-react";
 import { resetLocalMatch } from "@/lib/matchLifecycle";
 
 const Scene = dynamic(() => import("@/components/game/Scene"), {
@@ -68,6 +69,17 @@ export default function Home() {
                 <RotateCcw className="h-5 w-5" />
                 Reset run state
               </button>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/42">
+              <Link href="/leaderboard" className="inline-flex items-center gap-2 transition hover:text-[#f4c95d]">
+                <Trophy className="h-3.5 w-3.5" />
+                Ranking
+              </Link>
+              <Link href="/docs" className="inline-flex items-center gap-2 transition hover:text-[#f4c95d]">
+                <BookOpen className="h-3.5 w-3.5" />
+                Asset docs
+              </Link>
             </div>
           </div>
 
