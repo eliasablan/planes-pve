@@ -39,6 +39,9 @@ interface GameState {
   maxFlares: number;
   score: number;
   localKills: number;
+  wave: number;
+  enemiesRemaining: number;
+  boundaryWarning: string | null;
   
   // Game Context
   gameStatus: GameStatus;
@@ -75,6 +78,9 @@ interface GameState {
   useFlare: () => void;
   addScore: (points: number) => void;
   addLocalKill: () => void;
+  setWave: (wave: number) => void;
+  setEnemiesRemaining: (count: number) => void;
+  setBoundaryWarning: (message: string | null) => void;
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
@@ -105,6 +111,9 @@ export const useGameStore = create<GameState>((set) => ({
   maxFlares: 2,
   score: 0,
   localKills: 0,
+  wave: 1,
+  enemiesRemaining: 0,
+  boundaryWarning: null,
   
   gameStatus: "lobby",
   currentMatchId: null,
@@ -138,6 +147,9 @@ export const useGameStore = create<GameState>((set) => ({
   useFlare: () => set((state) => ({ flares: Math.max(0, state.flares - 1) })),
   addScore: (points) => set((state) => ({ score: state.score + points })),
   addLocalKill: () => set((state) => ({ localKills: state.localKills + 1 })),
+  setWave: (wave) => set({ wave }),
+  setEnemiesRemaining: (enemiesRemaining) => set({ enemiesRemaining }),
+  setBoundaryWarning: (boundaryWarning) => set({ boundaryWarning }),
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),
@@ -189,7 +201,13 @@ export const useGameStore = create<GameState>((set) => ({
     flares: 2,
     score: 0,
     localKills: 0,
+    wave: 1,
+    enemiesRemaining: 0,
+    boundaryWarning: null,
     gameStatus: "lobby",
-    killLog: []
+    killLog: [],
+    players: {},
+    showLargeMap: false,
+    selectedWeapon: "mg",
   })
 }));

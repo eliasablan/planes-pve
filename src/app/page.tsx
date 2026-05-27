@@ -1,182 +1,117 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useGameStore } from "@/store/useGameStore";
-import { AuthForm } from "@/components/ui/AuthForm";
-import { supabase } from "@/lib/supabase";
-import { LogOut, User as UserIcon, Trophy, Rocket, ChevronRight, Activity, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { Gauge, Play, RotateCcw, Shield, Target, Waves } from "lucide-react";
+import { resetLocalMatch } from "@/lib/matchLifecycle";
 
-const Scene = dynamic(() => import("@/components/game/Scene"), { ssr: false });
+const Scene = dynamic(() => import("@/components/game/Scene"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-screen items-center justify-center bg-[#05070a] text-sm font-black uppercase tracking-[0.4em] text-white/45">
+      Loading flight deck
+    </div>
+  ),
+});
 
 export default function Home() {
-  const [inGame, setInGame] = useState(false);
-  const { user, setUser } = useGameStore();
+  const [inRun, setInRun] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        // Fetch full profile data
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) setUser(data);
-          });
-      }
-    });
-  }, [setUser]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setInGame(false);
+  const startRun = () => {
+    resetLocalMatch();
+    setInRun(true);
   };
 
-  if (inGame && user) {
-    return <Scene userId={user.id} username={user.username} />;
+  if (inRun) {
+    return <Scene onExit={() => setInRun(false)} />;
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-background text-foreground overflow-hidden relative">
-      
-      {/* Sleek Gradient Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(0,119,182,0.1),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(0,180,216,0.05),transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#05070a] text-white">
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <div className="absolute inset-x-0 top-0 h-2 bg-[linear-gradient(90deg,#f4c95d,#51d6a3,#65a6ff,#f65f5f)]" />
+      <div className="absolute -right-44 top-20 h-[34rem] w-[34rem] rounded-full border border-white/10" />
+      <div className="absolute -right-28 top-36 h-[22rem] w-[22rem] rounded-full border border-white/10" />
 
-      <div className="z-10 max-w-5xl w-full flex flex-col items-center gap-12 sm:gap-20">
-        
-        {/* Hierarchical Header */}
-        <div className="flex flex-col items-center gap-6 text-center">
-          <div className="flex items-center gap-3 px-4 py-1 border border-primary/20 bg-primary/5 rounded-full text-[10px] font-black tracking-[0.4em] text-primary/80 uppercase animate-in fade-in duration-1000">
-            <Activity className="w-3 h-3" /> Digital Signal Synchronized
-          </div>
-          <div className="relative">
-            <h1 className="text-7xl sm:text-9xl font-black tracking-tighter text-white flex items-center justify-center animate-in zoom-in-95 duration-700">
-              SKYBOUND<span className="text-primary italic">BR</span>
+      <section className="relative z-10 flex min-h-screen items-center px-6 py-10">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="max-w-3xl">
+            <div className="mb-7 inline-flex items-center gap-3 border border-[#f4c95d]/45 bg-[#f4c95d]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-[#f4c95d]">
+              <Waves className="h-4 w-4" />
+              PvE survival tracer bullet
+            </div>
+
+            <h1 className="text-balance text-6xl font-black uppercase leading-[0.88] tracking-normal text-white sm:text-8xl lg:text-9xl">
+              Skybound
+              <span className="block text-[#f4c95d]">Survival</span>
             </h1>
-            <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent blur-sm" />
-          </div>
-          <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.5em] max-w-[600px]">
-            Atmospheric Combat Simulation // Neural Link v1.2
-          </p>
-        </div>
 
-        {!user ? (
-          <div className="w-full flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-            <AuthForm />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-12 animate-in fade-in zoom-in-95 duration-700 w-full max-w-3xl">
-            
-            {/* Standardized Pilot Identity Card */}
-            <div className="w-full bg-white/[0.03] border border-white/10 rounded-3xl p-8 backdrop-blur-3xl shadow-2xl relative group border-t-white/20">
-              {/* Card Decoration */}
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-              
-              <div className="flex flex-col md:flex-row items-center gap-10">
-                {/* Avatar Section */}
-                <div className="relative">
-                  <div className="bg-primary/10 p-6 rounded-2xl border border-primary/20 shadow-[0_0_40px_rgba(var(--primary),0.15)] group-hover:scale-105 transition-transform duration-500">
-                    <UserIcon className="w-10 h-10 text-primary" />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-background border border-primary/30 p-1.5 rounded-lg shadow-xl">
-                    <ShieldCheck className="w-4 h-4 text-primary" />
-                  </div>
-                </div>
+            <p className="mt-7 max-w-2xl text-lg font-semibold leading-8 text-white/62">
+              Launch directly into an arcade survival run. This slice strips out login,
+              lobby, realtime rooms, and the shrinking zone so the standalone PvE loop
+              can be played and verified.
+            </p>
 
-                {/* Pilot Info Section */}
-                <div className="flex-1 text-center md:text-left space-y-1">
-                  <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[9px] text-primary font-black uppercase tracking-widest">Active Connection</span>
-                  </div>
-                  <h2 className="text-4xl font-black tracking-tight text-white">{user.username.toUpperCase()}</h2>
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Uplink ID: {user.id.slice(0, 8)}</p>
-                </div>
-
-                {/* Vertical Divider (Desktop) */}
-                <div className="hidden md:block w-px h-20 bg-white/10" />
-
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-                  <div className="flex flex-col items-center md:items-start">
-                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Combat Wins</span>
-                    <span className="text-2xl font-black text-white">{user.total_wins}</span>
-                  </div>
-                  <div className="flex flex-col items-center md:items-start">
-                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Total Kills</span>
-                    <span className="text-2xl font-black text-primary">{user.total_kills}</span>
-                  </div>
-                  <div className="flex flex-col items-center md:items-start">
-                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Neural Rank</span>
-                    <span className="text-xs font-black text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20 uppercase whitespace-nowrap">Class-A</span>
-                  </div>
-                  <div className="flex flex-col items-center md:items-start">
-                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Exp. Level</span>
-                    <span className="text-xs font-black text-white italic">{Math.floor(user.ranking_points / 100)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-white/20">
-                <span className="uppercase tracking-[0.2em]">Pilot Protocol // Secure v2.4</span>
-                <button 
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 hover:text-destructive transition-colors uppercase tracking-widest group/out"
-                >
-                  Terminate Link
-                  <LogOut className="w-3 h-3 group-hover/out:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-
-            {/* Standardized Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 w-full max-w-xl">
-              <button 
-                onClick={() => setInGame(true)}
-                className="flex-[2] h-20 bg-primary text-primary-foreground text-2xl font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl flex items-center justify-center gap-4 group overflow-hidden relative"
+            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+              <button
+                onClick={startRun}
+                className="inline-flex h-16 items-center justify-center gap-3 bg-[#f4c95d] px-8 text-lg font-black uppercase tracking-[0.18em] text-black transition hover:bg-[#ffe08a] active:scale-[0.99]"
               >
-                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                DEPLOY TO ZONE
-                <Rocket className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                <Play className="h-5 w-5 fill-current" />
+                Play
               </button>
-              
-              <a 
-                href="/leaderboard"
-                className="flex-1 h-20 border border-white/10 bg-white/5 rounded-2xl text-white text-lg font-black hover:bg-white/10 hover:border-primary/40 transition-all flex items-center justify-center gap-3 group"
+              <button
+                onClick={() => resetLocalMatch()}
+                className="inline-flex h-16 items-center justify-center gap-3 border border-white/18 bg-white/[0.04] px-8 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-white/35 hover:bg-white/[0.08]"
               >
-                <Trophy className="w-5 h-5 text-yellow-500/60" />
-                PILOTS
-                <ChevronRight className="w-4 h-4 opacity-30 group-hover:translate-x-1 transition-transform" />
-              </a>
+                <RotateCcw className="h-5 w-5" />
+                Reset run state
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Global Footer info */}
-        <div className="mt-12 flex flex-col items-center gap-4 opacity-60">
-          <div className="flex gap-10 text-[9px] font-black tracking-[0.4em] text-primary/80 uppercase">
-            <span>Encrypted Datafeed</span>
-            <span>Realtime Sync: OK</span>
+          <div className="relative min-h-[24rem] border border-white/14 bg-black/35 p-5 shadow-2xl backdrop-blur-md">
+            <div className="absolute inset-x-5 top-5 flex items-center justify-between border-b border-white/10 pb-4 text-[10px] font-black uppercase tracking-[0.24em] text-white/42">
+              <span>Flight readiness</span>
+              <span>Solo</span>
+            </div>
+
+            <div className="mt-20 grid gap-3">
+              <ReadinessRow icon={<Gauge />} label="Immediate airborne spawn" value="Ready" />
+              <ReadinessRow icon={<Shield />} label="Auth and lobby removed" value="Ready" />
+              <ReadinessRow icon={<Target />} label="Combat HUD placeholder" value="Ready" />
+              <ReadinessRow icon={<Waves />} label="Wave systems pending" value="Next" muted />
+            </div>
+
+            <div className="absolute bottom-5 left-5 right-5 border-t border-white/10 pt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/38">
+              Run ends when the aircraft is destroyed
+            </div>
           </div>
-          <div className="h-[1px] w-64 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
-      </div>
-
-      {/* Fixed Signature */}
-      <a 
-        href="https://eliasablan.dev" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black tracking-[0.2em] text-white/20 hover:text-primary transition-all uppercase flex items-center gap-2 group bg-black/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 hover:border-primary/30 pointer-events-auto whitespace-nowrap"
-      >
-        <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-        Developed by Elias Ablan
-      </a>
+      </section>
     </main>
+  );
+}
+
+function ReadinessRow({
+  icon,
+  label,
+  value,
+  muted = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between border border-white/10 bg-white/[0.035] px-4 py-4 ${muted ? "opacity-55" : ""}`}>
+      <div className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.12em] text-white/74">
+        <span className="text-[#51d6a3] [&_svg]:h-5 [&_svg]:w-5">{icon}</span>
+        {label}
+      </div>
+      <span className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f4c95d]">{value}</span>
+    </div>
   );
 }

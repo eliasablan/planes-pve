@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Skybound Battle Royale",
-  description: "High-performance multiplayer airplane combat",
+  title: "Skybound Survival",
+  description: "Single-player arcade airplane survival",
 };
 
 export default function RootLayout({

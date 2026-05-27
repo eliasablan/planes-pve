@@ -9,14 +9,11 @@ import { PerspectiveCamera, Trail } from "@react-three/drei";
 import { useGameStore } from "@/store/useGameStore";
 import { Bullet } from "./Projectiles";
 import {
-  applyLocalDamage,
   DAMAGE,
+  applyLocalDamage,
   eliminateLocalPlayer,
-  resolveFlareUse,
   resolveMachineGunShot,
-  resolveMissileFire,
 } from "@/lib/combatResolution";
-import { publishLocalSnapshot } from "@/lib/realtimeRoom";
 import {
   applyFlightForces,
   applyFlightTorque,
@@ -27,12 +24,20 @@ import {
   nextThrottle,
 } from "@/lib/flightFrame";
 
-export function Airplane({ userId, username, roomName }: { userId: string, username: string, roomName: string }) {
+export function Airplane({ userId, username, roomName }: { userId: string, username: string, roomName?: string }) {
   const rb = useRef<RapierRigidBody>(null);
   const propellerRef = useRef<THREE.Mesh>(null);
   const controls = useControls();
-  const { hp, selectedWeapon, ammo, missiles, flares, zoneRadius, zoneCenter } = useGameStore();
-  const { setFlightData, setSelectedWeapon, setShowLargeMap, setLocalPlayerPosition } = useGameStore();
+  const { hp, selectedWeapon, ammo, missiles } = useGameStore();
+  const {
+    setFlightData,
+    setSelectedWeapon,
+    setShowLargeMap,
+    setLocalPlayerPosition,
+    setBoundaryWarning,
+    useAmmo: consumeAmmo,
+    useMissile: consumeMissile,
+  } = useGameStore();
   
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
@@ -45,10 +50,10 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
 
   const lastShot = useRef(0);
   const lastMissile = useRef(0);
-  const lastFlare = useRef(0);
   const mgInterval = 150; 
   const missileInterval = 2000;
-  const flareInterval = 1000;
+  const warningRadius = 3800;
+  const damageRadius = 4600;
 
   useEffect(() => {
     spawnTime.current = Date.now();
@@ -94,13 +99,15 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     if (controls.fire) {
       if (selectedWeapon === 'mg' && now - lastShot.current > mgInterval && ammo > 0) {
         lastShot.current = now;
-        const shot = resolveMachineGunShot({
-          roomName,
-          shooterId: userId,
-          shooterName: username,
-          position: [translation.x, translation.y, translation.z],
-          forward: [basis.forward.x, basis.forward.y, basis.forward.z],
-        });
+        const shot = roomName
+          ? resolveMachineGunShot({
+              roomName,
+              shooterId: userId,
+              shooterName: username,
+              position: [translation.x, translation.y, translation.z],
+              forward: [basis.forward.x, basis.forward.y, basis.forward.z],
+            })
+          : { fired: (consumeAmmo(), true) };
 
         if (shot.fired) {
           const bId = crypto.randomUUID();
@@ -109,32 +116,33 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
         }
       } else if (selectedWeapon === 'missile' && now - lastMissile.current > missileInterval && missiles > 0) {
         lastMissile.current = now;
-        resolveMissileFire();
+        consumeMissile();
       }
     }
 
-    if (controls.flare && now - lastFlare.current > flareInterval && flares > 0) {
-      lastFlare.current = now;
-      resolveFlareUse();
-    }
-
-    if (now - lastBroadcast.current > broadcastInterval) {
+    if (roomName && now - lastBroadcast.current > broadcastInterval) {
       lastBroadcast.current = now;
-      void publishLocalSnapshot(roomName, {
-        id: userId,
-        username,
-        position: [translation.x, translation.y, translation.z],
-        rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
-        hp
+      void import("@/lib/realtimeRoom").then(({ publishLocalSnapshot }) => {
+        void publishLocalSnapshot(roomName, {
+          id: userId,
+          username,
+          position: [translation.x, translation.y, translation.z],
+          rotation: [rotation.x, rotation.y, rotation.z, rotation.w],
+          hp,
+        });
       });
     }
 
-    const dx = translation.x - zoneCenter[0];
-    const dz = translation.z - zoneCenter[1];
-    const distToCenter = Math.sqrt(dx * dx + dz * dz);
-    if (distToCenter > zoneRadius && now - lastDamage.current > 1000) {
+    const distToCenter = Math.sqrt(translation.x * translation.x + translation.z * translation.z);
+    if (distToCenter > warningRadius) {
+      setBoundaryWarning("Return to combat airspace");
+    } else {
+      setBoundaryWarning(null);
+    }
+
+    if (distToCenter > damageRadius && now - lastDamage.current > 1000) {
       lastDamage.current = now;
-      applyLocalDamage(DAMAGE.zone);
+      applyLocalDamage(DAMAGE.collision / 5);
     }
   });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { RigidBody, RapierRigidBody, vec3, quat } from "@react-three/rapier";
+import { RigidBody, RapierRigidBody, vec3 } from "@react-three/rapier";
 import { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
 
@@ -20,7 +20,7 @@ export function Bullet({ position, rotation, onHit }: BulletProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (!rb.current || !alive) return;
     const q = new THREE.Quaternion(...rotation);
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
@@ -33,7 +33,7 @@ export function Bullet({ position, rotation, onHit }: BulletProps) {
     <RigidBody
       ref={rb}
       position={position}
-      rotation={[rotation[0], rotation[1], rotation[2], rotation[3]] as any}
+      rotation={quaternionToEulerTuple(rotation)}
       sensor
       onIntersectionEnter={onHit}
       colliders="ball"
@@ -46,7 +46,7 @@ export function Bullet({ position, rotation, onHit }: BulletProps) {
   );
 }
 
-export function Missile({ position, rotation, targetId, onHit }: BulletProps & { targetId?: string }) {
+export function Missile({ position, rotation, onHit }: BulletProps & { targetId?: string }) {
   const rb = useRef<RapierRigidBody>(null);
   const [alive, setAlive] = useState(true);
 
@@ -55,7 +55,7 @@ export function Missile({ position, rotation, targetId, onHit }: BulletProps & {
     return () => clearTimeout(timer);
   }, []);
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (!rb.current || !alive) return;
     const q = new THREE.Quaternion(...rotation);
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
@@ -69,7 +69,7 @@ export function Missile({ position, rotation, targetId, onHit }: BulletProps & {
     <RigidBody
       ref={rb}
       position={position}
-      rotation={[rotation[0], rotation[1], rotation[2], rotation[3]] as any}
+      rotation={quaternionToEulerTuple(rotation)}
       sensor
       onIntersectionEnter={onHit}
       colliders="ball"
@@ -86,4 +86,9 @@ export function Missile({ position, rotation, targetId, onHit }: BulletProps & {
       </group>
     </RigidBody>
   );
+}
+
+function quaternionToEulerTuple(rotation: [number, number, number, number]) {
+  const euler = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(...rotation));
+  return [euler.x, euler.y, euler.z] as [number, number, number];
 }

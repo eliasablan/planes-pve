@@ -6,7 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, User, Lock, Loader2, Cpu } from "lucide-react";
+import { User, Lock, Loader2, Cpu } from "lucide-react";
 
 export function AuthForm() {
   const [loading, setLoading] = useState(false);
@@ -67,8 +67,8 @@ export function AuthForm() {
           setUser(profile);
         }
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }

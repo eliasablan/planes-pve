@@ -27,7 +27,7 @@ export function Lobby({ roomName, onStart, onExit }: { roomName: string, onStart
             SQUAD <span className="text-primary italic">HUB</span>
           </CardTitle>
           <CardDescription className="text-white/30 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">
-            Sector: {roomName.toUpperCase()} // Neural Link Established
+            Sector: {roomName.toUpperCase()} / Neural Link Established
           </CardDescription>
         </CardHeader>
 
@@ -126,7 +126,7 @@ export function Lobby({ roomName, onStart, onExit }: { roomName: string, onStart
           <div className="mt-8 text-center flex items-center justify-center gap-4 opacity-20">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white" />
             <Cpu className="w-3 h-3" />
-            <span className="text-[8px] font-black tracking-[0.4em] uppercase whitespace-nowrap">Neural Link Protocol v2.4 // Delta Node</span>
+            <span className="text-[8px] font-black tracking-[0.4em] uppercase whitespace-nowrap">Neural Link Protocol v2.4 / Delta Node</span>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white" />
           </div>
         </CardContent>

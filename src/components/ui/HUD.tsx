@@ -2,137 +2,96 @@
 
 import { useGameStore } from "@/store/useGameStore";
 import { Progress } from "@/components/ui/progress";
-import { Crosshair, Shield, Zap, Target, MousePointer2, Keyboard, AlertTriangle, Radio, Map as MapIcon } from "lucide-react";
-import { Minimap } from "./Minimap";
+import { AlertTriangle, Crosshair, Gauge, HeartPulse, MousePointer2, Radar, Rocket, Shell, Target } from "lucide-react";
 import { useControls } from "@/hooks/useControls";
+import type { ReactNode } from "react";
 
 export function HUD() {
-  const { hp, ammo, missiles, flares, killLog, score, altitude, speed, pitch, roll, selectedWeapon, showLargeMap } = useGameStore();
+  const {
+    hp,
+    ammo,
+    missiles,
+    score,
+    altitude,
+    speed,
+    selectedWeapon,
+    wave,
+    enemiesRemaining,
+    boundaryWarning,
+  } = useGameStore();
   const { mouseControlEnabled } = useControls();
-
   const isLowHealth = hp < 30;
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 font-mono select-none overflow-hidden text-white uppercase">
-      
-      {/* IMMERSIVE GAS VIGNETTE */}
-      <div 
-        className="absolute inset-0 transition-opacity duration-1000 bg-[radial-gradient(circle,transparent_40%,rgba(0,180,216,0.2)_100%)]"
-        style={{ opacity: Math.max(0, (100 - hp) / 100) }}
+    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
+      <div
+        className="absolute inset-0 transition-opacity duration-700"
+        style={{
+          opacity: Math.max(0, (100 - hp) / 100),
+          background: "radial-gradient(circle, transparent 42%, rgba(246,95,95,0.24) 100%)",
+        }}
       />
 
-      {/* LARGE COMMAND MAP OVERLAY */}
-      {showLargeMap && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl pointer-events-auto">
-          <div className="animate-in zoom-in-95 duration-300 relative">
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 text-primary">
-              <MapIcon className="w-5 h-5" />
-              <span className="text-xl font-black tracking-[0.4em]">TACTICAL DISPLAY</span>
-            </div>
-            <Minimap large />
-            <div className="text-center mt-6 text-[10px] font-black tracking-[0.5em] text-white/40">
-              PRESS [M] TO DISCONNECT UPLINK
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TOP HEADER */}
-      <div className="flex justify-between items-start w-full relative z-20">
-        <div className="flex flex-col gap-3">
-          {/* Main Status Bar */}
-          <div className="flex items-center gap-6 bg-white/5 border border-white/10 px-5 py-3 backdrop-blur-xl rounded-xl shadow-2xl">
-            <div className="flex flex-col">
-              <span className="text-[9px] text-primary font-black tracking-widest leading-none mb-1">UNIT ID</span>
-              <span className="text-lg font-black text-white tracking-tighter">ACE-01</span>
-            </div>
-            <div className="h-8 w-px bg-white/10" />
-            <div className="flex flex-col">
-              <span className="text-[9px] text-primary font-black tracking-widest leading-none mb-1">MISSION SCORE</span>
-              <span className="text-lg font-black text-white tracking-tighter">{score.toString().padStart(6, '0')}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg transition-all ${mouseControlEnabled ? 'text-primary border-primary/30' : 'text-white/30'}`}>
-              {mouseControlEnabled ? <MousePointer2 className="w-3.5 h-3.5" /> : <Keyboard className="w-3.5 h-3.5" />}
-              <span className="text-[10px] font-black tracking-wider">Steer: {mouseControlEnabled ? 'Direct' : 'Keys'} [O]</span>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white/60">
-              <MapIcon className="w-3.5 h-3.5 text-accent" />
-              <span className="text-[10px] font-black tracking-wider text-accent">Map [M]</span>
-            </div>
-          </div>
+      <div className="relative z-10 flex items-start justify-between gap-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric label="Score" value={score.toString().padStart(6, "0")} />
+          <Metric label="Wave" value={wave.toString().padStart(2, "0")} />
+          <Metric label="Enemies" value={enemiesRemaining.toString().padStart(2, "0")} accent />
         </div>
 
-        {/* KILL FEED */}
-        <div className="flex gap-6 items-start">
-          <div className="flex flex-col gap-1.5 items-end">
-            {killLog.slice(0, 3).map((log) => (
-              <div key={log.id} className="bg-black/60 border-r-4 border-primary px-4 py-1.5 rounded-l-md text-[11px] backdrop-blur-md animate-in slide-in-from-right fade-in">
-                <span className="font-bold text-white/90">{log.killer}</span>
-                <span className="mx-2 text-primary/40 font-black">»</span>
-                <span className="text-destructive font-black underline underline-offset-4">{log.victim}</span>
-              </div>
-            ))}
+        <div className="hidden items-center gap-4 border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-md sm:flex">
+          <Radar className="h-5 w-5 text-[#51d6a3]" />
+          <div className="relative h-20 w-20 rounded-full border border-[#51d6a3]/45 bg-[#51d6a3]/8">
+            <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 bg-white" />
+            <div className="absolute left-[66%] top-[30%] h-2 w-2 bg-[#f65f5f]" />
+            <div className="absolute bottom-3 left-5 h-2 w-2 bg-[#f4c95d]" />
+            <div className="absolute inset-3 rounded-full border border-white/12" />
           </div>
-          {!showLargeMap && <Minimap />}
         </div>
       </div>
 
-      {/* CENTRAL AREA */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-12 pointer-events-none">
-        <div className="relative w-20 h-20 opacity-60">
-          <Crosshair className="w-full h-full text-primary stroke-[1.5px]" />
-          <div className="absolute inset-[-20%] border-primary/20 border-2 rounded-full animate-pulse" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
+        <div className="relative h-20 w-20 opacity-75">
+          <Crosshair className="h-full w-full text-[#f4c95d] stroke-[1.5px]" />
+          <div className="absolute inset-[-18%] rounded-full border border-[#f4c95d]/25" />
         </div>
+
+        {boundaryWarning && (
+          <div className="flex items-center gap-3 border border-[#f65f5f]/60 bg-[#f65f5f]/20 px-5 py-3 text-xs font-black uppercase tracking-[0.24em] text-[#ffd0d0] backdrop-blur-md">
+            <AlertTriangle className="h-4 w-4" />
+            {boundaryWarning}
+          </div>
+        )}
+
         {isLowHealth && (
-          <div className="bg-destructive/90 text-white px-8 py-3 text-xl font-black tracking-[0.2em] animate-pulse rounded-lg shadow-[0_0_40px_rgba(255,0,0,0.4)] border-2 border-white/20">
-            SYSTEM CRITICAL
+          <div className="border border-[#f65f5f]/70 bg-[#f65f5f]/80 px-6 py-3 text-sm font-black uppercase tracking-[0.24em] text-white">
+            Airframe critical
           </div>
         )}
       </div>
 
-      {/* BOTTOM SECTION */}
-      <div className="flex justify-between items-end w-full relative z-20">
-        <div className="flex gap-4 items-end">
-          {/* Telemetry Boxes */}
-          <TelemetryBox label="Altitude" value={Math.round(altitude)} unit="FT" />
-          <TelemetryBox label="Velocity" value={Math.round(speed)} unit="KM/H" color="text-accent" />
-
-          {/* Integrity Bar */}
-          <div className="w-72 bg-black/40 border border-white/10 p-4 rounded-xl backdrop-blur-xl">
-            <div className="flex justify-between items-center mb-2.5">
-              <div className="flex items-center gap-2">
-                <Shield className={`w-3.5 h-3.5 ${isLowHealth ? 'text-destructive' : 'text-primary'}`} />
-                <span className="text-[10px] font-black tracking-[0.2em] text-white/60">Integrity</span>
-              </div>
-              <span className={`text-lg font-black ${isLowHealth ? 'text-destructive' : 'text-primary'}`}>{hp}%</span>
+      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-wrap gap-3">
+          <Telemetry icon={<Gauge />} label="Altitude" value={Math.round(altitude)} unit="ft" />
+          <Telemetry icon={<Target />} label="Speed" value={Math.round(speed)} unit="kmh" />
+          <div className="min-w-64 border border-white/12 bg-black/45 p-4 backdrop-blur-md">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/55">
+                <HeartPulse className={`h-4 w-4 ${isLowHealth ? "text-[#f65f5f]" : "text-[#51d6a3]"}`} />
+                Health
+              </span>
+              <span className={`text-2xl font-black ${isLowHealth ? "text-[#f65f5f]" : "text-[#51d6a3]"}`}>{hp}%</span>
             </div>
-            <Progress value={hp} className={`h-2 bg-white/5 ${isLowHealth ? '[&>div]:bg-destructive' : '[&>div]:bg-primary'}`} />
+            <Progress value={hp} className={`h-2 bg-white/10 ${isLowHealth ? "[&>div]:bg-[#f65f5f]" : "[&>div]:bg-[#51d6a3]"}`} />
           </div>
         </div>
 
-        {/* WEAPONS */}
-        <div className="flex gap-3">
-          <WeaponBox 
-            label="MG-20" 
-            count={ammo} 
-            active={selectedWeapon === 'mg'} 
-            shortcut="1" 
-            icon={<Zap className="w-4 h-4" />}
-          />
-          <WeaponBox 
-            label="AGM-65" 
-            count={missiles} 
-            active={selectedWeapon === 'missile'} 
-            shortcut="2" 
-            color="accent"
-            icon={<Target className="w-4 h-4" />}
-          />
-          <div className="bg-black/40 border border-white/10 p-4 flex flex-col items-center min-w-[90px] rounded-xl backdrop-blur-md opacity-60">
-            <span className="text-[9px] font-black mb-1.5 text-blue-400/60 tracking-widest text-center">Flare [X]</span>
-            <span className="text-3xl font-black text-blue-400/80">{flares}</span>
+        <div className="flex flex-wrap justify-end gap-3">
+          <Weapon label="MG" count={ammo} active={selectedWeapon === "mg"} shortcut="1" icon={<Shell />} />
+          <Weapon label="Missile" count={missiles} active={selectedWeapon === "missile"} shortcut="2" icon={<Rocket />} />
+          <div className="flex min-w-36 items-center gap-3 border border-white/12 bg-black/45 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur-md">
+            <MousePointer2 className="h-4 w-4 text-[#65a6ff]" />
+            {mouseControlEnabled ? "Mouse steer" : "Key steer"}
           </div>
         </div>
       </div>
@@ -140,29 +99,60 @@ export function HUD() {
   );
 }
 
-function TelemetryBox({ label, value, unit, color = "text-white" }: any) {
+function Metric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="bg-black/40 border border-white/10 p-4 flex flex-col items-center min-w-[110px] rounded-xl backdrop-blur-xl">
-      <span className="text-[9px] font-black text-white/40 mb-1 tracking-widest">{label}</span>
-      <span className={`text-3xl font-black tracking-tighter ${color}`}>
-        {value}<span className="text-[10px] ml-1 opacity-30">{unit}</span>
-      </span>
+    <div className="min-w-32 border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-md">
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/44">{label}</div>
+      <div className={`mt-1 text-3xl font-black leading-none ${accent ? "text-[#f4c95d]" : "text-white"}`}>{value}</div>
     </div>
   );
 }
 
-function WeaponBox({ label, count, active, shortcut, color = "primary", icon }: any) {
-  const activeColor = color === "primary" ? "text-primary" : "text-accent";
-  const activeBorder = color === "primary" ? "border-primary/50" : "border-accent/50";
-  const activeBg = color === "primary" ? "bg-primary/10" : "bg-accent/10";
-
+function Telemetry({
+  icon,
+  label,
+  value,
+  unit,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: number;
+  unit: string;
+}) {
   return (
-    <div className={`p-4 border-2 transition-all duration-500 min-w-[110px] flex flex-col items-center rounded-xl backdrop-blur-md ${active ? `${activeBorder} ${activeBg} scale-110 shadow-2xl` : 'border-white/5 opacity-30'}`}>
-      <div className={`flex items-center gap-1.5 mb-1 ${active ? activeColor : 'text-white/40'}`}>
-        {icon}
-        <span className="text-[9px] font-black tracking-tighter uppercase">{label} [{shortcut}]</span>
+    <div className="min-w-36 border border-white/12 bg-black/45 p-4 backdrop-blur-md">
+      <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+        <span className="text-[#65a6ff] [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+        {label}
       </div>
-      <span className={`text-3xl font-black ${active ? 'text-white' : 'text-white/60'}`}>{count}</span>
+      <div className="text-3xl font-black leading-none">
+        {value}
+        <span className="ml-1 text-[10px] uppercase text-white/35">{unit}</span>
+      </div>
+    </div>
+  );
+}
+
+function Weapon({
+  label,
+  count,
+  active,
+  shortcut,
+  icon,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  shortcut: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className={`min-w-32 border p-4 backdrop-blur-md ${active ? "border-[#f4c95d]/65 bg-[#f4c95d]/12" : "border-white/10 bg-black/40 opacity-65"}`}>
+      <div className={`mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] ${active ? "text-[#f4c95d]" : "text-white/42"}`}>
+        <span className="[&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+        {label} [{shortcut}]
+      </div>
+      <div className="text-3xl font-black leading-none text-white">{count}</div>
     </div>
   );
 }

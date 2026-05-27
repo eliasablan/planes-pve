@@ -15,7 +15,7 @@ export function RemoteAirplane({ data }: RemoteAirplaneProps) {
   const targetPos = new THREE.Vector3(...data.position);
   const targetRot = new THREE.Quaternion(...data.rotation);
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     if (!meshRef.current) return;
 
     // Smoothly interpolate position and rotation

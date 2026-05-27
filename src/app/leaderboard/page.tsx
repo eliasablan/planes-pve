@@ -1,112 +1,63 @@
-import { supabase } from "@/lib/supabase";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Award, Target, Rocket, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Trophy } from "lucide-react";
 
-export default async function Leaderboard() {
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("ranking_points", { ascending: false })
-    .limit(10);
+const placeholderRows = [
+  { rank: 1, name: "ACE", score: 0, wave: 0, kills: 0 },
+  { rank: 2, name: "JET", score: 0, wave: 0, kills: 0 },
+  { rank: 3, name: "SKY", score: 0, wave: 0, kills: 0 },
+];
 
+export default function Leaderboard() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-background relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[150px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[150px]" />
-
-      <Card className="w-full max-w-4xl border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl rounded-3xl relative overflow-hidden border-t-white/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-        
-        <CardHeader className="text-center pt-12 pb-8 border-b border-white/5">
-          <div className="flex items-center justify-center gap-3 text-primary mb-3">
-            <Award className="w-6 h-6" />
-            <span className="text-[10px] font-black tracking-[0.5em] uppercase">Global Combat Leaderboard</span>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#05070a] p-6 text-white">
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <section className="relative z-10 w-full max-w-4xl border border-white/14 bg-black/45 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+        <div className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-[#f4c95d]">
+              <Trophy className="h-4 w-4" />
+              Arcade ranking
+            </div>
+            <h1 className="text-5xl font-black uppercase leading-none tracking-normal">High scores</h1>
           </div>
-          <CardTitle className="text-5xl font-black tracking-tighter text-white">
-            TOP TIER <span className="text-primary">PILOTS</span>
-          </CardTitle>
-          <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mt-2">
-            Real-time synchronization with Central Command // All Sectors
+          <p className="max-w-sm text-sm font-semibold leading-6 text-white/48">
+            Persistence lands after the playable tracer bullet. These rows reserve
+            the PvE ranking surface without touching PvP Supabase.
           </p>
-        </CardHeader>
+        </div>
 
-        <CardContent className="p-8">
-          <div className="rounded-2xl border border-white/5 bg-black/20 overflow-hidden shadow-inner">
-            <Table>
-              <TableHeader className="bg-white/5">
-                <TableRow className="border-white/5 hover:bg-transparent">
-                  <TableHead className="w-[100px] text-[10px] font-black text-white/40 tracking-widest py-5 px-8">RANK</TableHead>
-                  <TableHead className="text-[10px] font-black text-white/40 tracking-widest py-5">PILOT DESIGNATION</TableHead>
-                  <TableHead className="text-right text-[10px] font-black text-white/40 tracking-widest py-5">
-                    <div className="flex items-center justify-end gap-2"><Target className="w-3 h-3" /> UNITS DOWN</div>
-                  </TableHead>
-                  <TableHead className="text-right text-[10px] font-black text-white/40 tracking-widest py-5 px-8">
-                    <div className="flex items-center justify-end gap-2 text-primary"><Rocket className="w-3 h-3" /> NET POINTS</div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(profiles || []).map((profile, index) => (
-                  <TableRow key={profile.id} className={`border-white/5 transition-colors hover:bg-white/5 ${index === 0 ? 'bg-primary/5' : ''}`}>
-                    <TableCell className="py-6 px-8">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
-                        index === 0 ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 
-                        index === 1 ? 'bg-gray-300 text-black' : 
-                        index === 2 ? 'bg-amber-700 text-white' : 
-                        'bg-white/5 text-white/60 border border-white/10'
-                      }`}>
-                        #{index + 1}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-black text-white tracking-tight text-lg">
-                      {profile.username.toUpperCase()}
-                      {index === 0 && <span className="ml-3 text-[8px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 tracking-tighter">ELITE</span>}
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-white/60">{profile.total_kills}</TableCell>
-                    <TableCell className="text-right px-8">
-                      <span className="text-2xl font-black text-primary tracking-tighter">{profile.ranking_points}</span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!profiles || profiles.length === 0) && (
-                  <TableRow className="border-none">
-                    <TableCell colSpan={4} className="py-20 text-center text-white/20 text-[10px] font-black tracking-[0.4em] uppercase">
-                      NO COMBAT DATA RECORDED IN THIS SECTOR
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+        <div className="overflow-hidden border border-white/10">
+          <div className="grid grid-cols-[80px_1fr_120px_100px_100px] bg-white/[0.05] px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/42">
+            <span>Rank</span>
+            <span>Name</span>
+            <span className="text-right">Score</span>
+            <span className="text-right">Wave</span>
+            <span className="text-right">Kills</span>
           </div>
-          
-          <div className="mt-12 text-center">
-            <a 
-              href="/" 
-              className="inline-flex items-center gap-2 text-[10px] font-black text-white/40 hover:text-primary transition-all uppercase tracking-[0.3em] group"
+          {placeholderRows.map((row) => (
+            <div
+              key={row.rank}
+              className="grid grid-cols-[80px_1fr_120px_100px_100px] border-t border-white/10 px-4 py-5 text-sm font-black uppercase tracking-[0.14em]"
             >
-              <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
-              Return to Command Base
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+              <span className="text-[#f4c95d]">#{row.rank}</span>
+              <span>{row.name}</span>
+              <span className="text-right">{row.score}</span>
+              <span className="text-right">{row.wave}</span>
+              <span className="text-right">{row.kills}</span>
+            </div>
+          ))}
+        </div>
 
-      <div className="mt-8 text-[8px] font-black text-white/10 tracking-[0.5em] uppercase flex flex-col items-center gap-2">
-        <span>Global Ranking Protocol // secure_v2.0</span>
-      </div>
-
-      {/* Fixed Signature */}
-      <a 
-        href="https://eliasablan.dev" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black tracking-[0.2em] text-white/20 hover:text-primary transition-all uppercase flex items-center gap-2 group bg-black/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/5 hover:border-primary/30 pointer-events-auto whitespace-nowrap"
-      >
-        <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-        Developed by Elias Ablan
-      </a>
+        <div className="mt-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/45 transition hover:text-[#f4c95d]"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            Return to start
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

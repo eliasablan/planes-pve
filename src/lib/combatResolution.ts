@@ -1,6 +1,4 @@
-import { logKill } from "@/lib/matchLogging";
 import { finishLocalMatch } from "@/lib/matchLifecycle";
-import { publishHit, publishKill } from "@/lib/realtimeRoom";
 import { PlayerState, UserProfile, useGameStore } from "@/store/useGameStore";
 
 export const DAMAGE = {
@@ -58,14 +56,16 @@ export function resolveMachineGunShot(snapshot: ShotSnapshot) {
   );
 
   if (target) {
-    void publishHit(snapshot.roomName, {
-      victimId: target.id,
-      victimName: target.username,
-      killerId: snapshot.shooterId,
-      killerName: snapshot.shooterName,
-      damage: DAMAGE.machineGun,
-      weapon: "mg",
-      matchId: state.currentMatchId,
+    void import("@/lib/realtimeRoom").then(({ publishHit }) => {
+      void publishHit(snapshot.roomName, {
+        victimId: target.id,
+        victimName: target.username,
+        killerId: snapshot.shooterId,
+        killerName: snapshot.shooterName,
+        damage: DAMAGE.machineGun,
+        weapon: "mg",
+        matchId: state.currentMatchId,
+      });
     });
   }
 
@@ -123,9 +123,11 @@ export async function resolveIncomingHit(
   };
 
   recordKill(kill, localUser.id);
+  const { publishKill } = await import("@/lib/realtimeRoom");
   await publishKill(roomName, kill);
 
   if (kill.matchId) {
+    const { logKill } = await import("@/lib/matchLogging");
     await logKill(kill.matchId, kill.killerId, kill.victimId);
   }
 }
