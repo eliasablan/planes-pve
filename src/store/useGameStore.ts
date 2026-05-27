@@ -73,6 +73,7 @@ interface GameState {
   gameStatus: GameStatus;
   currentMatchId: string | null;
   startTime: number | null;
+  endTime: number | null;
   
   // Other Players
   players: Record<string, PlayerState>;
@@ -125,6 +126,7 @@ interface GameState {
   setGameStatus: (status: GameStatus) => void;
   setMatchId: (id: string | null) => void;
   setStartTime: (time: number | null) => void;
+  setEndTime: (time: number | null) => void;
   
   updatePlayer: (id: string, state: Partial<PlayerState>) => void;
   removePlayer: (id: string) => void;
@@ -154,6 +156,7 @@ export const useGameStore = create<GameState>((set) => ({
   gameStatus: "lobby",
   currentMatchId: null,
   startTime: null,
+  endTime: null,
   
   players: {},
   killLog: [],
@@ -255,6 +258,7 @@ export const useGameStore = create<GameState>((set) => ({
   setGameStatus: (status) => set({ gameStatus: status }),
   setMatchId: (id) => set({ currentMatchId: id }),
   setStartTime: (time) => set({ startTime: time }),
+  setEndTime: (time) => set({ endTime: time }),
   
   updatePlayer: (id, playerUpdate) => set((state) => {
     const existing = state.players[id] || {
@@ -302,6 +306,7 @@ export const useGameStore = create<GameState>((set) => ({
     pveEnemies: {},
     pvePickups: {},
     gameStatus: "lobby",
+    endTime: null,
     killLog: [],
     players: {},
     showLargeMap: false,
