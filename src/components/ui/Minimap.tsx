@@ -2,6 +2,7 @@
 
 import { useGameStore } from "@/store/useGameStore";
 import { useEffect, useRef } from "react";
+import { WORLD_TOPOLOGY, worldToMapPoint } from "@/lib/worldTopology";
 
 interface MinimapProps {
   large?: boolean;
@@ -20,8 +21,7 @@ export function Minimap({ large = false }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const mapSize = large ? 600 : 180;
-  const worldSize = 4000;
-  const scale = mapSize / worldSize;
+  const scale = mapSize / WORLD_TOPOLOGY.mapWorldSize;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,7 +35,7 @@ export function Minimap({ large = false }: MinimapProps) {
       const cy = mapSize / 2;
 
       // 1. OCEAN BASE
-      ctx.fillStyle = "#001d3d";
+      ctx.fillStyle = WORLD_TOPOLOGY.mapOceanColor;
       ctx.fillRect(0, 0, mapSize, mapSize);
 
       // 2. GRID
@@ -49,30 +49,30 @@ export function Minimap({ large = false }: MinimapProps) {
 
       // 3. TOPOGRAPHY / COASTLINE
       // Island Base (Sandy coast)
-      ctx.fillStyle = "#c2b280";
+      ctx.fillStyle = WORLD_TOPOLOGY.sandColor;
       ctx.beginPath();
-      ctx.arc(cx, cy, 1050 * scale, 0, Math.PI * 2);
+      ctx.arc(cx, cy, WORLD_TOPOLOGY.coastRadius * scale, 0, Math.PI * 2);
       ctx.fill();
 
       // Grass Layer
-      ctx.fillStyle = "#2d6a4f";
+      ctx.fillStyle = WORLD_TOPOLOGY.grassColor;
       ctx.beginPath();
-      ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2);
+      ctx.arc(cx, cy, WORLD_TOPOLOGY.islandRadius * scale, 0, Math.PI * 2);
       ctx.fill();
       
       // Mountains (Topography)
-      ctx.fillStyle = "#1b4332";
-      // Peak 1 (0, 0)
-      ctx.beginPath(); ctx.arc(cx, cy, 250 * scale, 0, Math.PI * 2); ctx.fill();
-      // Peak 2 (300, -200)
-      ctx.beginPath(); ctx.arc(cx + 300 * scale, cy - 200 * scale, 150 * scale, 0, Math.PI * 2); ctx.fill();
-      // Peak 3 (-250, 300)
-      ctx.beginPath(); ctx.arc(cx - 250 * scale, cy + 300 * scale, 120 * scale, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = WORLD_TOPOLOGY.mountainColor;
+      WORLD_TOPOLOGY.mountains.forEach((mountain) => {
+        const point = worldToMapPoint(mountain.x, mountain.z, mapSize);
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, mountain.radius * scale, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
       // Coastline stroke
-      ctx.strokeStyle = "#40916c";
+      ctx.strokeStyle = WORLD_TOPOLOGY.coastlineColor;
       ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy, 1000 * scale, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, WORLD_TOPOLOGY.islandRadius * scale, 0, Math.PI * 2); ctx.stroke();
 
       // 4. NEXT SAFE AREA (WHITE DASHED)
       ctx.setLineDash([4, 4]);
@@ -138,7 +138,7 @@ export function Minimap({ large = false }: MinimapProps) {
 
     const animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [players, localPlayerPosition, heading, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale, mapSize]);
+  }, [players, localPlayerPosition, heading, zoneRadius, zoneCenter, targetZoneRadius, targetZoneCenter, scale, mapSize, large]);
 
 
   return (

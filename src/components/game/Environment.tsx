@@ -1,20 +1,24 @@
 "use client";
 
-import { Sky, Stars, Environment as DreiEnvironment } from "@react-three/drei";
+import { Sky, Stars } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
 import { useMemo } from "react";
-import * as THREE from "three";
+import { WORLD_TOPOLOGY } from "@/lib/worldTopology";
 
 export function Environment() {
   const details = useMemo(() => {
-    const items = [];
+    const items: Array<{
+      position: [number, number, number];
+      scale: number;
+      type: "tree" | "rock";
+    }> = [];
     for (let i = 0; i < 200; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 150 + Math.random() * 800;
+      const angle = seededNoise(i, 1) * Math.PI * 2;
+      const radius = 150 + seededNoise(i, 2) * 800;
       items.push({
         position: [Math.cos(angle) * radius, -0.95, Math.sin(angle) * radius],
-        scale: 0.5 + Math.random() * 1.5,
-        type: Math.random() > 0.3 ? "tree" : "rock",
+        scale: 0.5 + seededNoise(i, 3) * 1.5,
+        type: seededNoise(i, 4) > 0.3 ? "tree" : "rock",
       });
     }
     return items;
@@ -42,41 +46,35 @@ export function Environment() {
       {/* MAR: Profundidad clara */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]} receiveShadow>
         <planeGeometry args={[10000, 10000]} />
-        <meshStandardMaterial color="#003566" roughness={0.2} metalness={0.1} />
+        <meshStandardMaterial color={WORLD_TOPOLOGY.oceanColor} roughness={0.2} metalness={0.1} />
       </mesh>
 
       <RigidBody type="fixed" colliders="hull" name="ground">
         {/* CAPA DE PASTO: Elevada a -1.0 */}
         <mesh receiveShadow position={[0, -1.0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[1000, 64]} />
-          <meshStandardMaterial color="#2d6a4f" />
+          <circleGeometry args={[WORLD_TOPOLOGY.islandRadius, 64]} />
+          <meshStandardMaterial color={WORLD_TOPOLOGY.grassColor} />
         </mesh>
         
         {/* CAPA DE ARENA: Bajada a -1.2 para evitar Z-fighting */}
         <mesh receiveShadow position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[1050, 64]} />
-          <meshStandardMaterial color="#c2b280" />
+          <circleGeometry args={[WORLD_TOPOLOGY.coastRadius, 64]} />
+          <meshStandardMaterial color={WORLD_TOPOLOGY.sandColor} />
         </mesh>
 
         {/* MONTAÑAS: Ancladas a la capa de pasto */}
         <group position={[0, -1.0, 0]}>
-          <mesh position={[0, 40, 0]} castShadow receiveShadow>
-            <coneGeometry args={[250, 80, 8]} />
-            <meshStandardMaterial color="#1b4332" />
-          </mesh>
-          <mesh position={[300, 20, -200]} castShadow receiveShadow>
-            <coneGeometry args={[150, 40, 6]} />
-            <meshStandardMaterial color="#1b4332" />
-          </mesh>
-          <mesh position={[-250, 15, 300]} castShadow receiveShadow>
-            <coneGeometry args={[120, 30, 5]} />
-            <meshStandardMaterial color="#1b4332" />
-          </mesh>
+          {WORLD_TOPOLOGY.mountains.map((mountain) => (
+            <mesh key={`${mountain.x}:${mountain.z}`} position={[mountain.x, mountain.height / 2, mountain.z]} castShadow receiveShadow>
+              <coneGeometry args={[mountain.radius, mountain.height, mountain.segments]} />
+              <meshStandardMaterial color={WORLD_TOPOLOGY.mountainColor} />
+            </mesh>
+          ))}
         </group>
 
         {/* OBJETOS: Ajustados a la nueva altura del pasto */}
         {details.map((item, i) => (
-          <group key={i} position={item.position as any} scale={item.scale}>
+          <group key={i} position={item.position} scale={item.scale}>
             {item.type === "tree" ? (
               <mesh castShadow position={[0, 1, 0]}>
                 <boxGeometry args={[0.5, 2, 0.5]} />
@@ -95,4 +93,9 @@ export function Environment() {
       <fog attach="fog" args={["#001d3d", 1500, 6000]} />
     </>
   );
+}
+
+function seededNoise(index: number, salt: number) {
+  const x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
 }
