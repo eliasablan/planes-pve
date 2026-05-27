@@ -43,7 +43,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
   
-  const currentThrottle = useRef(25);
+  const currentThrottle = useRef(88);
   const lastBroadcast = useRef(0);
   const broadcastInterval = 1000 / 30; 
   const spawnTime = useRef(0);

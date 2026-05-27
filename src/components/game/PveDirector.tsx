@@ -8,13 +8,17 @@ import { applyLocalDamage } from "@/lib/combatResolution";
 import { EnemyRole, EnemyState, PickupKind, PickupState, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 
-const ROLE_STATS: Record<EnemyRole, { hp: number; speed: number; damage: number; range: number; color: string; scale: number }> = {
-  scout: { hp: 35, speed: 78, damage: 5, range: 155, color: "#51d6a3", scale: 0.78 },
-  fighter: { hp: 65, speed: 58, damage: 8, range: 190, color: "#f65f5f", scale: 0.92 },
-  bomber: { hp: 120, speed: 38, damage: 12, range: 220, color: "#f4c95d", scale: 1.18 },
+const ROLE_STATS: Record<
+  EnemyRole,
+  { hp: number; speed: number; damage: number; range: number; color: string; scale: number; burst: number; reloadMs: number }
+> = {
+  scout: { hp: 35, speed: 46, damage: 3, range: 125, color: "#51d6a3", scale: 0.78, burst: 2, reloadMs: 4200 },
+  fighter: { hp: 65, speed: 40, damage: 5, range: 155, color: "#f65f5f", scale: 0.92, burst: 3, reloadMs: 5200 },
+  bomber: { hp: 120, speed: 28, damage: 8, range: 180, color: "#f4c95d", scale: 1.18, burst: 1, reloadMs: 6800 },
 };
 
-const ENEMY_ATTACK_INTERVAL_MS = 1850;
+const RUN_START_INVULNERABILITY_MS = 6500;
+const ENEMY_ATTACK_INTERVAL_MS = 2300;
 
 const PICKUP_COLORS: Record<PickupKind, string> = {
   ammo: "#f4c95d",
@@ -34,6 +38,8 @@ export function PveDirector() {
   const setDamageIndicator = useGameStore((state) => state.setDamageIndicator);
 
   const lastAttackByEnemy = useRef<Record<string, number>>({});
+  const shotsInBurstByEnemy = useRef<Record<string, number>>({});
+  const reloadUntilByEnemy = useRef<Record<string, number>>({});
   const pendingNextWaveAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -76,14 +82,17 @@ export function PveDirector() {
 
       for (const enemy of enemyList) {
         const stats = ROLE_STATS[enemy.role];
+        shotsInBurstByEnemy.current[enemy.id] ??= stats.burst;
+
         const position = new THREE.Vector3(...enemy.position);
         const toPlayer = player.clone().sub(position);
         const distance = toPlayer.length();
         const direction = distance > 0 ? toPlayer.clone().normalize() : new THREE.Vector3(0, 0, -1);
-        const orbit = new THREE.Vector3(-direction.z, 0, direction.x).multiplyScalar(Math.sin(now * 0.001 + enemy.id.length) * 0.35);
+        const orbitStrength = enemy.role === "scout" ? 0.16 : enemy.role === "fighter" ? 0.11 : 0.05;
+        const orbit = new THREE.Vector3(-direction.z, 0, direction.x).multiplyScalar(Math.sin(now * 0.001 + enemy.id.length) * orbitStrength);
         const desired = direction.add(orbit).normalize();
-        const preferredRange = enemy.role === "bomber" ? 300 : enemy.role === "fighter" ? 230 : 180;
-        const speedScale = distance > preferredRange ? 1 : -0.28;
+        const preferredRange = enemy.role === "bomber" ? 210 : enemy.role === "fighter" ? 165 : 135;
+        const speedScale = distance > preferredRange ? 1 : -0.12;
 
         position.add(desired.multiplyScalar(stats.speed * speedScale * delta));
         position.y = THREE.MathUtils.lerp(position.y, player.y + altitudeOffset(enemy.role, now), 0.018);
@@ -95,17 +104,32 @@ export function PveDirector() {
           heading,
         };
 
+        const runAge = state.startTime ? now - state.startTime : 0;
+        const reloadUntil = reloadUntilByEnemy.current[enemy.id] ?? 0;
+        if (reloadUntil > 0 && now >= reloadUntil) {
+          reloadUntilByEnemy.current[enemy.id] = 0;
+          shotsInBurstByEnemy.current[enemy.id] = stats.burst;
+        }
+
         if (
+          runAge > RUN_START_INVULNERABILITY_MS &&
           distance < stats.range &&
+          (reloadUntilByEnemy.current[enemy.id] ?? 0) === 0 &&
+          (shotsInBurstByEnemy.current[enemy.id] ?? 0) > 0 &&
           now - (lastAttackByEnemy.current[enemy.id] ?? 0) > ENEMY_ATTACK_INTERVAL_MS
         ) {
           lastAttackByEnemy.current[enemy.id] = now;
+          shotsInBurstByEnemy.current[enemy.id] -= 1;
           applyLocalDamage(stats.damage);
           setDamageIndicator({
             angle: Math.atan2(position.x - player.x, position.z - player.z),
             intensity: enemy.role === "bomber" ? 1 : enemy.role === "fighter" ? 0.78 : 0.56,
             timestamp: now,
           });
+
+          if (shotsInBurstByEnemy.current[enemy.id] <= 0) {
+            reloadUntilByEnemy.current[enemy.id] = now + stats.reloadMs;
+          }
         }
       }
 
@@ -180,7 +204,7 @@ function createWave(wave: number) {
   return composition.map((role, index) => {
     const stats = ROLE_STATS[role];
     const angle = (Math.PI * 2 * index) / composition.length + wave * 0.62;
-    const radius = 620 + wave * 28 + index * 45;
+    const radius = 420 + wave * 18 + index * 36;
     return {
       id: `wave-${wave}-${role}-${index}-${crypto.randomUUID().slice(0, 6)}`,
       role,

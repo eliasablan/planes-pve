@@ -4,11 +4,11 @@ import { RapierRigidBody, vec3 } from "@react-three/rapier";
 import { Controls } from "@/hooks/useControls";
 
 export const FLIGHT_MODEL = {
-  maxThrust: 45,
+  maxThrust: 118,
   gravity: 9.81,
-  stallSpeed: 15,
-  rotationSpeed: 2.8,
-  drag: 0.992,
+  stallSpeed: 12,
+  rotationSpeed: 5.2,
+  drag: 0.998,
 } as const;
 
 export type FlightBasis = {
@@ -36,9 +36,9 @@ export function getBodySpeed(rb: RapierRigidBody) {
 
 export function nextThrottle(currentThrottle: number, controls: Controls, delta: number) {
   let throttle = currentThrottle;
-  if (controls.throttleUp) throttle = Math.min(throttle + delta * 20, FLIGHT_MODEL.maxThrust);
-  if (controls.throttleDown) throttle = Math.max(throttle - delta * 20, 0);
-  if (controls.brake) throttle = Math.max(throttle - delta * 40, 0);
+  if (controls.throttleUp) throttle = Math.min(throttle + delta * 58, FLIGHT_MODEL.maxThrust);
+  if (controls.throttleDown) throttle = Math.max(throttle - delta * 32, 18);
+  if (controls.brake) throttle = Math.max(throttle - delta * 58, 8);
   return throttle;
 }
 
@@ -49,8 +49,8 @@ export function applyFlightForces(
   currentSpeed: number,
   delta: number
 ) {
-  const gravityInfluence = -basis.forward.y * FLIGHT_MODEL.gravity * 1.5;
-  const totalForwardThrust = throttle + gravityInfluence;
+  const gravityInfluence = -basis.forward.y * FLIGHT_MODEL.gravity * 1.1;
+  const totalForwardThrust = throttle * 1.7 + gravityInfluence;
   rb.applyImpulse(vec3(basis.forward).multiplyScalar(totalForwardThrust * delta), true);
 
   const liftFactor = Math.min(currentSpeed / FLIGHT_MODEL.stallSpeed, 1.1);
@@ -71,8 +71,8 @@ export function applyFlightTorque(
   const torque = new THREE.Vector3(0, 0, 0);
 
   if (controls.mouseControlEnabled) {
-    const targetMousePitch = -controls.mouseY * FLIGHT_MODEL.rotationSpeed * 1.5;
-    const targetMouseYaw = -controls.mouseX * FLIGHT_MODEL.rotationSpeed;
+    const targetMousePitch = -controls.mouseY * FLIGHT_MODEL.rotationSpeed * 1.85;
+    const targetMouseYaw = -controls.mouseX * FLIGHT_MODEL.rotationSpeed * 1.35;
     torque.add(basis.right.clone().multiplyScalar(targetMousePitch * delta));
     torque.add(basis.up.clone().multiplyScalar(targetMouseYaw * delta));
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, controls.mouseX * 3, 0.08);
@@ -82,15 +82,15 @@ export function applyFlightTorque(
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, 2.0, 0.05);
   }
 
-  if (controls.pitchUp) torque.add(basis.right.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * delta));
-  if (controls.pitchDown) torque.add(basis.right.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * delta));
-  if (controls.yawLeft) torque.add(basis.up.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * 0.8 * delta));
-  if (controls.yawRight) torque.add(basis.up.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * 0.8 * delta));
-  if (controls.rollLeft) torque.add(basis.forward.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * 1.2 * delta));
-  if (controls.rollRight) torque.add(basis.forward.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * 1.2 * delta));
+  if (controls.pitchUp) torque.add(basis.right.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * 1.2 * delta));
+  if (controls.pitchDown) torque.add(basis.right.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * 1.2 * delta));
+  if (controls.yawLeft) torque.add(basis.up.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * 1.05 * delta));
+  if (controls.yawRight) torque.add(basis.up.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * 1.05 * delta));
+  if (controls.rollLeft) torque.add(basis.forward.clone().multiplyScalar(-FLIGHT_MODEL.rotationSpeed * 1.55 * delta));
+  if (controls.rollRight) torque.add(basis.forward.clone().multiplyScalar(FLIGHT_MODEL.rotationSpeed * 1.55 * delta));
 
   rb.applyTorqueImpulse(vec3(torque), true);
-  rb.setAngvel(vec3(rb.angvel()).multiplyScalar(0.96), true);
+  rb.setAngvel(vec3(rb.angvel()).multiplyScalar(0.975), true);
 }
 
 export function applySpeedCamera(camera: THREE.Camera, currentSpeed: number) {
