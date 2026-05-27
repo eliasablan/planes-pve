@@ -4,6 +4,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, Crosshair, Gauge, HeartPulse, MousePointer2, Radar, Rocket, Shell, Target } from "lucide-react";
 import { useControls } from "@/hooks/useControls";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 export function HUD() {
@@ -14,13 +15,27 @@ export function HUD() {
     score,
     altitude,
     speed,
+    heading,
     selectedWeapon,
     wave,
     enemiesRemaining,
     boundaryWarning,
+    localPlayerPosition,
+    pveEnemies,
+    pvePickups,
+    damageIndicator,
   } = useGameStore();
   const { mouseControlEnabled } = useControls();
   const isLowHealth = hp < 30;
+  const [now, setNow] = useState(0);
+  const hitAge = damageIndicator ? now - damageIndicator.timestamp : Number.POSITIVE_INFINITY;
+  const hitOpacity = damageIndicator ? Math.max(0, 1 - hitAge / 850) * damageIndicator.intensity : 0;
+
+  useEffect(() => {
+    if (!damageIndicator) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 50);
+    return () => window.clearInterval(interval);
+  }, [damageIndicator]);
 
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
@@ -31,6 +46,17 @@ export function HUD() {
           background: "radial-gradient(circle, transparent 42%, rgba(246,95,95,0.24) 100%)",
         }}
       />
+
+      {damageIndicator && hitOpacity > 0 && (
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity: hitOpacity,
+            background: hitGradient(damageIndicator.angle),
+            boxShadow: `inset 0 0 ${24 + hitOpacity * 48}px rgba(246,95,95,${0.28 + hitOpacity * 0.34})`,
+          }}
+        />
+      )}
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="grid gap-3 sm:grid-cols-3">
@@ -43,8 +69,23 @@ export function HUD() {
           <Radar className="h-5 w-5 text-[#51d6a3]" />
           <div className="relative h-20 w-20 rounded-full border border-[#51d6a3]/45 bg-[#51d6a3]/8">
             <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 bg-white" />
-            <div className="absolute left-[66%] top-[30%] h-2 w-2 bg-[#f65f5f]" />
-            <div className="absolute bottom-3 left-5 h-2 w-2 bg-[#f4c95d]" />
+            {Object.values(pveEnemies).slice(0, 12).map((enemy) => (
+              <RadarDot
+                key={enemy.id}
+                color={enemy.role === "bomber" ? "#f4c95d" : enemy.role === "fighter" ? "#f65f5f" : "#51d6a3"}
+                localPlayerPosition={localPlayerPosition}
+                position={[enemy.position[0], enemy.position[2]]}
+              />
+            ))}
+            {Object.values(pvePickups).slice(0, 8).map((pickup) => (
+              <RadarDot
+                key={pickup.id}
+                color={pickup.kind === "repair" ? "#51d6a3" : pickup.kind === "missile" ? "#65a6ff" : "#f4c95d"}
+                localPlayerPosition={localPlayerPosition}
+                position={[pickup.position[0], pickup.position[2]]}
+                pickup
+              />
+            ))}
             <div className="absolute inset-3 rounded-full border border-white/12" />
           </div>
         </div>
@@ -55,6 +96,15 @@ export function HUD() {
           <Crosshair className="h-full w-full text-[#f4c95d] stroke-[1.5px]" />
           <div className="absolute inset-[-18%] rounded-full border border-[#f4c95d]/25" />
         </div>
+
+        {nearestEnemies(pveEnemies, localPlayerPosition).map((enemy) => (
+          <NearbyEnemyArrow
+            key={enemy.id}
+            enemy={enemy}
+            heading={heading}
+            localPlayerPosition={localPlayerPosition}
+          />
+        ))}
 
         {boundaryWarning && (
           <div className="flex items-center gap-3 border border-[#f65f5f]/60 bg-[#f65f5f]/20 px-5 py-3 text-xs font-black uppercase tracking-[0.24em] text-[#ffd0d0] backdrop-blur-md">
@@ -96,6 +146,99 @@ export function HUD() {
         </div>
       </div>
     </div>
+  );
+}
+
+function nearestEnemies(
+  enemies: ReturnType<typeof useGameStore.getState>["pveEnemies"],
+  localPlayerPosition: [number, number],
+) {
+  return Object.values(enemies)
+    .map((enemy) => {
+      const dx = enemy.position[0] - localPlayerPosition[0];
+      const dz = enemy.position[2] - localPlayerPosition[1];
+      return { ...enemy, distance: Math.sqrt(dx * dx + dz * dz) };
+    })
+    .filter((enemy) => enemy.distance < 900)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 4);
+}
+
+function NearbyEnemyArrow({
+  enemy,
+  heading,
+  localPlayerPosition,
+}: {
+  enemy: { role: string; position: [number, number, number]; distance: number };
+  heading: number;
+  localPlayerPosition: [number, number];
+}) {
+  const dx = enemy.position[0] - localPlayerPosition[0];
+  const dz = enemy.position[2] - localPlayerPosition[1];
+  const bearing = Math.atan2(dx, dz);
+  const screenAngle = bearing + (heading * Math.PI) / 180;
+  const color = enemy.role === "bomber" ? "#f4c95d" : enemy.role === "fighter" ? "#f65f5f" : "#51d6a3";
+  const opacity = Math.max(0.32, 1 - enemy.distance / 980);
+  const radius = 118;
+  const x = Math.sin(screenAngle) * radius;
+  const y = -Math.cos(screenAngle) * radius;
+
+  return (
+    <div
+      className="absolute left-1/2 top-1/2 h-8 w-8"
+      style={{
+        opacity,
+        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${screenAngle}rad)`,
+      }}
+    >
+      <div
+        className="mx-auto h-0 w-0 border-x-[7px] border-b-[12px] border-x-transparent"
+        style={{
+          borderBottomColor: color,
+          filter: `drop-shadow(0 0 8px ${color})`,
+        }}
+      />
+      <div className="mt-1 h-px w-full" style={{ backgroundColor: color, opacity: 0.35 }} />
+    </div>
+  );
+}
+
+function hitGradient(angle: number) {
+  const x = 50 + Math.sin(angle) * 48;
+  const y = 50 + Math.cos(angle) * 48;
+  return [
+    `radial-gradient(circle at ${x}% ${y}%, rgba(246,95,95,0.88) 0%, rgba(246,95,95,0.44) 9%, rgba(246,95,95,0.12) 25%, transparent 48%)`,
+    "linear-gradient(rgba(246,95,95,0.16), transparent 18%, transparent 82%, rgba(246,95,95,0.16))",
+    "linear-gradient(90deg, rgba(246,95,95,0.16), transparent 18%, transparent 82%, rgba(246,95,95,0.16))",
+  ].join(", ");
+}
+
+function RadarDot({
+  color,
+  localPlayerPosition,
+  position,
+  pickup = false,
+}: {
+  color: string;
+  localPlayerPosition: [number, number];
+  position: [number, number];
+  pickup?: boolean;
+}) {
+  const dx = position[0] - localPlayerPosition[0];
+  const dz = position[1] - localPlayerPosition[1];
+  const scale = 34 / 900;
+  const x = Math.max(-34, Math.min(34, dx * scale));
+  const y = Math.max(-34, Math.min(34, dz * scale));
+
+  return (
+    <div
+      className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${pickup ? "h-2 w-2 rotate-45" : "h-2.5 w-2.5 rounded-full"}`}
+      style={{
+        backgroundColor: color,
+        boxShadow: `0 0 10px ${color}`,
+        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) ${pickup ? "rotate(45deg)" : ""}`,
+      }}
+    />
   );
 }
 

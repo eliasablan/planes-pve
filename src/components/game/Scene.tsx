@@ -6,6 +6,7 @@ import { Suspense, useEffect } from "react";
 import * as THREE from "three";
 import { Environment } from "./Environment";
 import { Airplane } from "./Airplane";
+import { PveDirector } from "./PveDirector";
 import { useGameStore } from "@/store/useGameStore";
 import { HUD } from "../ui/HUD";
 import { GameOver } from "../ui/GameOver";
@@ -53,6 +54,7 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
               <Physics gravity={[0, 0, 0]}>
                 <Environment />
                 <Airplane userId="solo-pilot" username="Solo Pilot" />
+                <PveDirector />
               </Physics>
             </Suspense>
           </Canvas>

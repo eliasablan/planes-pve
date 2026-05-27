@@ -29,7 +29,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const rb = useRef<RapierRigidBody>(null);
   const propellerRef = useRef<THREE.Group | null>(null);
   const controls = useControls();
-  const { hp, selectedWeapon, ammo, missiles } = useGameStore();
+  const { hp, selectedWeapon, ammo, missiles, pveEnemies } = useGameStore();
   const {
     setFlightData,
     setSelectedWeapon,
@@ -38,6 +38,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     setBoundaryWarning,
     useAmmo: consumeAmmo,
     useMissile: consumeMissile,
+    damagePveEnemy,
   } = useGameStore();
   
   const [bullets, setBullets] = useState<{ id: string, pos: [number, number, number], rot: [number, number, number, number] }[]>([]);
@@ -108,7 +109,13 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
               position: [translation.x, translation.y, translation.z],
               forward: [basis.forward.x, basis.forward.y, basis.forward.z],
             })
-          : { fired: (consumeAmmo(), true) };
+          : firePveMachineGun({
+              enemies: Object.values(pveEnemies),
+              origin: [translation.x, translation.y, translation.z],
+              forward: [basis.forward.x, basis.forward.y, basis.forward.z],
+              consumeAmmo,
+              damagePveEnemy,
+            });
 
         if (shot.fired) {
           const bId = crypto.randomUUID();
@@ -118,6 +125,12 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       } else if (selectedWeapon === 'missile' && now - lastMissile.current > missileInterval && missiles > 0) {
         lastMissile.current = now;
         consumeMissile();
+        firePveMissile({
+          enemies: Object.values(pveEnemies),
+          origin: [translation.x, translation.y, translation.z],
+          forward: [basis.forward.x, basis.forward.y, basis.forward.z],
+          damagePveEnemy,
+        });
       }
     }
 
@@ -172,4 +185,63 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       ))}
     </>
   );
+}
+
+function firePveMachineGun({
+  enemies,
+  origin,
+  forward,
+  consumeAmmo,
+  damagePveEnemy,
+}: {
+  enemies: Array<{ id: string; position: [number, number, number] }>;
+  origin: [number, number, number];
+  forward: [number, number, number];
+  consumeAmmo: () => void;
+  damagePveEnemy: (enemyId: string, damage: number) => void;
+}) {
+  consumeAmmo();
+  const target = findPveTarget(enemies, origin, forward, 780, 0.982);
+  if (target) damagePveEnemy(target.id, 12);
+  return { fired: true, targetId: target?.id };
+}
+
+function firePveMissile({
+  enemies,
+  origin,
+  forward,
+  damagePveEnemy,
+}: {
+  enemies: Array<{ id: string; position: [number, number, number] }>;
+  origin: [number, number, number];
+  forward: [number, number, number];
+  damagePveEnemy: (enemyId: string, damage: number) => void;
+}) {
+  const target = findPveTarget(enemies, origin, forward, 1200, 0.94);
+  if (target) damagePveEnemy(target.id, 80);
+}
+
+function findPveTarget(
+  enemies: Array<{ id: string; position: [number, number, number] }>,
+  origin: [number, number, number],
+  forward: [number, number, number],
+  range: number,
+  minDot: number,
+) {
+  const originVector = new THREE.Vector3(...origin);
+  const forwardVector = new THREE.Vector3(...forward).normalize();
+  let best: { id: string; distance: number } | null = null;
+
+  for (const enemy of enemies) {
+    const toEnemy = new THREE.Vector3(...enemy.position).sub(originVector);
+    const distance = toEnemy.length();
+    if (distance <= 0 || distance > range) continue;
+
+    const dot = toEnemy.normalize().dot(forwardVector);
+    if (dot < minDot) continue;
+
+    if (!best || distance < best.distance) best = { id: enemy.id, distance };
+  }
+
+  return best;
 }

@@ -18,6 +18,29 @@ export type KillLogEntry = {
 };
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "finished";
+export type EnemyRole = "scout" | "fighter" | "bomber";
+export type PickupKind = "ammo" | "missile" | "repair";
+
+export type EnemyState = {
+  id: string;
+  role: EnemyRole;
+  position: [number, number, number];
+  heading: number;
+  hp: number;
+  maxHp: number;
+};
+
+export type PickupState = {
+  id: string;
+  kind: PickupKind;
+  position: [number, number, number];
+};
+
+export type DamageIndicator = {
+  angle: number;
+  intensity: number;
+  timestamp: number;
+} | null;
 
 export type UserProfile = {
   id: string;
@@ -42,6 +65,9 @@ interface GameState {
   wave: number;
   enemiesRemaining: number;
   boundaryWarning: string | null;
+  damageIndicator: DamageIndicator;
+  pveEnemies: Record<string, EnemyState>;
+  pvePickups: Record<string, PickupState>;
   
   // Game Context
   gameStatus: GameStatus;
@@ -81,6 +107,13 @@ interface GameState {
   setWave: (wave: number) => void;
   setEnemiesRemaining: (count: number) => void;
   setBoundaryWarning: (message: string | null) => void;
+  setDamageIndicator: (indicator: DamageIndicator) => void;
+  setPveEnemies: (enemies: Record<string, EnemyState>) => void;
+  spawnPveEnemies: (enemies: EnemyState[]) => void;
+  damagePveEnemy: (enemyId: string, damage: number) => void;
+  setPvePickups: (pickups: Record<string, PickupState>) => void;
+  spawnPvePickups: (pickups: PickupState[]) => void;
+  collectPvePickup: (pickupId: string) => void;
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
@@ -103,10 +136,10 @@ export const useGameStore = create<GameState>((set) => ({
   // Defaults
   hp: 100,
   maxHp: 100,
-  ammo: 50,
-  maxAmmo: 50,
-  missiles: 2,
-  maxMissiles: 2,
+  ammo: 120,
+  maxAmmo: 120,
+  missiles: 3,
+  maxMissiles: 5,
   flares: 2,
   maxFlares: 2,
   score: 0,
@@ -114,6 +147,9 @@ export const useGameStore = create<GameState>((set) => ({
   wave: 1,
   enemiesRemaining: 0,
   boundaryWarning: null,
+  damageIndicator: null,
+  pveEnemies: {},
+  pvePickups: {},
   
   gameStatus: "lobby",
   currentMatchId: null,
@@ -150,6 +186,64 @@ export const useGameStore = create<GameState>((set) => ({
   setWave: (wave) => set({ wave }),
   setEnemiesRemaining: (enemiesRemaining) => set({ enemiesRemaining }),
   setBoundaryWarning: (boundaryWarning) => set({ boundaryWarning }),
+  setDamageIndicator: (damageIndicator) => set({ damageIndicator }),
+  setPveEnemies: (pveEnemies) => set({ pveEnemies, enemiesRemaining: Object.keys(pveEnemies).length }),
+  spawnPveEnemies: (enemies) => set((state) => {
+    const pveEnemies = { ...state.pveEnemies };
+    for (const enemy of enemies) pveEnemies[enemy.id] = enemy;
+    return { pveEnemies, enemiesRemaining: Object.keys(pveEnemies).length };
+  }),
+  damagePveEnemy: (enemyId, damage) => set((state) => {
+    const enemy = state.pveEnemies[enemyId];
+    if (!enemy) return {};
+
+    const nextHp = enemy.hp - damage;
+    const pveEnemies = { ...state.pveEnemies };
+    let scoreGain = 0;
+    let killGain = 0;
+    let killLog = state.killLog;
+
+    if (nextHp <= 0) {
+      delete pveEnemies[enemyId];
+      scoreGain = enemy.role === "bomber" ? 260 : enemy.role === "fighter" ? 160 : 100;
+      killGain = 1;
+      killLog = [
+        { id: crypto.randomUUID(), killer: "Solo Pilot", victim: enemy.role.toUpperCase(), timestamp: Date.now() },
+        ...state.killLog.slice(0, 4),
+      ];
+    } else {
+      pveEnemies[enemyId] = { ...enemy, hp: nextHp };
+    }
+
+    return {
+      pveEnemies,
+      enemiesRemaining: Object.keys(pveEnemies).length,
+      score: state.score + scoreGain,
+      localKills: state.localKills + killGain,
+      killLog,
+    };
+  }),
+  setPvePickups: (pvePickups) => set({ pvePickups }),
+  spawnPvePickups: (pickups) => set((state) => {
+    const pvePickups = { ...state.pvePickups };
+    for (const pickup of pickups) pvePickups[pickup.id] = pickup;
+    return { pvePickups };
+  }),
+  collectPvePickup: (pickupId) => set((state) => {
+    const pickup = state.pvePickups[pickupId];
+    if (!pickup) return {};
+
+    const { [pickupId]: removedPickup, ...pvePickups } = state.pvePickups;
+    void removedPickup;
+
+    if (pickup.kind === "ammo") {
+      return { pvePickups, ammo: Math.min(state.maxAmmo, state.ammo + 35) };
+    }
+    if (pickup.kind === "missile") {
+      return { pvePickups, missiles: Math.min(state.maxMissiles, state.missiles + 1) };
+    }
+    return { pvePickups, hp: Math.min(state.maxHp, state.hp + 30) };
+  }),
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),
@@ -196,14 +290,17 @@ export const useGameStore = create<GameState>((set) => ({
   
   resetGame: () => set({
     hp: 100,
-    ammo: 50,
-    missiles: 2,
+    ammo: 120,
+    missiles: 3,
     flares: 2,
     score: 0,
     localKills: 0,
     wave: 1,
     enemiesRemaining: 0,
     boundaryWarning: null,
+    damageIndicator: null,
+    pveEnemies: {},
+    pvePickups: {},
     gameStatus: "lobby",
     killLog: [],
     players: {},
