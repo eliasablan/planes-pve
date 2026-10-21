@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { useState } from "react";
-import { BookOpen, Gauge, Play, RotateCcw, Shield, Target, Trophy, Waves } from "lucide-react";
+import { BookOpen, Play, RotateCcw, Trophy, Waves } from "lucide-react";
 import { resetLocalMatch } from "@/lib/matchLifecycle";
 
 const Scene = dynamic(() => import("@/components/game/Scene"), {
@@ -40,7 +39,7 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="mb-7 inline-flex items-center gap-3 border border-[#f4c95d]/45 bg-[#f4c95d]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-[#f4c95d]">
               <Waves className="h-4 w-4" />
-              PvE survival tracer bullet
+              PvE arcade survival
             </div>
 
             <h1 className="text-balance text-6xl font-black uppercase leading-[0.88] tracking-normal text-white sm:text-8xl lg:text-9xl">
@@ -49,9 +48,9 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 max-w-2xl text-lg font-semibold leading-8 text-white/62">
-              Launch directly into an arcade survival run. This slice strips out login,
-              lobby, realtime rooms, and the shrinking zone so the standalone PvE loop
-              can be played and verified.
+              Take off over the island and hold the sky against endless enemy waves.
+              Scouts, fighters and bombers get tougher every round. Grab supply drops
+              between waves and push your score as far as the airframe lasts.
             </p>
 
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
@@ -83,20 +82,31 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative min-h-[24rem] border border-white/14 bg-black/35 p-5 shadow-2xl backdrop-blur-md">
-            <div className="absolute inset-x-5 top-5 flex items-center justify-between border-b border-white/10 pb-4 text-[10px] font-black uppercase tracking-[0.24em] text-white/42">
-              <span>Flight readiness</span>
+          <div className="relative border border-white/14 bg-black/35 p-5 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 text-[10px] font-black uppercase tracking-[0.24em] text-white/42">
+              <span>Flight controls</span>
               <span>Solo</span>
             </div>
 
-            <div className="mt-20 grid gap-3">
-              <ReadinessRow icon={<Gauge />} label="Immediate airborne spawn" value="Ready" />
-              <ReadinessRow icon={<Shield />} label="Auth and lobby removed" value="Ready" />
-              <ReadinessRow icon={<Target />} label="Combat HUD placeholder" value="Ready" />
-              <ReadinessRow icon={<Waves />} label="Wave systems pending" value="Next" muted />
+            <div className="mt-4 grid gap-2">
+              <ControlRow keys={["Mouse"]} label="Steer" />
+              <ControlRow keys={["W", "S"]} label="Throttle" />
+              <ControlRow keys={["A", "D"]} label="Roll" />
+              <ControlRow keys={["↑", "↓", "←", "→"]} label="Pitch / yaw" />
+              <ControlRow keys={["Click", "Space"]} label="Fire" />
+              <ControlRow keys={["1", "2"]} label="Gun / missile" />
+              <ControlRow keys={["Shift"]} label="Air brake" />
+              <ControlRow keys={["O"]} label="Toggle mouse steer" />
+              <ControlRow keys={["M"]} label="Map" />
             </div>
 
-            <div className="absolute bottom-5 left-5 right-5 border-t border-white/10 pt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/38">
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+              <EnemyChip color="#51d6a3" role="Scout" note="Fast" />
+              <EnemyChip color="#f65f5f" role="Fighter" note="Aggressive" />
+              <EnemyChip color="#f4c95d" role="Bomber" note="Heavy" />
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/38">
               Run ends when the aircraft is destroyed
             </div>
           </div>
@@ -106,24 +116,32 @@ export default function Home() {
   );
 }
 
-function ReadinessRow({
-  icon,
-  label,
-  value,
-  muted = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  muted?: boolean;
-}) {
+function ControlRow({ keys, label }: { keys: string[]; label: string }) {
   return (
-    <div className={`flex items-center justify-between border border-white/10 bg-white/[0.035] px-4 py-4 ${muted ? "opacity-55" : ""}`}>
-      <div className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.12em] text-white/74">
-        <span className="text-[#51d6a3] [&_svg]:h-5 [&_svg]:w-5">{icon}</span>
-        {label}
+    <div className="flex items-center justify-between border border-white/8 bg-white/[0.03] px-4 py-2.5">
+      <span className="text-xs font-black uppercase tracking-[0.14em] text-white/70">{label}</span>
+      <span className="flex gap-1.5">
+        {keys.map((key) => (
+          <kbd
+            key={key}
+            className="min-w-7 border border-white/20 border-b-2 bg-white/[0.06] px-2 py-0.5 text-center text-[11px] font-black text-[#f4c95d]"
+          >
+            {key}
+          </kbd>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function EnemyChip({ color, role, note }: { color: string; role: string; note: string }) {
+  return (
+    <div className="border border-white/10 bg-white/[0.03] px-3 py-2.5">
+      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em]" style={{ color }}>
+        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
+        {role}
       </div>
-      <span className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f4c95d]">{value}</span>
+      <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">{note}</div>
     </div>
   );
 }
