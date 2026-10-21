@@ -36,6 +36,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     setShowLargeMap,
     setLocalPlayerPosition,
     setBoundaryWarning,
+    setTargetLock,
     useAmmo: consumeAmmo,
     useMissile: consumeMissile,
     damagePveEnemy,
@@ -96,7 +97,23 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
     // 6. TELEMETRY
     setFlightData(getFlightTelemetry(translation, currentSpeed, basis.rotation));
 
-    // 7. SHOOTING & BROADCAST
+    // 7. TARGET LOCK
+    const lock = findTargetLock(
+      Object.values(useGameStore.getState().pveEnemies),
+      [translation.x, translation.y, translation.z],
+      [basis.forward.x, basis.forward.y, basis.forward.z],
+      selectedWeapon,
+    );
+    const currentLock = useGameStore.getState().targetLock;
+    if (
+      lock?.id !== currentLock?.id ||
+      lock?.inSolution !== currentLock?.inSolution ||
+      (lock && currentLock && Math.abs(lock.distance - currentLock.distance) >= 10)
+    ) {
+      setTargetLock(lock);
+    }
+
+    // 8. SHOOTING & BROADCAST
     const now = Date.now();
     if (controls.fire) {
       if (selectedWeapon === 'mg' && now - lastShot.current > mgInterval && ammo > 0) {
@@ -201,7 +218,7 @@ function firePveMachineGun({
   damagePveEnemy: (enemyId: string, damage: number) => void;
 }) {
   consumeAmmo();
-  const target = findPveTarget(enemies, origin, forward, 780, 0.982);
+  const target = findPveTarget(enemies, origin, forward, WEAPON_CONES.mg.range, WEAPON_CONES.mg.minDot);
   if (target) damagePveEnemy(target.id, 12);
   return { fired: true, targetId: target?.id };
 }
@@ -217,8 +234,47 @@ function firePveMissile({
   forward: [number, number, number];
   damagePveEnemy: (enemyId: string, damage: number) => void;
 }) {
-  const target = findPveTarget(enemies, origin, forward, 1200, 0.94);
+  const target = findPveTarget(enemies, origin, forward, WEAPON_CONES.missile.range, WEAPON_CONES.missile.minDot);
   if (target) damagePveEnemy(target.id, 80);
+}
+
+// Hit cones used by the hitscan weapons; the HUD lock reads the same values so "in solution" means a hit.
+const WEAPON_CONES = {
+  mg: { range: 780, minDot: 0.982 },
+  missile: { range: 1200, minDot: 0.94 },
+} as const;
+// Wider cone (~25°) for picking which enemy the secondary reticle tracks.
+const LOCK_CONE = { range: 1200, minDot: 0.9 } as const;
+
+function findTargetLock(
+  enemies: Array<{ id: string; position: [number, number, number] }>,
+  origin: [number, number, number],
+  forward: [number, number, number],
+  weapon: "mg" | "missile",
+) {
+  const originVector = new THREE.Vector3(...origin);
+  const forwardVector = new THREE.Vector3(...forward).normalize();
+  let best: { id: string; distance: number; dot: number } | null = null;
+
+  for (const enemy of enemies) {
+    const toEnemy = new THREE.Vector3(...enemy.position).sub(originVector);
+    const distance = toEnemy.length();
+    if (distance <= 0 || distance > LOCK_CONE.range) continue;
+
+    const dot = toEnemy.normalize().dot(forwardVector);
+    if (dot < LOCK_CONE.minDot) continue;
+
+    // Track whichever enemy sits closest to the crosshair.
+    if (!best || dot > best.dot) best = { id: enemy.id, distance, dot };
+  }
+
+  if (!best) return null;
+  const cone = WEAPON_CONES[weapon];
+  return {
+    id: best.id,
+    distance: Math.round(best.distance),
+    inSolution: best.distance <= cone.range && best.dot >= cone.minDot,
+  };
 }
 
 function findPveTarget(

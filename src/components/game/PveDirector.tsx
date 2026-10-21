@@ -1,11 +1,11 @@
 "use client";
 
-import { Billboard, Text } from "@react-three/drei";
+import { Billboard, Html, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { applyLocalDamage } from "@/lib/combatResolution";
-import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, useGameStore } from "@/store/useGameStore";
+import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, TargetLock, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 
 const ROLE_STATS: Record<
@@ -30,6 +30,8 @@ export function PveDirector() {
   const pveEnemies = useGameStore((state) => state.pveEnemies);
   const pvePickups = useGameStore((state) => state.pvePickups);
   const pveExplosions = useGameStore((state) => state.pveExplosions);
+  const targetLock = useGameStore((state) => state.targetLock);
+  const lockedEnemy = targetLock ? pveEnemies[targetLock.id] : undefined;
   const setPveEnemies = useGameStore((state) => state.setPveEnemies);
   const spawnPveEnemies = useGameStore((state) => state.spawnPveEnemies);
   const spawnPvePickups = useGameStore((state) => state.spawnPvePickups);
@@ -156,6 +158,7 @@ export function PveDirector() {
       {pveExplosions.map((explosion) => (
         <Explosion key={explosion.id} explosion={explosion} />
       ))}
+      {targetLock && lockedEnemy && <TargetReticle enemy={lockedEnemy} lock={targetLock} />}
     </>
   );
 }
@@ -175,6 +178,43 @@ function EnemyAircraft({ enemy }: { enemy: EnemyState }) {
         <meshStandardMaterial color={stats.color} emissive={stats.color} emissiveIntensity={1.4} />
       </mesh>
     </group>
+  );
+}
+
+function TargetReticle({ enemy, lock }: { enemy: EnemyState; lock: NonNullable<TargetLock> }) {
+  const color = lock.inSolution ? "#f65f5f" : ROLE_STATS[enemy.role].color;
+  const size = lock.inSolution ? 46 : 64;
+
+  return (
+    <Html position={enemy.position} center zIndexRange={[5, 0]} style={{ pointerEvents: "none" }}>
+      <div className="relative flex flex-col items-center font-mono text-white select-none">
+        <div
+          className="mb-1 h-4 text-[10px] font-black uppercase tracking-[0.24em]"
+          style={{ color, textShadow: "0 0 3px #000, 0 0 8px #000" }}
+        >
+          {lock.inSolution ? "Fire" : enemy.role}
+        </div>
+        <div
+          className="relative transition-all duration-150 ease-out"
+          style={{ width: size, height: size, filter: `drop-shadow(0 0 1px #000) drop-shadow(0 0 6px ${color})` }}
+        >
+          {(["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"] as const).map(
+            (corner) => (
+              <div key={corner} className={`absolute h-3 w-3 ${corner}`} style={{ borderColor: color }} />
+            ),
+          )}
+          {lock.inSolution && (
+            <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ backgroundColor: color }} />
+          )}
+        </div>
+        <div className="mt-1 flex items-center gap-2 text-[10px] font-black tabular-nums" style={{ textShadow: "0 0 3px #000, 0 0 8px #000" }}>
+          <span className="text-white/85">{lock.distance}m</span>
+          <span className="h-1 w-8 bg-black/60">
+            <span className="block h-full" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%`, backgroundColor: color }} />
+          </span>
+        </div>
+      </div>
+    </Html>
   );
 }
 

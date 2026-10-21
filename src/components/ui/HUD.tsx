@@ -25,8 +25,10 @@ export function HUD() {
     pvePickups,
     damageIndicator,
     lastEnemyHit,
+    targetLock,
     killLog,
   } = useGameStore();
+  const inSolution = Boolean(targetLock?.inSolution);
   const { mouseControlEnabled } = useControls();
   const isLowHealth = hp < 30;
 
@@ -214,8 +216,11 @@ export function HUD() {
 
       {/* Center: crosshair + enemy arrows + alerts */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
-        <div className="relative h-20 w-20 opacity-75">
-          <Crosshair className="h-full w-full text-[#f4c95d] stroke-[1.5px]" />
+        <div className={`relative h-20 w-20 transition-all duration-150 ${inSolution ? "scale-90 opacity-100" : "opacity-75"}`}>
+          <Crosshair
+            className={`h-full w-full stroke-[1.5px] transition-colors duration-150 ${inSolution ? "text-[#f65f5f]" : "text-[#f4c95d]"}`}
+            style={inSolution ? { filter: "drop-shadow(0 0 1px #000) drop-shadow(0 0 8px #f65f5f)" } : undefined}
+          />
           {/* Hit ring flash */}
           {damageIndicator && hitOpacity > 0.1 && (
             <div
@@ -226,7 +231,11 @@ export function HUD() {
               }}
             />
           )}
-          <div className="absolute inset-[-18%] rounded-full border border-[#f4c95d]/25" />
+          <div
+            className={`absolute inset-[-18%] rounded-full border transition-colors duration-150 ${
+              inSolution ? "border-[#f65f5f]/60" : "border-[#f4c95d]/25"
+            }`}
+          />
           {/* Outgoing hit marker */}
           {enemyHitOpacity > 0 && (
             <HitMarker kill={Boolean(lastEnemyHit?.kill)} opacity={enemyHitOpacity} />

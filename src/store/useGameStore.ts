@@ -48,6 +48,13 @@ export type EnemyHit = {
   timestamp: number;
 } | null;
 
+export type TargetLock = {
+  id: string;
+  distance: number;
+  // True when the selected weapon would hit this enemy if fired now.
+  inSolution: boolean;
+} | null;
+
 export type DamageIndicator = {
   angle: number;
   intensity: number;
@@ -79,6 +86,7 @@ interface GameState {
   boundaryWarning: string | null;
   damageIndicator: DamageIndicator;
   lastEnemyHit: EnemyHit;
+  targetLock: TargetLock;
   pveExplosions: PveExplosion[];
   pveEnemies: Record<string, EnemyState>;
   pvePickups: Record<string, PickupState>;
@@ -123,6 +131,7 @@ interface GameState {
   setEnemiesRemaining: (count: number) => void;
   setBoundaryWarning: (message: string | null) => void;
   setDamageIndicator: (indicator: DamageIndicator) => void;
+  setTargetLock: (lock: TargetLock) => void;
   setPveEnemies: (enemies: Record<string, EnemyState>) => void;
   spawnPveEnemies: (enemies: EnemyState[]) => void;
   damagePveEnemy: (enemyId: string, damage: number) => void;
@@ -165,6 +174,7 @@ export const useGameStore = create<GameState>((set) => ({
   boundaryWarning: null,
   damageIndicator: null,
   lastEnemyHit: null,
+  targetLock: null,
   pveExplosions: [],
   pveEnemies: {},
   pvePickups: {},
@@ -206,6 +216,7 @@ export const useGameStore = create<GameState>((set) => ({
   setEnemiesRemaining: (enemiesRemaining) => set({ enemiesRemaining }),
   setBoundaryWarning: (boundaryWarning) => set({ boundaryWarning }),
   setDamageIndicator: (damageIndicator) => set({ damageIndicator }),
+  setTargetLock: (targetLock) => set({ targetLock }),
   setPveEnemies: (pveEnemies) => set({ pveEnemies, enemiesRemaining: Object.keys(pveEnemies).length }),
   spawnPveEnemies: (enemies) => set((state) => {
     const pveEnemies = { ...state.pveEnemies };
@@ -333,6 +344,7 @@ export const useGameStore = create<GameState>((set) => ({
     boundaryWarning: null,
     damageIndicator: null,
     lastEnemyHit: null,
+    targetLock: null,
     pveExplosions: [],
     pveEnemies: {},
     pvePickups: {},
