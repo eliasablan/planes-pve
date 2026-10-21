@@ -170,7 +170,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   return (
     <>
       <RigidBody ref={rb} colliders="cuboid" position={[0, 250, 0]} linearDamping={0.5} angularDamping={0.5} onCollisionEnter={handleCollision}>
-        <PerspectiveCamera makeDefault position={[0, 1.5, 5]} fov={75} />
+        <PerspectiveCamera makeDefault position={[0, 1.5, 5]} fov={75} near={1} far={5000} />
         <group>
           {hp < 75 && (
             <Trail width={1.5} length={8} color={hp < 40 ? "#111" : "#fff"} attenuation={(t) => t * t}>

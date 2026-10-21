@@ -2,7 +2,7 @@ export const WORLD_TOPOLOGY = {
   mapWorldSize: 4000,
   islandRadius: 1000,
   coastRadius: 1050,
-  oceanColor: "#003566",
+  oceanColor: "#1d6f9f",
   mapOceanColor: "#001d3d",
   sandColor: "#c2b280",
   grassColor: "#2d6a4f",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Sky, Stars } from "@react-three/drei";
+import { Sky } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
@@ -12,14 +12,16 @@ type ScatterKind = "tree" | "pine" | "rock" | "bush";
 
 const QUALITY: EnvironmentQuality = "high";
 const DETAIL_COUNT = QUALITY === "high" ? 360 : 180;
+// Matches the Sky shader's horizon tint so distant terrain and ocean blend into it.
+const HORIZON_COLOR = "#cfdfea";
 
 export function Environment() {
   const details = useMemo(() => createScatterDetails(DETAIL_COUNT), []);
 
   return (
     <>
-      <Sky distance={450000} sunPosition={[80, 120, 35]} inclination={0.18} azimuth={0.28} />
-      <Stars radius={120} depth={70} count={2600} factor={3.2} saturation={0.15} fade speed={0.35} />
+      <color attach="background" args={[HORIZON_COLOR]} />
+      <Sky distance={450000} sunPosition={[80, 120, 35]} turbidity={6} rayleigh={1.4} mieCoefficient={0.004} />
 
       <ambientLight intensity={0.52} color="#b9d8ff" />
       <hemisphereLight args={["#bfe7ff", "#264f38", 0.85]} />
@@ -45,7 +47,7 @@ export function Environment() {
 
       <NatureScatter details={details} />
       <CloudLayer />
-      <fog attach="fog" args={["#6eb3d9", 900, 5200]} />
+      <fog attach="fog" args={[HORIZON_COLOR, 650, 3900]} />
     </>
   );
 }
@@ -70,27 +72,37 @@ function TerrainSurface() {
           color={WORLD_TOPOLOGY.sandColor}
           roughness={0.92}
           metalness={0}
+          {...layerOffset(1)}
         />
       </mesh>
 
       <mesh receiveShadow position={[0, -1.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[WORLD_TOPOLOGY.coastRadius, 96]} />
-        <meshStandardMaterial map={coastTexture} color="#9ba86f" roughness={0.88} metalness={0} />
+        <meshStandardMaterial map={coastTexture} color="#9ba86f" roughness={0.88} metalness={0} {...layerOffset(2)} />
       </mesh>
 
       <mesh receiveShadow position={[0, -0.98, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[WORLD_TOPOLOGY.islandRadius, 128]} />
         <meshStandardMaterial
           map={grassTexture}
-          color={WORLD_TOPOLOGY.grassColor}
+          color="#e4f2d8"
           roughness={0.96}
           metalness={0}
+          {...layerOffset(3)}
         />
       </mesh>
 
       <mesh position={[0, -0.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[WORLD_TOPOLOGY.islandRadius * 0.99, WORLD_TOPOLOGY.coastRadius + 18, 128]} />
-        <meshStandardMaterial color="#e9d8a6" roughness={0.68} transparent opacity={0.32} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color="#e9d8a6"
+          roughness={0.68}
+          transparent
+          opacity={0.32}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          {...layerOffset(4)}
+        />
       </mesh>
     </group>
   );
@@ -101,7 +113,7 @@ function OceanSurface() {
   const waterTexture = useMemo(() => createWaterTexture(), []);
 
   useMemo(() => {
-    configureTiledTexture(waterTexture, 44);
+    configureTiledTexture(waterTexture, 132);
   }, [waterTexture]);
 
   useFrame((_, delta) => {
@@ -118,20 +130,25 @@ function OceanSurface() {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]} receiveShadow>
-        <planeGeometry args={[10000, 10000, 80, 80]} />
+        <planeGeometry args={[30000, 30000, 1, 1]} />
         <meshStandardMaterial
           ref={materialRef}
           map={waterTexture}
           color={WORLD_TOPOLOGY.oceanColor}
           roughness={0.28}
-          metalness={0.18}
-          transparent
-          opacity={0.92}
+          metalness={0.12}
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4.94, 0]}>
         <ringGeometry args={[WORLD_TOPOLOGY.coastRadius + 18, WORLD_TOPOLOGY.coastRadius + 58, 160]} />
-        <meshBasicMaterial color="#caf0f8" transparent opacity={0.18} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial
+          color="#caf0f8"
+          transparent
+          opacity={0.18}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          {...layerOffset(1)}
+        />
       </mesh>
     </group>
   );
@@ -155,7 +172,7 @@ function MountainRange() {
             rotation={[0, seededNoise(index, 33) * Math.PI, 0]}
           >
             <coneGeometry args={[mountain.radius, mountain.height, mountain.segments + 3, 2]} />
-            <meshStandardMaterial map={rockTexture} color={WORLD_TOPOLOGY.mountainColor} roughness={0.86} />
+            <meshStandardMaterial map={rockTexture} color="#b9cdb4" roughness={0.86} />
           </mesh>
           <mesh castShadow position={[0, mountain.height + 2, 0]} rotation={[0, seededNoise(index, 37) * Math.PI, 0]}>
             <coneGeometry args={[mountain.radius * 0.38, mountain.height * 0.22, mountain.segments + 1]} />
@@ -258,6 +275,14 @@ function NatureScatter({ details }: { details: ScatterDetail[] }) {
 }
 
 function CloudLayer() {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.006;
+    }
+  });
+
   const clouds = useMemo(() => {
     return Array.from({ length: 26 }, (_, index) => {
       const angle = seededNoise(index, 81) * Math.PI * 2;
@@ -275,7 +300,7 @@ function CloudLayer() {
   }, []);
 
   return (
-    <group>
+    <group ref={groupRef}>
       {clouds.map((cloud, index) => (
         <CloudPuff key={index} position={cloud.position} rotation={cloud.rotation} scale={cloud.scale} seed={index} />
       ))}
@@ -318,7 +343,15 @@ function CloudPuff({
       {puffs.map((puff, index) => (
         <mesh key={index} position={puff.position} scale={puff.scale}>
           <sphereGeometry args={[1, 12, 8]} />
-          <meshStandardMaterial color={puff.color} roughness={1} transparent opacity={puff.opacity} depthWrite={false} />
+          <meshStandardMaterial
+            color={puff.color}
+            emissive="#ffffff"
+            emissiveIntensity={0.42}
+            roughness={1}
+            transparent
+            opacity={puff.opacity}
+            depthWrite={false}
+          />
         </mesh>
       ))}
     </group>
@@ -355,11 +388,8 @@ function createTerrainTexture(colors: string[], flecks: number) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
-  const gradient = ctx.createLinearGradient(0, 0, 256, 256);
-  gradient.addColorStop(0, colors[0]);
-  gradient.addColorStop(0.55, colors[1]);
-  gradient.addColorStop(1, colors[2]);
-  ctx.fillStyle = gradient;
+  // Flat base: a gradient here shows up as a checkerboard once the texture repeats.
+  ctx.fillStyle = colors[0];
   ctx.fillRect(0, 0, 256, 256);
 
   for (let i = 0; i < flecks; i++) {
@@ -368,9 +398,12 @@ function createTerrainTexture(colors: string[], flecks: number) {
     const size = 1 + seededNoise(i, 13) * 5;
     ctx.globalAlpha = 0.16 + seededNoise(i, 14) * 0.22;
     ctx.fillStyle = colors[Math.floor(seededNoise(i, 15) * colors.length)];
-    ctx.beginPath();
-    ctx.ellipse(x, y, size * 1.8, size, seededNoise(i, 16) * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw wrapped copies so flecks crossing an edge stay seamless.
+    for (const [ox, oy] of [[0, 0], [-256, 0], [256, 0], [0, -256], [0, 256]]) {
+      ctx.beginPath();
+      ctx.ellipse(x + ox, y + oy, size * 1.8, size, seededNoise(i, 16) * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   ctx.globalAlpha = 1;
@@ -386,10 +419,10 @@ function createWaterTexture() {
   const ctx = canvas.getContext("2d");
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
-  ctx.fillStyle = "#003566";
+  ctx.fillStyle = "#cfeaf5";
   ctx.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 42; i++) {
-    ctx.strokeStyle = i % 2 === 0 ? "rgba(144, 224, 239, 0.28)" : "rgba(0, 119, 182, 0.34)";
+    ctx.strokeStyle = i % 2 === 0 ? "rgba(255, 255, 255, 0.55)" : "rgba(120, 180, 210, 0.4)";
     ctx.lineWidth = 1 + seededNoise(i, 22) * 2.2;
     ctx.beginPath();
     const y = seededNoise(i, 23) * 256;
@@ -401,6 +434,12 @@ function createWaterTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+// Ground and shore layers are nearly coplanar; at distance the depth buffer can't tell them apart
+// and they z-fight. Polygon offset scales with depth precision, so higher layers always win.
+function layerOffset(layer: number) {
+  return { polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -layer * 4 };
 }
 
 function configureTiledTexture(texture: THREE.Texture, repeat: number) {
