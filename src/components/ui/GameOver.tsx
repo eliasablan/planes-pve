@@ -50,14 +50,39 @@ export function GameOver({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/82 p-6 text-white backdrop-blur-xl">
+      {/* Grid background */}
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:64px_64px]" />
+      {/* Scanlines overlay */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px)",
+        }}
+      />
+      {/* Red corner vignette */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 55%, rgba(246,95,95,0.08) 100%)",
+        }}
+      />
       <div className="relative w-full max-w-4xl border border-white/14 bg-[#080b10]/92 p-6 shadow-2xl sm:p-8">
         <div className="mb-7 flex items-center gap-4 border-b border-white/10 pb-6">
-          <div className="flex h-16 w-16 items-center justify-center bg-[#f65f5f]/16 text-[#f65f5f]">
+          <div
+            className="flex h-16 w-16 items-center justify-center bg-[#f65f5f]/16 text-[#f65f5f]"
+            style={{ boxShadow: "0 0 30px rgba(246,95,95,0.2)" }}
+          >
             <Skull className="h-8 w-8" />
           </div>
           <div>
-            <h2 className="text-4xl font-black uppercase leading-none tracking-normal sm:text-6xl">Run ended</h2>
+            <h2
+              className="text-4xl font-black uppercase leading-none tracking-normal sm:text-6xl"
+              style={{ animation: "title-flicker 5s ease-in-out infinite" }}
+            >
+              Run ended
+            </h2>
             <p className="mt-2 text-[11px] font-black uppercase tracking-[0.28em] text-white/40">
               Aircraft destroyed
             </p>
