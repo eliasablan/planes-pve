@@ -1,11 +1,11 @@
 "use client";
 
-import { Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { applyLocalDamage } from "@/lib/combatResolution";
-import { EnemyRole, EnemyState, PickupKind, PickupState, useGameStore } from "@/store/useGameStore";
+import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 
 const ROLE_STATS: Record<
@@ -29,6 +29,7 @@ const PICKUP_COLORS: Record<PickupKind, string> = {
 export function PveDirector() {
   const pveEnemies = useGameStore((state) => state.pveEnemies);
   const pvePickups = useGameStore((state) => state.pvePickups);
+  const pveExplosions = useGameStore((state) => state.pveExplosions);
   const setPveEnemies = useGameStore((state) => state.setPveEnemies);
   const spawnPveEnemies = useGameStore((state) => state.spawnPveEnemies);
   const spawnPvePickups = useGameStore((state) => state.spawnPvePickups);
@@ -152,6 +153,9 @@ export function PveDirector() {
       {Object.values(pvePickups).map((pickup) => (
         <Pickup key={pickup.id} pickup={pickup} />
       ))}
+      {pveExplosions.map((explosion) => (
+        <Explosion key={explosion.id} explosion={explosion} />
+      ))}
     </>
   );
 }
@@ -165,6 +169,7 @@ function EnemyAircraft({ enemy }: { enemy: EnemyState }) {
       <Text position={[0, 2.6, 0]} fontSize={0.42} color={stats.color} anchorX="center" anchorY="middle">
         {enemy.role.toUpperCase()}
       </Text>
+      <EnemyHealthBar ratio={enemy.hp / enemy.maxHp} color={stats.color} />
       <mesh position={[0, -0.2, 1.8]}>
         <sphereGeometry args={[0.14, 8, 8]} />
         <meshStandardMaterial color={stats.color} emissive={stats.color} emissiveIntensity={1.4} />
@@ -173,23 +178,142 @@ function EnemyAircraft({ enemy }: { enemy: EnemyState }) {
   );
 }
 
+function EnemyHealthBar({ ratio, color }: { ratio: number; color: string }) {
+  const width = 3.2;
+  const fill = Math.max(0, Math.min(1, ratio));
+
+  return (
+    <Billboard position={[0, 3.25, 0]}>
+      <mesh>
+        <planeGeometry args={[width + 0.16, 0.36]} />
+        <meshBasicMaterial color="#05070a" transparent opacity={0.6} depthWrite={false} />
+      </mesh>
+      <mesh position={[(-width * (1 - fill)) / 2, 0, 0.01]} scale={[fill, 1, 1]}>
+        <planeGeometry args={[width, 0.2]} />
+        <meshBasicMaterial color={fill < 0.35 ? "#f65f5f" : color} toneMapped={false} depthWrite={false} />
+      </mesh>
+    </Billboard>
+  );
+}
+
+const EXPLOSION_DURATION_MS = 1600;
+const DEBRIS_COUNT = 10;
+
+function Explosion({ explosion }: { explosion: PveExplosion }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const flashRef = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>>(null);
+  const fireRef = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>>(null);
+  const smokeRef = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>(null);
+  const ringRef = useRef<THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>>(null);
+  const debrisRefs = useRef<Array<THREE.Mesh | null>>([]);
+  const debris = useMemo(
+    () =>
+      Array.from({ length: DEBRIS_COUNT }, (_, index) => {
+        const noise = (salt: number) => {
+          const x = Math.sin(explosion.timestamp * 0.001 + index * 12.9898 + salt * 78.233) * 43758.5453;
+          return x - Math.floor(x);
+        };
+        return new THREE.Vector3(noise(1) - 0.5, noise(2) * 0.8 - 0.2, noise(3) - 0.5)
+          .normalize()
+          .multiplyScalar(18 + noise(4) * 22);
+      }),
+    [explosion.timestamp],
+  );
+
+  useFrame(({ camera }) => {
+    const t = (Date.now() - explosion.timestamp) / EXPLOSION_DURATION_MS;
+    if (!groupRef.current) return;
+    groupRef.current.visible = t < 1;
+    if (t >= 1) return;
+
+    const seconds = t * (EXPLOSION_DURATION_MS / 1000);
+    const flashT = Math.min(1, t / 0.18);
+    flashRef.current?.scale.setScalar(2 + flashT * 10);
+    if (flashRef.current) flashRef.current.material.opacity = 1 - flashT;
+
+    const fireT = Math.min(1, t / 0.55);
+    fireRef.current?.scale.setScalar(1.5 + Math.sqrt(fireT) * 7);
+    if (fireRef.current) fireRef.current.material.opacity = 0.95 * (1 - fireT);
+
+    smokeRef.current?.scale.setScalar(3 + Math.sqrt(t) * 12);
+    smokeRef.current?.position.set(0, seconds * 4, 0);
+    if (smokeRef.current) smokeRef.current.material.opacity = 0.55 * (1 - t);
+
+    if (ringRef.current) {
+      ringRef.current.lookAt(camera.position);
+      ringRef.current.scale.setScalar(1 + Math.min(1, t / 0.4) * 16);
+      ringRef.current.material.opacity = 0.7 * Math.max(0, 1 - t / 0.4);
+    }
+
+    debrisRefs.current.forEach((mesh, index) => {
+      if (!mesh) return;
+      const velocity = debris[index];
+      mesh.position.set(velocity.x * seconds, velocity.y * seconds - 9 * seconds * seconds, velocity.z * seconds);
+      mesh.rotation.set(seconds * 7 + index, seconds * 5, seconds * 3);
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={explosion.position}>
+      <mesh ref={flashRef}>
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshBasicMaterial color="#fff6d5" transparent toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh ref={fireRef}>
+        <sphereGeometry args={[1, 16, 12]} />
+        <meshBasicMaterial color="#ff8a3d" transparent toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh ref={smokeRef}>
+        <sphereGeometry args={[1, 12, 10]} />
+        <meshStandardMaterial color="#3a3f45" roughness={1} transparent depthWrite={false} />
+      </mesh>
+      <mesh ref={ringRef}>
+        <ringGeometry args={[0.85, 1, 40]} />
+        <meshBasicMaterial color={explosion.color} transparent toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {debris.map((_, index) => (
+        <mesh key={index} ref={(mesh) => { debrisRefs.current[index] = mesh; }}>
+          <boxGeometry args={[0.7, 0.25, 0.45]} />
+          <meshStandardMaterial color={index % 3 === 0 ? explosion.color : "#2b2f33"} roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Pickup({ pickup }: { pickup: PickupState }) {
   const color = PICKUP_COLORS[pickup.kind];
   const label = pickup.kind === "ammo" ? "AMMO" : pickup.kind === "missile" ? "MSL" : "FIX";
+  const bobRef = useRef<THREE.Group>(null);
+  const crateRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>>(null);
+
+  useFrame(({ clock }, delta) => {
+    const t = clock.elapsedTime;
+    if (bobRef.current) bobRef.current.position.y = Math.sin(t * 1.6) * 2.5;
+    if (crateRef.current) crateRef.current.rotation.y += delta * 0.9;
+    if (ringRef.current) {
+      const pulse = (t * 0.7) % 1;
+      ringRef.current.scale.setScalar(0.8 + pulse * 0.7);
+      ringRef.current.material.opacity = 0.5 * (1 - pulse);
+    }
+  });
 
   return (
     <group position={pickup.position}>
-      <mesh rotation={[Math.PI / 4, Math.PI / 4, 0]}>
-        <boxGeometry args={[12, 12, 12]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} roughness={0.42} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+      <group ref={bobRef}>
+        <mesh ref={crateRef} rotation={[Math.PI / 4, Math.PI / 4, 0]}>
+          <boxGeometry args={[12, 12, 12]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} roughness={0.42} />
+        </mesh>
+        <Text position={[0, 18, 0]} fontSize={5} color={color} anchorX="center" anchorY="middle">
+          {label}
+        </Text>
+      </group>
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[18, 21, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.38} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={color} transparent opacity={0.38} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      <Text position={[0, 18, 0]} fontSize={5} color={color} anchorX="center" anchorY="middle">
-        {label}
-      </Text>
     </group>
   );
 }

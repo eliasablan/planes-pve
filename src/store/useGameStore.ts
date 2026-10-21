@@ -36,6 +36,18 @@ export type PickupState = {
   position: [number, number, number];
 };
 
+export type PveExplosion = {
+  id: string;
+  position: [number, number, number];
+  color: string;
+  timestamp: number;
+};
+
+export type EnemyHit = {
+  kill: boolean;
+  timestamp: number;
+} | null;
+
 export type DamageIndicator = {
   angle: number;
   intensity: number;
@@ -66,6 +78,8 @@ interface GameState {
   enemiesRemaining: number;
   boundaryWarning: string | null;
   damageIndicator: DamageIndicator;
+  lastEnemyHit: EnemyHit;
+  pveExplosions: PveExplosion[];
   pveEnemies: Record<string, EnemyState>;
   pvePickups: Record<string, PickupState>;
   
@@ -150,6 +164,8 @@ export const useGameStore = create<GameState>((set) => ({
   enemiesRemaining: 0,
   boundaryWarning: null,
   damageIndicator: null,
+  lastEnemyHit: null,
+  pveExplosions: [],
   pveEnemies: {},
   pvePickups: {},
   
@@ -205,6 +221,8 @@ export const useGameStore = create<GameState>((set) => ({
     let scoreGain = 0;
     let killGain = 0;
     let killLog = state.killLog;
+    let pveExplosions = state.pveExplosions;
+    const now = Date.now();
 
     if (nextHp <= 0) {
       delete pveEnemies[enemyId];
@@ -213,6 +231,15 @@ export const useGameStore = create<GameState>((set) => ({
       killLog = [
         { id: crypto.randomUUID(), killer: "Solo Pilot", victim: enemy.role.toUpperCase(), timestamp: Date.now() },
         ...state.killLog.slice(0, 4),
+      ];
+      pveExplosions = [
+        ...state.pveExplosions.filter((explosion) => now - explosion.timestamp < 1600).slice(-5),
+        {
+          id: crypto.randomUUID(),
+          position: enemy.position,
+          color: enemy.role === "bomber" ? "#f4c95d" : enemy.role === "fighter" ? "#f65f5f" : "#51d6a3",
+          timestamp: now,
+        },
       ];
     } else {
       pveEnemies[enemyId] = { ...enemy, hp: nextHp };
@@ -224,6 +251,8 @@ export const useGameStore = create<GameState>((set) => ({
       score: state.score + scoreGain,
       localKills: state.localKills + killGain,
       killLog,
+      pveExplosions,
+      lastEnemyHit: { kill: nextHp <= 0, timestamp: now },
     };
   }),
   setPvePickups: (pvePickups) => set({ pvePickups }),
@@ -303,6 +332,8 @@ export const useGameStore = create<GameState>((set) => ({
     enemiesRemaining: 0,
     boundaryWarning: null,
     damageIndicator: null,
+    lastEnemyHit: null,
+    pveExplosions: [],
     pveEnemies: {},
     pvePickups: {},
     gameStatus: "lobby",
