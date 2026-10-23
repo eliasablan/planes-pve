@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { applyLocalDamage } from "@/lib/combatResolution";
+import { tickEmergencyResupply } from "@/lib/emergencyResupply";
 import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, TargetLock, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 
@@ -44,6 +45,7 @@ export function PveDirector() {
   const shotsInBurstByEnemy = useRef<Record<string, number>>({});
   const reloadUntilByEnemy = useRef<Record<string, number>>({});
   const pendingNextWaveAt = useRef<number | null>(null);
+  const ammoShortageSince = useRef<number | null>(null);
 
   useEffect(() => {
     const state = useGameStore.getState();
@@ -64,11 +66,29 @@ export function PveDirector() {
     );
 
     const enemyList = Object.values(state.pveEnemies);
+    const emergency = tickEmergencyResupply(
+      now,
+      ammoShortageSince.current,
+      state.ammo === 0 && enemyList.length > 0 &&
+        !Object.values(state.pvePickups).some((pickup) => pickup.kind === "ammo"),
+    );
+    ammoShortageSince.current = emergency.shortageSince;
+    if (emergency.shouldSpawn) {
+      spawnPickupsAhead(
+        state.wave,
+        new THREE.Vector3(player.x, state.altitude - 5, player.z),
+        state.heading,
+        ["ammo"],
+        spawnPvePickups,
+      );
+      ammoShortageSince.current = null;
+    }
+
     if (enemyList.length === 0) {
       if (!pendingNextWaveAt.current) {
         pendingNextWaveAt.current = now + 2400;
         addScore(180 + state.wave * 25);
-        spawnRecoveryPickups(state.wave, player, spawnPvePickups);
+        spawnRecoveryPickups(state.wave, new THREE.Vector3(player.x, state.altitude - 5, player.z), state.heading, spawnPvePickups);
       }
 
       if (pendingNextWaveAt.current && now >= pendingNextWaveAt.current) {
@@ -141,7 +161,7 @@ export function PveDirector() {
 
     for (const pickup of Object.values(state.pvePickups)) {
       const pickupPosition = new THREE.Vector3(...pickup.position);
-      if (pickupPosition.distanceTo(player) < 85) {
+      if (pickupPosition.distanceTo(new THREE.Vector3(player.x, state.altitude - 5, player.z)) < 85) {
         collectPvePickup(pickup.id);
       }
     }
@@ -383,22 +403,34 @@ function createWave(wave: number) {
 function spawnRecoveryPickups(
   wave: number,
   player: THREE.Vector3,
+  heading: number,
   spawnPvePickups: (pickups: PickupState[]) => void,
 ) {
-  const kinds: PickupKind[] = wave % 5 === 0 ? ["ammo", "missile", "repair"] : wave % 2 === 0 ? ["ammo"] : [];
-  if (kinds.length === 0) return;
+  const kinds: PickupKind[] = ["ammo"];
+  if (wave % 5 === 0) kinds.push("missile");
+  if (wave % 2 === 0) kinds.push("repair");
+  spawnPickupsAhead(wave, player, heading, kinds, spawnPvePickups);
+}
+
+function spawnPickupsAhead(
+  wave: number,
+  player: THREE.Vector3,
+  heading: number,
+  kinds: PickupKind[],
+  spawnPvePickups: (pickups: PickupState[]) => void,
+) {
+  const bearing = THREE.MathUtils.degToRad(heading);
 
   spawnPvePickups(
     kinds.map((kind, index) => {
-      const angle = wave * 0.9 + index * 2.1;
-      const distance = 240 + index * 90;
+      const distance = 200 + index * 100;
       return {
         id: `pickup-${wave}-${kind}-${crypto.randomUUID().slice(0, 6)}`,
         kind,
         position: [
-          player.x + Math.cos(angle) * distance,
-          Math.max(120, player.y - 20 + index * 18),
-          player.z + Math.sin(angle) * distance,
+          player.x - Math.sin(bearing) * distance,
+          Math.max(30, player.y),
+          player.z - Math.cos(bearing) * distance,
         ],
       };
     }),

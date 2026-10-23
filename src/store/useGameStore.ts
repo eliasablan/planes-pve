@@ -162,7 +162,7 @@ export const useGameStore = create<GameState>((set) => ({
   hp: 100,
   maxHp: 100,
   ammo: 120,
-  maxAmmo: 120,
+  maxAmmo: 180,
   missiles: 3,
   maxMissiles: 5,
   flares: 2,
@@ -280,12 +280,12 @@ export const useGameStore = create<GameState>((set) => ({
     void removedPickup;
 
     if (pickup.kind === "ammo") {
-      return { pvePickups, ammo: Math.min(state.maxAmmo, state.ammo + 35) };
+      return { pvePickups, ammo: Math.min(state.maxAmmo, state.ammo + 60) };
     }
     if (pickup.kind === "missile") {
       return { pvePickups, missiles: Math.min(state.maxMissiles, state.missiles + 1) };
     }
-    return { pvePickups, hp: Math.min(state.maxHp, state.hp + 30) };
+    return { pvePickups, hp: Math.min(state.maxHp, state.hp + 50) };
   }),
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),

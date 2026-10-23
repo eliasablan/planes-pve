@@ -58,6 +58,9 @@ _Avoid_: Power-up, upgrade
 **Ammo crate**:
 A pickup that replenishes machine-gun ammunition.
 
+**Emergency resupply**:
+An ammo crate supplied during an unfinished wave after the pilot spends five seconds without machine-gun ammunition or an available ammo crate. The pilot must collect it to resume firing the machine gun.
+
 **Missile crate**:
 A pickup that replenishes missiles.
 
@@ -151,11 +154,12 @@ The active PvE scene does not mount authentication, a multiplayer lobby, remote 
 
 ## Run And Wave Progression
 
-- Each run begins airborne above the island with 100 health, 120 machine-gun rounds, and 3 missiles. Capacity is 120 rounds and 5 missiles.
+- Each run begins airborne above the island with 100 health, 120 machine-gun rounds, and 3 missiles. Capacity is 180 rounds and 5 missiles.
 - Wave 1 contains a Scout, Fighter, and Bomber. Starting at wave 3, one extra aircraft is added every two waves, up to eight aircraft per wave. Role health and attack characteristics are currently fixed.
 - Clearing a wave awards `180 + wave * 25` points and schedules the next wave after 2.4 seconds. Flight continues during that interval.
-- Clearing every even-numbered wave produces an ammo crate. Clearing every fifth wave produces an ammo crate, a missile crate, and a repair kit instead. These supplies appear away from the pilot and remain available until collected or the run resets.
-- Collecting supplies restores 35 rounds, 1 missile, or 30 health, capped at the corresponding maximum.
+- Clearing every wave produces an ammo crate. Every fifth wave also produces a missile crate, and every even-numbered wave produces a repair kit. Supplies appear in a line ahead of the aircraft at a nearby altitude and remain available until collected or the run resets. The HUD guides the pilot toward the nearest useful pickup with direction, distance, and altitude guidance.
+- Collecting supplies restores 60 rounds, 1 missile, or 50 health, capped at the corresponding maximum.
+- During combat, five continuous seconds with zero machine-gun ammunition and no ammo crate available trigger one emergency ammo crate ahead of the aircraft. It restores the usual 60 rounds on collection, even if missiles remain. Recovering ammunition or having an ammo crate available resets the timer; an existing crate prevents duplicate emergency supplies.
 - Recovery uses resupply during ongoing flight, as recorded in [ADR 0007](docs/adr/0007-use-infinite-survival-waves-with-resupply.md). There is no dedicated recovery stop, checkpoint summary, or checkpoint bonus.
 - Destruction of the player aircraft records the run's end time and displays game over. The pilot can save a qualifying score, start a fresh run, or return to the start screen.
 

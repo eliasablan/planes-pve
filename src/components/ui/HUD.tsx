@@ -2,7 +2,7 @@
 
 import { useGameStore } from "@/store/useGameStore";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Crosshair, Gauge, HeartPulse, MousePointer2, Radar, Rocket, Shell, Target } from "lucide-react";
+import { AlertTriangle, ArrowUp, Crosshair, Gauge, HeartPulse, MousePointer2, Radar, Rocket, Shell, Target } from "lucide-react";
 import { useControls } from "@/hooks/useControls";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -10,8 +10,11 @@ import type { ReactNode } from "react";
 export function HUD() {
   const {
     hp,
+    maxHp,
     ammo,
+    maxAmmo,
     missiles,
+    maxMissiles,
     score,
     altitude,
     speed,
@@ -28,6 +31,15 @@ export function HUD() {
     targetLock,
     killLog,
   } = useGameStore();
+  const supply = Object.values(pvePickups)
+    .filter((pickup) => pickup.kind === "ammo" ? ammo < maxAmmo : pickup.kind === "missile" ? missiles < maxMissiles : hp < maxHp)
+    .map((pickup) => {
+      const dx = pickup.position[0] - localPlayerPosition[0];
+      const dz = pickup.position[2] - localPlayerPosition[1];
+      const dy = pickup.position[1] - (altitude - 5);
+      return { ...pickup, dy, distance: Math.hypot(dx, dy, dz), angle: Math.atan2(dx, -dz) * 180 / Math.PI + heading };
+    })
+    .sort((a, b) => a.distance - b.distance)[0];
   const inSolution = Boolean(targetLock?.inSolution);
   const { mouseControlEnabled } = useControls();
   const isLowHealth = hp < 30;
@@ -267,6 +279,17 @@ export function HUD() {
           </div>
         )}
       </div>
+
+      {supply && (
+        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-3 border border-[#f4c95d]/40 bg-black/75 p-3 text-[#f4c95d] sm:right-6">
+          <ArrowUp aria-hidden="true" className="h-7 w-7 shrink-0" style={{ transform: `rotate(${supply.angle}deg)` }} />
+          <div className="text-xs font-bold">
+            <div>{supply.kind === "ammo" ? "Ammo +60" : supply.kind === "missile" ? "Missile +1" : "Repair +50"}</div>
+            <div className="text-white">{Math.round(supply.distance)} m · {supply.dy > 30 ? "Climb" : supply.dy < -30 ? "Descend" : "Same altitude"}</div>
+            <div className="text-[10px] text-white/60">Fly close to collect</div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom row */}
       <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
