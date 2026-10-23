@@ -1,154 +1,213 @@
-# Skybound Battle Royale Context
+# Skybound Survival Context
 
 ## Project
 
-Skybound Battle Royale is a browser-based multiplayer airplane combat game. Players authenticate as pilots, enter a realtime room, fly over an island arena, fight with limited weapons, avoid a shrinking battle royale zone, and accumulate persistent stats for the leaderboard.
+Skybound Survival is a browser-based, single-player arcade airplane combat game. The pilot survives successive waves of enemy aircraft over an island, manages limited ammunition and health, collects supplies, and tries to earn a place in the local top 10. A run continues until the player's aircraft is destroyed; there is no final wave or campaign victory.
 
-The product is currently implemented as a Next.js App Router application with a client-rendered 3D game scene. The primary runtime experience lives in the browser; Supabase provides authentication, profile data, realtime room messaging, and persistence for match events and leaderboard stats.
+The playable flow is start screen → airborne run → game over → optional arcade-name entry → local scoreboard, with options to fly again or return to the start screen. Playing does not require an account or a multiplayer session.
+
+This repository evolved from Skybound Battle Royale. Some files, types, and older documents still describe that PvP game. The terms below describe the current PvE product; historical multiplayer concepts do not define its domain.
 
 ## Domain Language
 
-- **Pilot**: An authenticated user profile. The UI often labels pilots as units, commanders, or designations, but the persisted identity is a Supabase profile.
-- **Profile**: Persistent Supabase row keyed to the Supabase auth user. Stores `username`, `total_kills`, `total_wins`, and `ranking_points`.
-- **Room**: A Supabase Realtime channel topic for one multiplayer session. The current default room name is `default-room`.
-- **Match**: A persisted gameplay session in Supabase. The current local game lifecycle can run without a persisted match id.
-- **Local player**: The current browser's airplane, simulated by Rapier and controlled from keyboard, mouse, and weapon inputs.
-- **Remote player**: Another pilot's latest broadcast snapshot, rendered as an interpolated placeholder aircraft.
-- **Snapshot**: A high-frequency realtime payload containing player id, username, position, rotation, and hp.
-- **Zone**: The shrinking battle royale safe area. The store exposes current and target zone radius/center for 3D rendering and minimap drawing.
-- **Current zone**: The red gas perimeter currently damaging pilots outside it.
-- **Target zone**: The next safe area shown on the minimap and in the world.
-- **World topology**: Shared map and 3D arena constants such as map size, island radius, coastline radius, colors, and mountain positions.
-- **HUD**: The in-game overlay for telemetry, weapon state, integrity, kill feed, and minimap.
-- **Leaderboard**: Server-rendered page that reads Supabase profiles ordered by ranking points.
-- **PvE spin-off**: A separate single-player version of the airplane combat game where the pilot fights system-controlled enemies instead of other pilots. Avoid treating it as a multiplayer room variant.
-- **High score**: The best score achieved in a single PvE run. Avoid using PvP ranking points as the primary PvE score term.
-- **Local scoreboard**: The initial PvE top-score table stored in browser `localStorage`. It is scoped to one browser/device and is safe for a Vercel deployment with no configured database.
-- **Global ranking**: A future top-score table for the PvE spin-off ordered by high score and attributed to player-entered arcade names, not authenticated profiles.
-- **Arcade score entry**: A saved PvE ranking record created at the end of a run when the score qualifies for the top 10. It records arcade name, score, wave reached, kills, and creation time.
-- **PvE score store**: The persistence boundary for arcade score entries in the PvE spin-off. The initial implementation is localStorage-only; the future global implementation is expected to use PostgreSQL and remain separate from the PvP Supabase schema.
-- **Score submission**: The future server-side request made after a PvE run to validate an arcade name, check whether the score qualifies for the top 10, save the arcade score entry, and return the updated global ranking. The current local scoreboard performs lightweight client-side validation instead.
-- **Light score validation**: Basic server-side checks for PvE score submissions, such as valid arcade names, plausible score ranges for wave and kills, and simple abuse limits. It is not authoritative anticheat.
-- **Arcade name**: The 3-12 character name entered after a qualifying PvE run. It is displayed in uppercase on the global ranking and is not a login identity.
-- **Run**: One continuous PvE attempt from takeoff until defeat. A run contains many waves and produces one final score.
-- **Combat HUD**: The minimal in-run PvE overlay showing score, wave, enemies remaining, health, machine-gun ammunition, missiles, nearby pickup awareness, and combat-boundary warnings.
-- **Radar**: A compact PvE awareness display showing relative direction of nearby enemy aircraft and pickups. Avoid using the multiplayer tactical minimap as the primary PvE navigation UI.
-- **Arcade flow**: The PvE out-of-run UI sequence: start screen, pause screen, game over summary, conditional arcade-name entry, and updated local scoreboard. Avoid multiplayer lobby and profile screens in the initial PvE spin-off.
-- **Arcade flight**: The PvE flight feel target: responsive, readable, and forgiving enough for combat survival while still preserving airplane momentum and spatial skill.
-- **Graduated collision**: A PvE collision model where strong terrain or water impacts can destroy the airplane, while glancing terrain contact and light enemy collisions cause damage and pushback instead of instant defeat.
-- **Simplified enemy flight**: A PvE enemy movement model with its own heading, speed, turning, pursuit, and attack behavior, without requiring the full player flight physics simulation.
-- **Enemy aircraft model**: The visual form of PvE enemy aircraft. Enemy models can be based on the player's current airplane model, with role-specific color, scale, silhouette, or attachment differences for readability.
-- **Enemy readability**: The requirement that Scout, Fighter, and Bomber roles be visually distinguishable at combat distance through simple differences such as size, color, silhouette, and trail.
-- **Chase camera**: The third-person camera perspective used for PvE flight, based on the current player camera style and tuned for combat readability.
-- **Run start**: The immediate PvE transition from start screen to airborne play, with brief spawn invulnerability and the first wave entering from distance. Avoid multiplayer lobby and long countdown patterns.
-- **Tracer bullet**: The first playable PvE implementation slice that proves the spin-off runs independently: start screen, immediate airborne play, stripped multiplayer/auth/zone surfaces, minimal combat HUD, and a basic end-of-run path before full enemies, waves, pickups, and scoring are added.
-- **Wave**: A group of system-controlled enemies spawned during a PvE run. Waves continue indefinitely and become harder over time.
-- **Soft checkpoint**: A 10-15 second pacing break after every five PvE waves. It is not a saved game state or level screen; it shows a compact summary, grants recovery pickups, raises the difficulty tier, and continues the same run.
-- **Defeat**: The end of a PvE run caused by destruction of the player's airplane. Running out of ammunition is a survivable crisis, not defeat by itself.
-- **Ammo crate**: A PvE pickup that restores machine-gun ammunition during a run.
-- **Missile crate**: A rarer PvE pickup that restores a small number of missiles during a run.
-- **Repair kit**: A PvE pickup that restores airplane health during a run without exceeding maximum health.
-- **Starting loadout**: The ammunition and missiles available at the start of a PvE run. It should be generous enough for the player to clear early waves before pickups become necessary.
-- **Pickup spawn**: A controlled appearance of a PvE pickup either during combat as a risk-reward objective or during a soft checkpoint as guaranteed recovery. Pickups should require deliberate flight movement, not appear directly on the player.
-- **Enemy aircraft**: A system-controlled opponent in the PvE spin-off. Avoid calling it a remote player because it is not a pilot connected through multiplayer.
-- **Scout**: A fast, fragile enemy aircraft that pressures the player through harassment and movement.
-- **Fighter**: The baseline enemy aircraft that pursues the player and attacks directly.
-- **Bomber**: A slower, tougher enemy aircraft worth more score and intended to create target-priority decisions.
-- **Enemy attack**: Direct gunfire from enemy aircraft. Enemy missiles are intentionally out of scope for the initial PvE version.
-- **Player missile**: A limited player weapon in the PvE spin-off, intended for high-priority targets or difficult wave moments.
-- **Flare**: A defensive countermeasure from the multiplayer game that is out of scope for the initial PvE spin-off because enemies do not fire missiles.
-- **Wave clear bonus**: Score awarded when the player defeats all enemy aircraft in a wave.
-- **Checkpoint bonus**: Score awarded at a soft checkpoint after every five waves.
-- **Streak multiplier**: A temporary score multiplier earned by defeating enemies without taking damage for a short period.
-- **Difficulty escalation**: The way PvE waves become harder through enemy count, enemy role composition, aggression, and accuracy. Avoid relying primarily on inflated enemy health.
-- **Combat boundary**: The broad playable limit for PvE flight space. It warns the player and keeps enemies engaged before applying gradual damage for prolonged escape; avoid using the multiplayer shrinking zone in the initial PvE spin-off.
+### Pilot And Run
+
+**Pilot**:
+The person playing Skybound Survival and controlling the player aircraft.
+_Avoid_: Authenticated profile, commander, account
+
+**Player aircraft**:
+The airplane controlled by the pilot during a run, carrying its current health and weapons.
+_Avoid_: Local player, unit
+
+**Run**:
+One continuous survival attempt, from entering airborne play until defeat. Each run starts fresh, spans successive waves, and produces a final score.
+_Avoid_: Match, room, campaign
+
+**Defeat**:
+The end of a run caused by destruction of the player aircraft. Exhausting ammunition alone does not end the run.
+
+**Starting loadout**:
+The machine-gun ammunition and missiles available to the player aircraft when a run begins.
+
+### Waves And Recovery
+
+**Wave**:
+A numbered group of enemy aircraft that the pilot must destroy before the next group arrives. Waves continue without a final wave.
+_Avoid_: Round, level
+
+**Wave clear**:
+The defeat of every enemy aircraft belonging to a wave.
+
+**Wave reached**:
+The highest wave entered during a run, whether or not the pilot cleared it.
+_Avoid_: Waves completed
+
+**Inter-wave break**:
+The interval between clearing one wave and the arrival of the next, during which the pilot continues flying.
+_Avoid_: Pause
+
+**Resupply**:
+The recovery of ammunition, missiles, or health by collecting pickups while continuing the run.
+_Avoid_: Soft checkpoint, automatic refill
+
+**Pickup**:
+A supply item in the airspace that the pilot collects by flying close to it. Its benefit is limited by the aircraft's ammunition capacity or maximum health.
+_Avoid_: Power-up, upgrade
+
+**Ammo crate**:
+A pickup that replenishes machine-gun ammunition.
+
+**Missile crate**:
+A pickup that replenishes missiles.
+
+**Repair kit**:
+A pickup that restores aircraft health.
+
+### Combat
+
+**Enemy aircraft**:
+A system-controlled airplane that opposes the pilot and belongs to a wave.
+_Avoid_: Remote player, rival pilot
+
+**Enemy role**:
+One of the three enemy aircraft categories: Scout, Fighter, or Bomber. A role determines the aircraft's combat characteristics and score value.
+
+**Scout**:
+A fast, fragile enemy aircraft with the lowest score value of the three roles.
+
+**Fighter**:
+An enemy aircraft with speed, durability, and score value between those of the Scout and Bomber.
+
+**Bomber**:
+A slow, durable enemy aircraft with the highest score value of the three roles.
+
+**Health**:
+The remaining durability of an aircraft. Zero health means the aircraft is destroyed.
+_Avoid_: Lives, shield
+
+**Machine gun**:
+The rapid-fire player weapon that consumes ammunition with each shot.
+
+**Missile**:
+A limited player weapon that deals more damage per hit than the machine gun.
+
+**Kill**:
+The destruction of one enemy aircraft by the pilot. A run's kill count is separate from its score.
+_Avoid_: Player elimination, PvP kill
+
+**Target lock**:
+The enemy aircraft currently tracked by the aiming indicator. Tracking an enemy alone does not mean the selected weapon can hit it.
+_Avoid_: Missile guidance, automatic aim
+
+**Firing solution**:
+The alignment and range conditions under which the selected weapon can hit an enemy aircraft.
+
+**Combat boundary**:
+The fixed outer limit of the combat airspace, with a warning region and a farther region that damages the player aircraft.
+_Avoid_: Shrinking zone, safe zone, gas perimeter
+
+### Awareness And Results
+
+**Combat HUD**:
+The in-run display of score, wave, enemies remaining, health, weapons, flight telemetry, aiming feedback, and combat warnings.
+_Avoid_: Lobby, profile screen
+
+**Radar**:
+The compact display of enemy aircraft and pickups relative to the player aircraft's position.
+_Avoid_: Battle royale minimap, safe-zone map
+
+**Score**:
+The points accumulated within one run by destroying enemy aircraft and clearing waves.
+_Avoid_: Ranking points, lifetime points
+
+**Wave clear bonus**:
+The points awarded for clearing a wave, in addition to the points earned for individual kills.
+
+**High score**:
+A final run score that earns a place in the local top 10.
+
+**Local scoreboard**:
+The ordered table of up to ten arcade score entries retained in the same browser. It ranks individual runs rather than pilot profiles.
+_Avoid_: Global ranking, pilot leaderboard
+
+**Arcade score entry**:
+A saved result from a qualifying finished run, attributed to an arcade name. It contains score, wave reached, kills, run duration, and the time it was saved.
+_Avoid_: Profile, account statistics
+
+**Arcade name**:
+The pilot-entered label attached to an arcade score entry: 3–12 uppercase letters or digits. The same name can label multiple entries and does not establish a unique pilot identity.
+_Avoid_: Username, login identity
 
 ## Current Architecture
 
-The app uses Next.js 16.2.1, React 19.2.4, Tailwind CSS v4, shadcn UI primitives, Three.js through `@react-three/fiber`, Rapier through `@react-three/rapier`, Supabase, and Zustand.
+The app uses Next.js 16.2.1, React 19.2.4, Tailwind CSS v4, shadcn UI primitives, Three.js through `@react-three/fiber`, Rapier through `@react-three/rapier`, and Zustand. Bun is the package manager and development command runner.
 
-The homepage is a client component. It checks the Supabase session, loads the current profile into the Zustand store, and dynamically imports the 3D `Scene` with SSR disabled. This keeps the Three.js/Rapier experience browser-only.
+The homepage is a client component with the start screen and links to the local scoreboard and asset documentation. Starting a run resets the runtime state and dynamically loads `Scene` with SSR disabled. `Scene` starts play immediately and mounts the environment, player aircraft, and `PveDirector` inside the 3D canvas and physics world, with the combat HUD overlaid in React.
 
-The game scene switches between lobby, playing/countdown, and game-over views using `gameStatus` from the store. While playing, the scene mounts a React Three Fiber `Canvas`, Rapier `Physics`, the environment, the zone, the local airplane, remote airplanes, and the HUD.
+Zustand bridges the frame-based simulation and React UI. It holds aircraft resources and telemetry, enemies, pickups, wave progression, score, combat feedback, and run timestamps. The local lifecycle helpers start, finish, and reset a run; their existing names still use `Match`. The active flow uses `playing` and `finished`; `lobby` remains a reset-state label and `countdown` remains in the status type.
 
-Zustand is the shared runtime state bridge between the R3F frame loop and React UI. The flight loop writes hp, weapons, telemetry, local player position, zone data, remote players, score, and kill log state. React overlays read that state to render HUD, minimap, lobby, and results.
+The active PvE scene does not mount authentication, a multiplayer lobby, remote players, or the shrinking zone. Supabase remains in the dependencies and inherited PvP modules, but the playable PvE flow and local scoreboard do not use it.
 
-Supabase Realtime is used as a lightweight room transport. Movement is sent as broadcast snapshots at roughly 30Hz. Combat uses broadcast hit and kill events. Presence is used to track room joins and leaves, although the current lobby derives its player list from snapshots stored in Zustand.
+## Run And Wave Progression
 
-Supabase Postgres stores profiles, matches, and match events. The app currently logs kills and win increments through client-side Supabase calls and RPC helpers. Match lifecycle in the browser can start locally without creating a persisted `matches` row.
+- Each run begins airborne above the island with 100 health, 120 machine-gun rounds, and 3 missiles. Capacity is 120 rounds and 5 missiles.
+- Wave 1 contains a Scout, Fighter, and Bomber. Starting at wave 3, one extra aircraft is added every two waves, up to eight aircraft per wave. Role health and attack characteristics are currently fixed.
+- Clearing a wave awards `180 + wave * 25` points and schedules the next wave after 2.4 seconds. Flight continues during that interval.
+- Clearing every even-numbered wave produces an ammo crate. Clearing every fifth wave produces an ammo crate, a missile crate, and a repair kit instead. These supplies appear away from the pilot and remain available until collected or the run resets.
+- Collecting supplies restores 35 rounds, 1 missile, or 30 health, capped at the corresponding maximum.
+- Recovery uses resupply during ongoing flight, as recorded in [ADR 0007](docs/adr/0007-use-infinite-survival-waves-with-resupply.md). There is no dedicated recovery stop, checkpoint summary, or checkpoint bonus.
+- Destruction of the player aircraft records the run's end time and displays game over. The pilot can save a qualifying score, start a fresh run, or return to the start screen.
 
-## Game Loop And Controls
+## Flight, Combat, And Awareness
 
-The local airplane is a Rapier rigid body spawned above the island. Each frame:
+The player aircraft is a Rapier rigid body. The flight loop reads input, applies throttle and flight forces, updates orientation and the attached camera, publishes telemetry to the store, resolves weapons, and checks the fixed combat boundary. Enemy aircraft use role-specific movement and attack behavior managed by `PveDirector`, rather than the player's full rigid-body flight simulation.
 
-- input is read from `useControls`
-- local position is written to the store for the minimap
-- flight basis vectors are derived from the aircraft quaternion
-- throttle, lift, drag, torque, and camera FOV are applied
-- telemetry is written to the store
-- weapon input resolves machine gun shots, missile consumption, and flare consumption
-- local snapshots are broadcast to the room
-- zone damage is applied when outside the current zone
+Current controls are W/S for throttle, A/D for roll, arrow keys for pitch/yaw, Shift for air brake, Space or left click to fire, 1/2 to select machine gun/missile, and O to toggle mouse steering. M still toggles the inherited large-map state, but the active HUD does not render that map. X remains an inherited flare input with no active PvE weapon action.
 
-Keyboard controls currently include W/S throttle, A/D roll, arrow keys pitch/yaw, Shift brake, Space or left mouse fire, 1/2 weapon selection, X flare, O mouse steering toggle, and M large map toggle.
+PvE hits resolve locally at firing time using weapon range and an aiming cone. The machine gun deals 12 damage and missiles deal 80; each shot consumes its resource even if it misses. Machine-gun tracers are visual feedback. Missiles currently apply immediate damage rather than simulating a guided projectile. The target indicator tracks an enemy near the crosshair and shows whether that enemy is within the selected weapon's firing solution.
 
-## Combat Model
+Enemies attack in role-specific bursts when within range, with a 6.5-second grace period against enemy attacks at run start. Destroying a Scout awards 100 points, a Fighter 160, and a Bomber 260. A kill also updates the kill feed, hit marker, and explosion feedback.
 
-Combat is currently client-resolved. Machine gun shots consume ammo and search remote player snapshots in the shooter's reticle using distance and dot-product checks. Hits are broadcast to the room. The victim client applies local damage, ends its local match when hp reaches zero, broadcasts a kill, and logs the kill if there is a match id.
+Ground collision destroys the player aircraft after its initial 3-second collision grace period. Falling below the water threshold also ends the run. The combat boundary warns beyond a radius of 3,800 and applies 20 damage per second beyond 4,600; it does not shrink.
 
-Missiles and flares currently consume inventory and have placeholder projectile support. Homing, flare disruption, and fully authoritative missile hit resolution are not complete.
+The world is an island surrounded by ocean. The combat HUD includes a compact radar, nearby-enemy direction arrows, a compass, targeting feedback, incoming-damage feedback, and resource and telemetry readouts. Shared world constants describe the island and mountains; the inherited tactical minimap is not mounted in the current flow.
 
-Damage constants are centralized in `src/lib/combatResolution.ts`:
+## Score Persistence
 
-- machine gun: 10
-- missile: 65
-- zone: 15
-- collision: 100
+The current scoreboard stores up to ten entries in browser `localStorage` under `planes-pve:scoreboard:v1`, as decided in [ADR 0013](docs/adr/0013-use-localstorage-for-initial-pve-scoreboard.md). It is available at game over and on `/leaderboard`, and scores do not sync between browsers or devices.
 
-## World And Map
+A run must have a positive score and qualify for the top 10 before the game-over screen offers name entry. Entries are ordered by score descending, wave reached descending, kills descending, duration ascending, and then save time ascending. Names are normalized to uppercase letters and digits and must be 3–12 characters long. Reusing a name creates another run entry rather than updating a profile.
 
-The world is an island arena in a large ocean. Shared world constants live in `src/lib/worldTopology.ts` and are used by both the 3D environment and canvas minimap. This keeps island radius, coast radius, mountains, colors, and world-to-map scaling consistent across views.
+Saving a result preserves its final metrics, not the run's playable state. Active runs and recovery supplies are not saved for resumption.
 
-The minimap renders the island, mountains, current zone, target zone, remote players, and local player heading on a canvas. The large tactical map uses the same projection at a larger size.
+## Planned Features And Historical Context
 
-## Persistence
-
-The Supabase schema defines:
-
-- `profiles`: persistent pilot stats
-- `matches`: match metadata and winner
-- `match_events`: persisted kills
-- `increment_kills(user_id)`: increments kills and ranking points
-- `increment_wins(user_id)`: increments wins and ranking points
-
-New Supabase auth users create profiles through a database trigger using `raw_user_meta_data->>'username'`.
-
-## Known Gaps
-
-- The docs/spec mention deterministic zone behavior based on server timestamps, but the current `TheZone` implementation chooses future centers with `Math.random()` inside each client. That means clients can diverge unless this is centralized or made deterministic.
-- The current local match lifecycle does not necessarily create a persisted match before gameplay starts, so kill logging depends on a match id being available.
-- Combat is trust-based and client-resolved. It is suitable for a prototype but not for competitive integrity.
-- Missiles and flares are inventory-level features with placeholder projectile behavior; homing, lock-on, and flare disruption are not yet complete.
-- The lobby does not yet implement a real ready-state protocol; it mostly displays room membership and lets the local player deploy.
-- Existing superpowers docs refer to Next.js 15, while the actual dependency is Next.js 16.2.1.
+- A future global ranking is a shared table of arcade run results. [ADR 0009](docs/adr/0009-separate-pve-score-storage-from-pvp-supabase.md), [ADR 0010](docs/adr/0010-use-postgresql-for-pve-score-storage.md), and [ADR 0011](docs/adr/0011-submit-pve-scores-through-nextjs-api.md) describe separate PvE score storage in PostgreSQL through a Next.js API route. The current app has neither that submission endpoint nor global score persistence; ADR 0013 establishes the interim local scoreboard.
+- Streak multipliers, a pause screen, and graduated collision damage appeared in the earlier domain description but are not implemented in the active loop. They should be evaluated as future design work rather than assumed to be current rules.
+- Waves are endless, but enemy count stops increasing at eight and role statistics remain fixed. Broader difficulty escalation is future balancing work.
+- `AuthForm`, `Lobby`, `MultiplayerProvider`, `RemoteAirplane`, `TheZone`, `Minimap`, the Supabase schema, and realtime/match-logging helpers are inherited PvP code. The store also retains profile, remote-player, zone, and flare state. Their presence does not imply active PvE features.
+- Earlier ADRs, the `docs/superpowers/` documents, and `TODO.md` retain Battle Royale history. Use this context and the later PvE ADRs when interpreting the current game.
 
 ## Source Map
 
-- `src/app/page.tsx`: authenticated landing page and entry into the game scene
-- `src/app/leaderboard/page.tsx`: localStorage-backed PvE scoreboard surface
-- `src/components/game/Scene.tsx`: game scene composition and UI state switching
-- `src/components/game/Airplane.tsx`: local player simulation, weapons, telemetry, broadcasting, and zone damage
-- `src/components/game/Environment.tsx`: 3D island, ocean, mountains, props, lighting, and fog
-- `src/components/game/TheZone.tsx`: current and target zone rendering/state
-- `src/components/game/MultiplayerProvider.tsx`: room subscription and realtime event handling
-- `src/components/game/RemoteAirplane.tsx`: interpolated remote player rendering
-- `src/components/ui/HUD.tsx`: in-game overlay and large map
-- `src/components/ui/Minimap.tsx`: canvas tactical map
-- `src/store/useGameStore.ts`: shared game state
-- `src/lib/realtimeRoom.ts`: Supabase Realtime room abstraction
-- `src/lib/combatResolution.ts`: damage, shot, hit, kill, and scoring logic
-- `src/lib/flightFrame.ts`: reusable flight physics helpers
-- `src/lib/worldTopology.ts`: shared world/minimap topology
-- `src/lib/matchLifecycle.ts`: local match state transitions
-- `src/lib/matchLogging.ts`: Supabase kill and win persistence
-- `supabase/schema.sql`: database schema, RLS, trigger, and stats RPCs
+- `src/app/page.tsx`: start screen and entry into a fresh run
+- `src/app/leaderboard/page.tsx`: local scoreboard page
+- `src/app/docs/page.tsx`: asset credits and licensing
+- `src/components/game/Scene.tsx`: PvE scene, immediate run start, game over, restart, and exit
+- `src/components/game/Airplane.tsx`: player flight, PvE weapons, target selection, collisions, and combat boundary
+- `src/components/game/PveDirector.tsx`: enemy roles, wave creation, enemy movement and attacks, pickup spawning/collection, and enemy visuals
+- `src/components/game/Environment.tsx`: island, ocean, mountains, lighting, and scenery
+- `src/components/game/AirplaneModel.tsx`: shared aircraft appearance with role colors and scale supplied by the scene
+- `src/components/game/Projectiles.tsx`: visual projectile components; active PvE hit resolution happens when firing
+- `src/components/ui/HUD.tsx`: combat readouts, radar, compass, aiming feedback, damage feedback, and kill feed
+- `src/components/ui/GameOver.tsx`: run summary, qualifying name entry, score save, and replay/exit actions
+- `src/components/ui/LocalScoreboardPanel.tsx` and `src/components/ui/LocalScoreboardTable.tsx`: local score subscription and display
+- `src/store/useGameStore.ts`: runtime state, enemy damage and kill scoring, resource collection, and reset
+- `src/lib/matchLifecycle.ts`: local run timestamps and lifecycle transitions, retaining inherited names
+- `src/lib/combatResolution.ts`: shared player-damage and defeat helpers alongside inherited PvP combat functions; PvE weapon values are in `Airplane.tsx`
+- `src/lib/localScoreboard.ts`: arcade-name rules, qualification, ordering, and local persistence
+- `src/lib/localScoreboard.test.ts`: existing scoreboard validation and ordering tests
+- `src/lib/flightFrame.ts`: player flight forces, torque, camera, and telemetry helpers
+- `src/lib/worldTopology.ts`: shared world dimensions and map projection constants
+- `docs/adr/0005-*` onward: PvE scope and persistence decisions
