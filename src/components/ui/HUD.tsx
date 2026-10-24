@@ -1,8 +1,12 @@
 "use client";
 
 import { useGameStore } from "@/store/useGameStore";
+import { PickupIcon } from "@/components/ui/PickupIcon";
+import { PICKUP_PRESENTATION } from "@/lib/pickupPresentation";
+import { findUsefulPickup } from "@/lib/pveSupplies";
+import { CombatRadar } from "./CombatRadar";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, ArrowUp, Crosshair, Gauge, HeartPulse, MousePointer2, Radar, Rocket, Shell, Target } from "lucide-react";
+import { AlertTriangle, Crosshair, Gauge, HeartPulse, MousePointer2, Rocket, Shell, Target } from "lucide-react";
 import { useControls } from "@/hooks/useControls";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -26,20 +30,19 @@ export function HUD() {
     localPlayerPosition,
     pveEnemies,
     pvePickups,
+    pvePickupReceipts,
     damageIndicator,
     lastEnemyHit,
     targetLock,
     killLog,
   } = useGameStore();
-  const supply = Object.values(pvePickups)
-    .filter((pickup) => pickup.kind === "ammo" ? ammo < maxAmmo : pickup.kind === "missile" ? missiles < maxMissiles : hp < maxHp)
-    .map((pickup) => {
-      const dx = pickup.position[0] - localPlayerPosition[0];
-      const dz = pickup.position[2] - localPlayerPosition[1];
-      const dy = pickup.position[1] - (altitude - 5);
-      return { ...pickup, dy, distance: Math.hypot(dx, dy, dz), angle: Math.atan2(dx, -dz) * 180 / Math.PI + heading };
-    })
-    .sort((a, b) => a.distance - b.distance)[0];
+  const supply = findUsefulPickup(
+    pvePickups,
+    { ammo, maxAmmo, missiles, maxMissiles, hp, maxHp },
+    [localPlayerPosition[0], altitude - 5, localPlayerPosition[1]],
+    heading,
+    true,
+  );
   const inSolution = Boolean(targetLock?.inSolution);
   const { mouseControlEnabled } = useControls();
   const isLowHealth = hp < 30;
@@ -62,14 +65,70 @@ export function HUD() {
   }
   const waveAnnouncement = waveAnnouncedAt !== null && now - waveAnnouncedAt < 2600 ? wave : null;
 
+  const visibleReceipts = pvePickupReceipts.filter((receipt) => now - receipt.collectedAt < 3200);
   const visibleKills = killLog.filter((k) => now - k.timestamp < 3200);
+  const notifications = [
+    ...visibleKills.map(kill => ({ type: "kill" as const, key: `kill:${kill.id}`, timestamp: kill.timestamp, kill })),
+    ...visibleReceipts.map(receipt => ({ type: "pickup" as const, key: `pickup:${receipt.id}`, timestamp: receipt.collectedAt, receipt })),
+  ].sort((a, b) => a.timestamp - b.timestamp);
 
   const enemyHitAge = lastEnemyHit ? now - lastEnemyHit.timestamp : Number.POSITIVE_INFINITY;
   const enemyHitWindow = lastEnemyHit?.kill ? 560 : 320;
   const enemyHitOpacity = Math.max(0, 1 - enemyHitAge / enemyHitWindow);
 
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
+    <div data-combat-hud className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
+      <style>{`
+        [data-hud-metrics] > div, [data-hud-flight] > div, [data-hud-weapons] > div { background-color: rgb(5 7 10 / .8); }
+        [data-hud-radar-panel] { width: 184px; order: 2; }
+        [data-hud-notifications] { top: 244px; }
+        @media (min-width: 1920px) {
+          [data-hud-radar-panel] { width: 216px; }
+          [data-hud-notifications] { top: 280px; width: 256px; }
+        }
+        @media (max-width: 639px) {
+          [data-hud-radar-panel] { width: 126px; }
+          [data-hud-notifications] { top: 180px; }
+        }
+        @media (max-height: 500px) {
+          [data-hud-metrics] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+          [data-hud-radar-panel] { position: absolute; left: 0; top: 68px; width: 116px; padding: 4px; }
+          [data-hud-resources] { gap: 8px; }
+          [data-hud-flight], [data-hud-weapons] { flex-wrap: nowrap; gap: 5px; }
+          [data-hud-flight] > div, [data-hud-weapons] > div { min-width: 0; padding: 6px; }
+          [data-hud-health] { width: 116px; }
+          [data-hud-health] > div:first-child { gap: 4px; font-size: 9px; }
+          [data-hud-weapons] { margin-left: auto; }
+          [data-hud-notifications] { top: 232px; left: 24px; right: auto; width: 300px; gap: 3px; }
+          [data-hud-notifications] [role="log"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+          [data-hud-notifications] [role="log"] svg { width: 12px; height: 12px; }
+          [data-hud-weapons] > div > div:first-child { white-space: nowrap; font-size: 9px; letter-spacing: 0; }
+          [data-hud-notifications] [role="log"] > div { padding: 3px 5px; font-size: 10px; }
+        }
+        @media (max-width: 639px) and (max-height: 360px) {
+          [data-hud-radar-panel] { width: 80px; }
+          [data-hud-radar-panel] > div { font-size: 8px; white-space: nowrap; gap: 2px; }
+          [data-hud-notifications] { top: 188px; left: 16px; }
+        }
+        @media (max-width: 360px) and (min-height: 501px) {
+          [data-combat-hud] { padding: 12px; }
+          [data-hud-metrics] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: calc(100vw - 24px); }
+          [data-hud-metrics] > div { min-width: 0; padding: 8px; }
+          [data-hud-metrics] > div > div:first-child { font-size: 9px; letter-spacing: 1px; }
+          [data-hud-metrics] > div > div:last-child { font-size: 20px; }
+          [data-hud-radar-panel] { position: absolute; left: 0; top: 68px; padding: 4px; width: 106px; }
+          [data-hud-notifications] { left: 12px; right: auto; top: 210px; width: calc(100% - 24px); gap: 3px; }
+          [data-hud-notifications] [role="log"] > div { padding: 3px 5px; font-size: 9px; white-space: nowrap; gap: 4px; }
+          [data-hud-notifications] [role="log"] svg { width: 14px; height: 14px; }
+          [data-hud-flight], [data-hud-weapons] { flex-wrap: nowrap; gap: 6px; }
+          [data-hud-flight] > div { min-width: 0; flex: 1; padding: 6px; }
+          [data-hud-flight] > [data-hud-health] { flex: 1.4; }
+          [data-hud-health] > div:first-child > span:last-child { font-size: 20px; }
+          [data-hud-health] > div:first-child > span:first-child svg { display: none; }
+          [data-hud-flight] > div > div:first-child { font-size: 9px; letter-spacing: 0; }
+          [data-hud-weapons] > div { flex: 1; min-width: 0; padding: 6px; }
+        }
+      `}</style>
       {/* Health vignette */}
       <div
         className="absolute inset-0 transition-opacity duration-700"
@@ -130,99 +189,16 @@ export function HUD() {
 
       {/* Top row */}
       <div className="relative z-10 flex items-start justify-between gap-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div data-hud-metrics className="grid gap-3 sm:grid-cols-3">
           <Metric label="Score" value={score.toString().padStart(6, "0")} />
           <Metric label="Wave" value={wave.toString().padStart(2, "0")} />
           <Metric label="Enemies" value={enemiesRemaining.toString().padStart(2, "0")} accent />
         </div>
 
         <div className="flex items-start gap-3">
-          {/* Radar */}
-          <div className="hidden items-center gap-4 border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-md sm:flex">
-            <Radar className="h-5 w-5 text-[#51d6a3]" />
-            <div className="relative h-20 w-20 rounded-full border border-[#51d6a3]/45 bg-[#51d6a3]/8 overflow-hidden">
-              {/* Sweep arm */}
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, transparent 0deg, transparent 300deg, rgba(81,214,163,0.1) 345deg, rgba(81,214,163,0.65) 360deg)",
-                  animation: "radar-sweep 3s linear infinite",
-                  transformOrigin: "center",
-                }}
-              />
-              {/* Sweep trail fade */}
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, transparent 0deg, transparent 260deg, rgba(81,214,163,0.05) 340deg, transparent 360deg)",
-                  animation: "radar-sweep 3s linear infinite",
-                  transformOrigin: "center",
-                }}
-              />
-              {/* Center dot */}
-              <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)]" />
-              {/* Inner ring */}
-              <div className="absolute inset-3 rounded-full border border-white/12" />
-              {/* Enemy dots */}
-              {Object.values(pveEnemies).slice(0, 12).map((enemy) => (
-                <RadarDot
-                  key={enemy.id}
-                  color={enemy.role === "bomber" ? "#f4c95d" : enemy.role === "fighter" ? "#f65f5f" : "#51d6a3"}
-                  localPlayerPosition={localPlayerPosition}
-                  position={[enemy.position[0], enemy.position[2]]}
-                />
-              ))}
-              {/* Pickup dots */}
-              {Object.values(pvePickups).slice(0, 8).map((pickup) => (
-                <RadarDot
-                  key={pickup.id}
-                  color={pickup.kind === "repair" ? "#51d6a3" : pickup.kind === "missile" ? "#65a6ff" : "#f4c95d"}
-                  localPlayerPosition={localPlayerPosition}
-                  position={[pickup.position[0], pickup.position[2]]}
-                  pickup
-                />
-              ))}
-            </div>
-          </div>
+          <CombatRadar enemies={pveEnemies} pickups={pvePickups} position={localPlayerPosition} heading={heading} selectedId={supply?.pickup.id} />
 
-          {/* Kill feed */}
-          {visibleKills.length > 0 && (
-            <div className="hidden flex-col gap-1.5 sm:flex">
-              {visibleKills.slice(0, 4).map((kill) => {
-                const age = now - kill.timestamp;
-                const opacity = age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 600);
-                const color =
-                  kill.victim === "BOMBER"
-                    ? "#f4c95d"
-                    : kill.victim === "FIGHTER"
-                      ? "#f65f5f"
-                      : "#51d6a3";
-                return (
-                  <div
-                    key={kill.id}
-                    className="flex items-center gap-2 border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-md"
-                    style={{
-                      opacity,
-                      animation: "kill-slide-in 0.2s ease-out",
-                    }}
-                  >
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
-                      {kill.killer}
-                    </span>
-                    <span className="text-white/25 text-xs">×</span>
-                    <span
-                      className="text-[10px] font-black uppercase tracking-[0.12em]"
-                      style={{ color, textShadow: `0 0 10px ${color}66` }}
-                    >
-                      {kill.victim}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+
         </div>
       </div>
 
@@ -280,28 +256,38 @@ export function HUD() {
         )}
       </div>
 
-      {supply && (
-        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-3 border border-[#f4c95d]/40 bg-black/75 p-3 text-[#f4c95d] sm:right-6">
-          <ArrowUp aria-hidden="true" className="h-7 w-7 shrink-0" style={{ transform: `rotate(${supply.angle}deg)` }} />
-          <div className="text-xs font-bold">
-            <div>{supply.kind === "ammo" ? "Ammo +60" : supply.kind === "missile" ? "Missile +1" : "Repair +50"}</div>
-            <div className="text-white">{Math.round(supply.distance)} m · {supply.dy > 30 ? "Climb" : supply.dy < -30 ? "Descend" : "Same altitude"}</div>
-            <div className="text-[10px] text-white/60">Fly close to collect</div>
-          </div>
+      <div data-hud-notifications className="absolute right-4 top-36 z-10 flex w-[min(48vw,240px)] flex-col gap-1 sm:right-6 sm:top-36 [@media(max-height:500px)]:top-4 [@media(max-height:500px)]:w-48">
+        <div role="log" aria-label="Flight notifications" aria-live="polite" aria-relevant="additions" className="flex flex-col gap-1">
+          {notifications.map(notification => {
+            const age = now - notification.timestamp;
+            const receipt = notification.type === "pickup" ? notification.receipt : null;
+            const presentation = receipt ? PICKUP_PRESENTATION[receipt.kind] : null;
+            return (
+              <div key={notification.key} data-flight-notification={notification.type} className="flex items-center gap-2 border-l-2 bg-[#05070a]/90 px-2.5 py-2 text-[11px] font-bold" style={{ borderColor: presentation?.color ?? "#f4c95d", opacity: Math.min(1, (3200 - age) / 450) }}>
+                {receipt && presentation ? <>
+                  <PickupIcon kind={receipt.kind} className="h-5 w-5 shrink-0 text-white" />
+                  <span>{receipt.amount > 0 ? `+${formatBenefit(receipt.amount)} ${presentation.unit} collected` : `${presentation.label} full · collected`}</span>
+                </> : notification.type === "kill" ? <>
+                  <Crosshair aria-hidden="true" className="h-5 w-5 shrink-0 text-[#f4c95d]" />
+                  <span>{notification.kill.victim} destroyed</span>
+                </> : null}
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Bottom row */}
-      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-wrap gap-3">
+      <div data-hud-resources className="relative z-10 flex flex-col gap-4 max-sm:gap-2 sm:flex-row sm:items-end sm:justify-between [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:items-end [@media(max-height:500px)]:justify-between">
+        <div data-hud-flight className="flex flex-wrap gap-3 max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
           <Telemetry icon={<Gauge />} label="Altitude" value={Math.round(altitude)} unit="ft" />
           <Telemetry icon={<Target />} label="Speed" value={Math.round(speed)} unit="kmh" />
-          <div
-            className={`min-w-64 border p-4 backdrop-blur-md transition-colors ${
+          <div data-hud-health
+            className={`min-w-64 border p-4 backdrop-blur-md transition-colors max-sm:min-w-32 max-sm:p-2 [@media(max-height:500px)]:min-w-28 [@media(max-height:500px)]:p-2 ${
               isLowHealth ? "border-[#f65f5f]/55 bg-[#f65f5f]/10" : "border-white/12 bg-black/45"
             }`}
           >
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between max-sm:mb-1 [@media(max-height:500px)]:mb-1">
               <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/55">
                 <HeartPulse className={`h-4 w-4 ${isLowHealth ? "text-[#f65f5f]" : "text-[#51d6a3]"}`} />
                 Health
@@ -320,7 +306,7 @@ export function HUD() {
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-3">
+        <div data-hud-weapons className="flex flex-wrap justify-end gap-3 max-sm:justify-start max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
           <Weapon label="MG" count={ammo} low={ammo < 25} active={selectedWeapon === "mg"} shortcut="1" icon={<Shell />} />
           <Weapon label="Missile" count={missiles} low={missiles === 0} active={selectedWeapon === "missile"} shortcut="2" icon={<Rocket />} />
           <div className="flex min-w-36 items-center gap-3 border border-white/12 bg-black/45 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur-md">
@@ -331,6 +317,10 @@ export function HUD() {
       </div>
     </div>
   );
+}
+
+function formatBenefit(amount: number) {
+  return amount > 0 && amount < 0.1 ? "<0.1" : Number(amount.toFixed(1));
 }
 
 function nearestEnemies(
@@ -359,7 +349,7 @@ function NearbyEnemyArrow({
 }) {
   const dx = enemy.position[0] - localPlayerPosition[0];
   const dz = enemy.position[2] - localPlayerPosition[1];
-  const bearing = Math.atan2(dx, dz);
+  const bearing = Math.atan2(dx, -dz);
   const screenAngle = bearing + (heading * Math.PI) / 180;
   const color = enemy.role === "bomber" ? "#f4c95d" : enemy.role === "fighter" ? "#f65f5f" : "#51d6a3";
   const opacity = Math.max(0.32, 1 - enemy.distance / 980);
@@ -397,40 +387,11 @@ function hitGradient(angle: number) {
   ].join(", ");
 }
 
-function RadarDot({
-  color,
-  localPlayerPosition,
-  position,
-  pickup = false,
-}: {
-  color: string;
-  localPlayerPosition: [number, number];
-  position: [number, number];
-  pickup?: boolean;
-}) {
-  const dx = position[0] - localPlayerPosition[0];
-  const dz = position[1] - localPlayerPosition[1];
-  const scale = 34 / 900;
-  const x = Math.max(-34, Math.min(34, dx * scale));
-  const y = Math.max(-34, Math.min(34, dz * scale));
-
-  return (
-    <div
-      className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${pickup ? "h-2 w-2 rotate-45" : "h-2.5 w-2.5 rounded-full"}`}
-      style={{
-        backgroundColor: color,
-        boxShadow: `0 0 10px ${color}`,
-        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) ${pickup ? "rotate(45deg)" : ""}`,
-      }}
-    />
-  );
-}
-
 function Metric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="min-w-32 border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-md">
+    <div className="min-w-32 border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-md [@media(max-height:500px)]:min-w-20 [@media(max-height:500px)]:px-2 [@media(max-height:500px)]:py-2">
       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/44">{label}</div>
-      <div className={`mt-1 text-3xl font-black leading-none ${accent ? "text-[#f4c95d]" : "text-white"}`}>
+      <div className={`mt-1 text-3xl font-black leading-none max-sm:text-xl [@media(max-height:500px)]:text-xl ${accent ? "text-[#f4c95d]" : "text-white"}`}>
         {value}
       </div>
     </div>
@@ -449,12 +410,12 @@ function Telemetry({
   unit: string;
 }) {
   return (
-    <div className="min-w-36 border border-white/12 bg-black/45 p-4 backdrop-blur-md">
+    <div className="min-w-36 border border-white/12 bg-black/45 p-4 backdrop-blur-md max-sm:min-w-20 max-sm:p-2 [@media(max-height:500px)]:min-w-20 [@media(max-height:500px)]:p-2">
       <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
         <span className="text-[#65a6ff] [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
         {label}
       </div>
-      <div className="text-3xl font-black leading-none">
+      <div className="text-3xl font-black leading-none max-sm:text-xl [@media(max-height:500px)]:text-xl">
         {value}
         <span className="ml-1 text-[10px] uppercase text-white/35">{unit}</span>
       </div>
@@ -479,7 +440,7 @@ function Weapon({
 }) {
   return (
     <div
-      className={`min-w-32 border p-4 backdrop-blur-md ${
+      className={`min-w-32 border p-4 backdrop-blur-md max-sm:min-w-24 max-sm:p-2 [@media(max-height:500px)]:min-w-20 [@media(max-height:500px)]:p-2 ${
         active ? "border-[#f4c95d]/65 bg-[#f4c95d]/12" : "border-white/10 bg-black/40 opacity-65"
       }`}
     >
@@ -491,7 +452,7 @@ function Weapon({
         <span className="[&_svg]:h-4 [&_svg]:w-4">{icon}</span>
         {label} [{shortcut}]
       </div>
-      <div className={`text-3xl font-black leading-none ${low ? "text-[#f65f5f]" : "text-white"}`}>{count}</div>
+      <div className={`text-3xl font-black leading-none max-sm:text-xl [@media(max-height:500px)]:text-xl ${low ? "text-[#f65f5f]" : "text-white"}`}>{count}</div>
     </div>
   );
 }
@@ -530,7 +491,7 @@ function CompassTape({ heading }: { heading: number }) {
   const bearing = (((-heading) % 360) + 360) % 360;
 
   return (
-    <div className="pointer-events-none absolute left-1/2 top-4 z-10 hidden -translate-x-1/2 flex-col items-center md:flex sm:top-6">
+    <div className="pointer-events-none absolute left-1/2 top-4 z-10 hidden -translate-x-1/2 flex-col items-center md:flex sm:top-6 [@media(max-height:500px)]:hidden">
       <div className="relative h-9 w-80 overflow-hidden bg-black/35 backdrop-blur-md [mask-image:linear-gradient(90deg,transparent,black_18%,black_82%,transparent)]">
         <div
           className="absolute left-1/2 top-0 h-full"

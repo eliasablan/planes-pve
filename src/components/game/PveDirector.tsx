@@ -8,6 +8,7 @@ import { applyLocalDamage } from "@/lib/combatResolution";
 import { tickEmergencyResupply } from "@/lib/emergencyResupply";
 import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, TargetLock, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
+import { PickupVisual } from "./PickupVisual";
 
 const ROLE_STATS: Record<
   EnemyRole,
@@ -20,12 +21,6 @@ const ROLE_STATS: Record<
 
 const RUN_START_INVULNERABILITY_MS = 6500;
 const ENEMY_ATTACK_INTERVAL_MS = 2300;
-
-const PICKUP_COLORS: Record<PickupKind, string> = {
-  ammo: "#f4c95d",
-  missile: "#65a6ff",
-  repair: "#51d6a3",
-};
 
 export function PveDirector() {
   const pveEnemies = useGameStore((state) => state.pveEnemies);
@@ -173,7 +168,7 @@ export function PveDirector() {
         <EnemyAircraft key={enemy.id} enemy={enemy} />
       ))}
       {Object.values(pvePickups).map((pickup) => (
-        <Pickup key={pickup.id} pickup={pickup} />
+        <PickupVisual key={pickup.id} pickup={pickup} />
       ))}
       {pveExplosions.map((explosion) => (
         <Explosion key={explosion.id} explosion={explosion} />
@@ -337,43 +332,6 @@ function Explosion({ explosion }: { explosion: PveExplosion }) {
           <meshStandardMaterial color={index % 3 === 0 ? explosion.color : "#2b2f33"} roughness={0.8} />
         </mesh>
       ))}
-    </group>
-  );
-}
-
-function Pickup({ pickup }: { pickup: PickupState }) {
-  const color = PICKUP_COLORS[pickup.kind];
-  const label = pickup.kind === "ammo" ? "AMMO" : pickup.kind === "missile" ? "MSL" : "FIX";
-  const bobRef = useRef<THREE.Group>(null);
-  const crateRef = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>>(null);
-
-  useFrame(({ clock }, delta) => {
-    const t = clock.elapsedTime;
-    if (bobRef.current) bobRef.current.position.y = Math.sin(t * 1.6) * 2.5;
-    if (crateRef.current) crateRef.current.rotation.y += delta * 0.9;
-    if (ringRef.current) {
-      const pulse = (t * 0.7) % 1;
-      ringRef.current.scale.setScalar(0.8 + pulse * 0.7);
-      ringRef.current.material.opacity = 0.5 * (1 - pulse);
-    }
-  });
-
-  return (
-    <group position={pickup.position}>
-      <group ref={bobRef}>
-        <mesh ref={crateRef} rotation={[Math.PI / 4, Math.PI / 4, 0]}>
-          <boxGeometry args={[12, 12, 12]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} roughness={0.42} />
-        </mesh>
-        <Text position={[0, 18, 0]} fontSize={5} color={color} anchorX="center" anchorY="middle">
-          {label}
-        </Text>
-      </group>
-      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[18, 21, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.38} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
     </group>
   );
 }

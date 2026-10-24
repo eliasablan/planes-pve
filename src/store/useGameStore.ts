@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getPickupBenefit } from "../lib/pveSupplies";
 
 export type PlayerState = {
   id: string;
@@ -35,6 +36,15 @@ export type PickupState = {
   kind: PickupKind;
   position: [number, number, number];
 };
+
+export type PvePickupReceipt = {
+  id: string;
+  kind: PickupKind;
+  amount: number;
+  collectedAt: number;
+};
+
+const MAX_PICKUP_RECEIPTS = 32;
 
 export type PveExplosion = {
   id: string;
@@ -90,6 +100,7 @@ interface GameState {
   pveExplosions: PveExplosion[];
   pveEnemies: Record<string, EnemyState>;
   pvePickups: Record<string, PickupState>;
+  pvePickupReceipts: PvePickupReceipt[];
   
   // Game Context
   gameStatus: GameStatus;
@@ -178,6 +189,7 @@ export const useGameStore = create<GameState>((set) => ({
   pveExplosions: [],
   pveEnemies: {},
   pvePickups: {},
+  pvePickupReceipts: [],
   
   gameStatus: "lobby",
   currentMatchId: null,
@@ -279,13 +291,20 @@ export const useGameStore = create<GameState>((set) => ({
     const { [pickupId]: removedPickup, ...pvePickups } = state.pvePickups;
     void removedPickup;
 
+    const amount = getPickupBenefit(pickup.kind, state);
+    // Keep every collection in a burst, including boxes consumed at capacity.
+    const pvePickupReceipts = [
+      ...state.pvePickupReceipts.slice(-(MAX_PICKUP_RECEIPTS - 1)),
+      { id: pickup.id, kind: pickup.kind, amount, collectedAt: Date.now() },
+    ];
+
     if (pickup.kind === "ammo") {
-      return { pvePickups, ammo: Math.min(state.maxAmmo, state.ammo + 60) };
+      return { pvePickups, pvePickupReceipts, ammo: state.ammo + amount };
     }
     if (pickup.kind === "missile") {
-      return { pvePickups, missiles: Math.min(state.maxMissiles, state.missiles + 1) };
+      return { pvePickups, pvePickupReceipts, missiles: state.missiles + amount };
     }
-    return { pvePickups, hp: Math.min(state.maxHp, state.hp + 50) };
+    return { pvePickups, pvePickupReceipts, hp: state.hp + amount };
   }),
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
@@ -348,6 +367,7 @@ export const useGameStore = create<GameState>((set) => ({
     pveExplosions: [],
     pveEnemies: {},
     pvePickups: {},
+    pvePickupReceipts: [],
     gameStatus: "lobby",
     endTime: null,
     killLog: [],
