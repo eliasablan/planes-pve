@@ -71,7 +71,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   }, [controls.showLargeMap, setShowLargeMap]);
 
   useFrame((state, delta) => {
-    if (!rb.current || useGameStore.getState().hp <= 0) return;
+    if (!rb.current || useGameStore.getState().hp <= 0 || useGameStore.getState().paused) return;
 
     if (controls.selectMG) setSelectedWeapon('mg');
     if (controls.selectMissile) setSelectedWeapon('missile');

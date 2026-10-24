@@ -68,8 +68,6 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
         <>
           <Canvas
             shadows="percentage"
-            // Every simulation step (flight, enemies, physics) runs in useFrame, so stopping the loop freezes the run.
-            frameloop={paused ? "never" : "always"}
             dpr={dpr}
             gl={{
               antialias: true,

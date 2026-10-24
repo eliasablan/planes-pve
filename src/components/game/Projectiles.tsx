@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { RigidBody, RapierRigidBody, vec3 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { useGameStore } from "@/store/useGameStore";
 import { hasTerrainLineOfSight } from "@/lib/terrainHeight";
 
 interface BulletProps {
@@ -30,7 +31,7 @@ export function Bullet({ position, rotation }: BulletProps) {
   }, []);
 
   useFrame((_, delta) => {
-    if (!groupRef.current || !alive) return;
+    if (!groupRef.current || !alive || useGameStore.getState().paused) return;
     const start = groupRef.current.position;
     const end = start.clone().addScaledVector(forward, TRACER_SPEED * delta);
     if (!hasTerrainLineOfSight(start.toArray(), end.toArray())) {
@@ -74,7 +75,7 @@ export function Missile({ position, rotation, onHit }: BulletProps & { targetId?
   }, []);
 
   useFrame(() => {
-    if (!rb.current || !alive) return;
+    if (!rb.current || !alive || useGameStore.getState().paused) return;
     const q = new THREE.Quaternion(...rotation);
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
     rb.current.setLinvel(vec3(forward).multiplyScalar(50), true);

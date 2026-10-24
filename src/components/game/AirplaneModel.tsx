@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { MutableRefObject, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { useGameStore } from "@/store/useGameStore";
 
 type AirplaneVariant = "local" | "remote";
 
@@ -91,6 +92,7 @@ function PixabayBiplaneModel({
   }, [hp, playerColor, scene, variant]);
 
   useFrame((_, delta) => {
+    if (useGameStore.getState().paused) return;
     if (spinRef.current) {
       spinRef.current.rotation.z += delta * (isCritical ? 28 : 48);
     }
@@ -167,6 +169,7 @@ function ProceduralAirplaneModel({
   }, [isCritical, isDestroyed, playerColor, variant]);
 
   useFrame((_, delta) => {
+    if (useGameStore.getState().paused) return;
     if (!propellerRef && spinRef.current) {
       spinRef.current.rotation.z += delta * (isCritical ? 28 : 44);
     }

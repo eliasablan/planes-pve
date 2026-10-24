@@ -37,6 +37,7 @@ export function PveDirector() {
   const reloadUntilByEnemy = useRef<Record<string, number>>({});
   const pendingNextWaveAt = useRef<number | null>(null);
   const ammoShortageSince = useRef<number | null>(null);
+  const pausedSince = useRef<number | null>(null);
 
   useEffect(() => {
     const state = useGameStore.getState();
@@ -50,6 +51,20 @@ export function PveDirector() {
     if (state.gameStatus !== "playing" || state.hp <= 0) return;
 
     const now = Date.now();
+    if (state.paused) {
+      pausedSince.current ??= now;
+      return;
+    }
+    if (pausedSince.current !== null) {
+      // Wall-clock timers resume where they stopped instead of all expiring at once after a pause.
+      const pausedFor = now - pausedSince.current;
+      pausedSince.current = null;
+      for (const timers of [lastAttackByEnemy.current, reloadUntilByEnemy.current]) {
+        for (const id in timers) if (timers[id] > 0) timers[id] += pausedFor;
+      }
+      if (pendingNextWaveAt.current !== null) pendingNextWaveAt.current += pausedFor;
+      if (ammoShortageSince.current !== null) ammoShortageSince.current += pausedFor;
+    }
     const player = new THREE.Vector3(
       state.localPlayerPosition[0],
       Math.max(130, state.altitude - 5),

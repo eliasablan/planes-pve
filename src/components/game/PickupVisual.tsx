@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { Group, Shape } from "three";
-import type { PickupState } from "@/store/useGameStore";
+import { useGameStore, type PickupState } from "@/store/useGameStore";
 
 /** World-scale supplies: perspective and lighting expose their actual volume. */
 export function PickupVisual({ pickup }: { pickup: PickupState }) {
@@ -17,7 +17,7 @@ export function PickupVisual({ pickup }: { pickup: PickupState }) {
     return () => preference.removeEventListener("change", update);
   }, []);
   useFrame(({ clock }, delta) => {
-    if (!objectRef.current) return;
+    if (!objectRef.current || useGameStore.getState().paused) return;
     objectRef.current.position.y = reducedMotion.current ? 0 : Math.sin(clock.elapsedTime * 1.1) * 0.8;
     if (!reducedMotion.current) objectRef.current.rotation.y += Math.min(delta, 0.1) * 0.22;
   });

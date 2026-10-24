@@ -5,6 +5,7 @@ import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { useGameStore } from "@/store/useGameStore";
 import { WORLD_TOPOLOGY } from "@/lib/worldTopology";
 import { buildTerrainMesh } from "@/lib/terrainHeight";
 import { generateScatter, type ScatterItem } from "@/lib/terrainScatter";
@@ -78,6 +79,7 @@ function OceanSurface() {
   }, [waterTexture]);
 
   useFrame((_, delta) => {
+    if (useGameStore.getState().paused) return;
     const map = materialRef.current?.map;
     if (map) {
       map.offset.x += delta * 0.018;
@@ -203,6 +205,7 @@ function CloudLayer() {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_, delta) => {
+    if (useGameStore.getState().paused) return;
     if (groupRef.current) {
       groupRef.current.rotation.y += delta * 0.006;
     }
