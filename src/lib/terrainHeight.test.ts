@@ -3,6 +3,7 @@ import {
   TERRAIN_GRID,
   buildTerrainMesh,
   getTerrainHeights,
+  hasTerrainLineOfSight,
   maxTerrainHeightNear,
   minimumAirborneY,
   sampleTerrainHeight,
@@ -15,6 +16,24 @@ const CELL = (TERRAIN_GRID.halfExtent * 2) / TERRAIN_GRID.segments;
 const SPAWN = { x: 0, y: 250, z: 0 };
 
 describe("terrain heightfield", () => {
+  test("line of sight checks the whole path, in both directions, and blocks the sea", () => {
+    expect(hasTerrainLineOfSight([200, 100, -260], [850, 100, -260])).toBe(false);
+    expect(hasTerrainLineOfSight([850, 100, -260], [200, 100, -260])).toBe(false);
+    expect(hasTerrainLineOfSight([200, 260, -260], [850, 260, -260])).toBe(true);
+    expect(hasTerrainLineOfSight([1500, 20, 1500], [1500, -10, 1500])).toBe(false);
+    expect(hasTerrainLineOfSight([1500, 20, 1500], [1500, 10, 1500])).toBe(true);
+  });
+
+  test("diagonal shots detect a mesh vertex that clears both endpoints within one cell", () => {
+    // Pick a convex vertex on a ridge. A long fixed-step sample could skip this narrow obstruction.
+    const x = 525;
+    const z = -262.5;
+    const y = sampleTerrainHeight(x, z) - 0.001;
+    expect(sampleTerrainHeight(x - 0.5, z - 0.5)).toBeLessThan(y);
+    expect(sampleTerrainHeight(x + 0.5, z + 0.5)).toBeLessThan(y);
+    expect(hasTerrainLineOfSight([x - 0.5, y, z - 0.5], [x + 0.5, y, z + 0.5])).toBe(false);
+  });
+
   test("is deterministic and matches the analytic shape at every grid vertex", () => {
     const heights = getTerrainHeights();
     for (let i = 0; i < heights.length; i += 97) {

@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { RigidBody, RapierRigidBody, vec3 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { hasTerrainLineOfSight } from "@/lib/terrainHeight";
 
 interface BulletProps {
   position: [number, number, number];
@@ -29,7 +30,15 @@ export function Bullet({ position, rotation }: BulletProps) {
   }, []);
 
   useFrame((_, delta) => {
-    groupRef.current?.position.addScaledVector(forward, TRACER_SPEED * delta);
+    if (!groupRef.current || !alive) return;
+    const start = groupRef.current.position;
+    const end = start.clone().addScaledVector(forward, TRACER_SPEED * delta);
+    if (!hasTerrainLineOfSight(start.toArray(), end.toArray())) {
+      groupRef.current.visible = false;
+      setAlive(false);
+      return;
+    }
+    start.copy(end);
   });
 
   if (!alive) return null;

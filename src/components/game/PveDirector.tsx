@@ -5,20 +5,12 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { applyLocalDamage } from "@/lib/combatResolution";
+import { ROLE_STATS } from "@/lib/pveRules";
 import { tickEmergencyResupply } from "@/lib/emergencyResupply";
-import { minimumAirborneY } from "@/lib/terrainHeight";
+import { hasTerrainLineOfSight, minimumAirborneY } from "@/lib/terrainHeight";
 import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, TargetLock, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 import { PickupVisual } from "./PickupVisual";
-
-const ROLE_STATS: Record<
-  EnemyRole,
-  { hp: number; speed: number; damage: number; range: number; color: string; scale: number; burst: number; reloadMs: number }
-> = {
-  scout: { hp: 35, speed: 46, damage: 3, range: 125, color: "#51d6a3", scale: 0.78, burst: 2, reloadMs: 4200 },
-  fighter: { hp: 65, speed: 40, damage: 5, range: 155, color: "#f65f5f", scale: 0.92, burst: 3, reloadMs: 5200 },
-  bomber: { hp: 120, speed: 28, damage: 8, range: 180, color: "#f4c95d", scale: 1.18, burst: 1, reloadMs: 6800 },
-};
 
 const RUN_START_INVULNERABILITY_MS = 6500;
 // Enemies and supplies do not use physics; these keep them above the relief instead of inside it.
@@ -139,7 +131,8 @@ export function PveDirector() {
           distance < stats.range &&
           (reloadUntilByEnemy.current[enemy.id] ?? 0) === 0 &&
           (shotsInBurstByEnemy.current[enemy.id] ?? 0) > 0 &&
-          now - (lastAttackByEnemy.current[enemy.id] ?? 0) > ENEMY_ATTACK_INTERVAL_MS
+          now - (lastAttackByEnemy.current[enemy.id] ?? 0) > ENEMY_ATTACK_INTERVAL_MS &&
+          hasTerrainLineOfSight([position.x, position.y, position.z], [player.x, state.altitude - 5, player.z])
         ) {
           lastAttackByEnemy.current[enemy.id] = now;
           shotsInBurstByEnemy.current[enemy.id] -= 1;

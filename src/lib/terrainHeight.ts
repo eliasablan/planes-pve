@@ -46,6 +46,32 @@ export function sampleTerrainHeight(x: number, z: number) {
   return h11 + (h01 - h11) * (1 - fx) + (h10 - h11) * (1 - fz);
 }
 
+/** Checks every triangle boundary along a shot, so even a whole ridge between endpoints blocks it. */
+export function hasTerrainLineOfSight(
+  from: readonly [number, number, number],
+  to: readonly [number, number, number],
+) {
+  const cuts = [0, 1];
+  // Grid edges and the mesh's x+z diagonals divide the ray into linear surface intervals.
+  for (const [start, end] of [[from[0], to[0]], [from[2], to[2]], [from[0] + from[2], to[0] + to[2]]]) {
+    if (start === end) continue;
+    const low = Math.ceil(Math.min(start, end) / CELL);
+    const high = Math.floor(Math.max(start, end) / CELL);
+    for (let edge = low; edge <= high; edge++) {
+      const t = (edge * CELL - start) / (end - start);
+      if (t > 0 && t < 1) cuts.push(t);
+    }
+  }
+  // The surface and shot are linear within each interval: clear endpoints imply a clear interval.
+  for (const t of cuts) {
+    const x = from[0] + (to[0] - from[0]) * t;
+    const y = from[1] + (to[1] - from[1]) * t;
+    const z = from[2] + (to[2] - from[2]) * t;
+    if (y <= Math.max(WORLD_TOPOLOGY.seaLevel, sampleTerrainHeight(x, z))) return false;
+  }
+  return true;
+}
+
 /** Rise per unit of horizontal distance (0 = flat, 1 = 45°). */
 export function sampleTerrainSlope(x: number, z: number) {
   const step = CELL * 0.5;
