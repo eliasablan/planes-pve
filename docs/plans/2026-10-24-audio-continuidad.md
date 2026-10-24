@@ -27,4 +27,4 @@ Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#se
 
 - **Escucha humana:** se comprobó generación de señal y comportamiento en navegador, sin afirmar escucha humana. Valorar timbre de disparos/misil, diferenciación de los tres motivos de suministro, aspereza del agotamiento y balance de alertas durante ráfagas en los altavoces/auriculares del piloto. Ajustes en las capas y niveles de `gameAudio.ts`; no quedan enlaces o funciones de audio pendientes de implementar.
 - Validación adicional opcional en Safari/Firefox y dispositivos de audio distintos. El bloqueo de autoplay y fallos de inicialización/dispositivo tienen cobertura automática con Web Audio simulado.
-- La iconografía quedó entregada en la [sesión 2](2026-10-23-suministros-continuidad.md). El mapa y el relieve siguen pendientes en la sesión 3.
+- La iconografía quedó entregada en la [sesión 2](2026-10-23-suministros-continuidad.md). El relieve se entregó después en la [sesión 3](2026-10-24-relieve-continuidad.md).

@@ -177,9 +177,9 @@ Effects volume and mute are available on the start screen and inside the combat 
 
 Enemies attack in role-specific bursts when within range, with a 6.5-second grace period against enemy attacks at run start. Destroying a Scout awards 100 points, a Fighter 160, and a Bomber 260. A kill also updates the kill feed, hit marker, and explosion feedback.
 
-Ground collision destroys the player aircraft after its initial 3-second collision grace period. Falling below the water threshold also ends the run. The combat boundary warns beyond a radius of 3,800 and applies 20 damage per second beyond 4,600; it does not shrink.
+Ground collision destroys the player aircraft after its initial 3-second collision grace period. The lethal ground is a trimesh collider built from the same buffers as the visible terrain; vegetation and rocks are decorative and have no colliders. Falling below the water threshold (half a unit above the sea surface at y = −5) also ends the run. The combat boundary warns beyond a radius of 3,800 and applies 20 damage per second beyond 4,600; it does not shrink. Both radii live in the shared world topology.
 
-The world is an island surrounded by ocean. The combat HUD includes a heading-relative radar (nose up, tail down), nearby-enemy direction arrows, a compass, targeting feedback, incoming-damage feedback, and resource and telemetry readouts. Supply objects are world-scale 3D models: an ammo box with protruding cartridges, a finned missile, and a ratchet torque wrench for repair. Their perspective size changes with distance; HUD and radar use matching cartridge/missile/wrench symbols. A fixed notification stack below the radar combines enemy kills and actual resource increments, including an explicit full-capacity message when a consumed box restores zero. Notifications never participate in the radar’s horizontal layout. Shared world constants describe the island and mountains; the inherited tactical minimap is not mounted in the current flow.
+The world is an island surrounded by ocean. The combat HUD includes a heading-relative radar (nose up, tail down), nearby-enemy direction arrows, a compass, targeting feedback, incoming-damage feedback, and resource and telemetry readouts. Supply objects are world-scale 3D models: an ammo box with protruding cartridges, a finned missile, and a ratchet torque wrench for repair. Their perspective size changes with distance; HUD and radar use matching cartridge/missile/wrench symbols. A fixed notification stack below the radar combines enemy kills and actual resource increments, including an explicit full-capacity message when a consumed box restores zero. Notifications never participate in the radar’s horizontal layout. The island is a deterministic heightfield: a central valley open to the north coast and partly closed at its south end by low hills with passes around them, an eastern range and a western massif of connected crests with saddles (crests up to about 200 units), southern hills, and a sloping beach into the sea. Vegetation is generated deterministically in forest clusters, lone trees, bushes and rocks seated on the real surface. Sizes are proportioned to the 2.6-unit wingspan of the player biplane (broadleaf trees 5–8 units, pines 6.5–11). Enemies keep 30 units and new supplies 28 units above the terrain. Telemetry altitude is measured from the sea surface (physical y + 5); the HUD also shows height above the ground (AGL). Shared world constants and one height query describe the island for rendering, collision, placement and spawns; the inherited tactical minimap is not mounted in the current flow.
 
 ## Score Persistence
 
@@ -205,7 +205,7 @@ Saving a result preserves its final metrics, not the run's playable state. Activ
 - `src/components/game/Scene.tsx`: PvE scene, immediate run start, game over, restart, and exit
 - `src/components/game/Airplane.tsx`: player flight, PvE weapons, target selection, collisions, and combat boundary
 - `src/components/game/PveDirector.tsx`: enemy roles, wave creation, enemy movement and attacks, pickup spawning/collection, and enemy visuals
-- `src/components/game/Environment.tsx`: island, ocean, mountains, lighting, and scenery
+- `src/components/game/Environment.tsx`: terrain mesh and collider, ocean, instanced vegetation, lighting, clouds, and fog
 - `src/components/game/AirplaneModel.tsx`: shared aircraft appearance with role colors and scale supplied by the scene
 - `src/components/game/Projectiles.tsx`: visual projectile components; active PvE hit resolution happens when firing
 - `src/components/ui/HUD.tsx`: combat readouts, radar, compass, aiming feedback, damage feedback, and kill feed
@@ -220,5 +220,7 @@ Saving a result preserves its final metrics, not the run's playable state. Activ
 - `src/lib/localScoreboard.ts`: arcade-name rules, qualification, ordering, and local persistence
 - `src/lib/localScoreboard.test.ts`: existing scoreboard validation and ordering tests
 - `src/lib/flightFrame.ts`: player flight forces, torque, camera, and telemetry helpers
-- `src/lib/worldTopology.ts`: shared world dimensions and map projection constants
+- `src/lib/worldTopology.ts`: shared world dimensions, relief control points, sea level, combat boundary, and map projection constants
+- `src/lib/terrainHeight.ts`: deterministic heightfield, surface height/slope queries, airborne clearance, and shared mesh/collider buffers
+- `src/lib/terrainScatter.ts`: deterministic vegetation and rock placement on the terrain surface
 - `docs/adr/0005-*` onward: PvE scope and persistence decisions

@@ -12,11 +12,11 @@ Actualizado el **24 de octubre de 2026**, según los cierres confirmados por el 
 | --- | --- | --- | --- |
 | 1 — Sonidos de combate y reabastecimiento | **Cerrada** | 2026-10-24 | [Continuidad de audio](2026-10-24-audio-continuidad.md); `fae1c5a`, `c7fb354`, `1e6f8bd` |
 | 2 — Suministros fáciles de reconocer | **Cerrada** | 2026-10-23 | [Continuidad de suministros](2026-10-23-suministros-continuidad.md); `49e40c6`, `a330cf4`, `e15b114` |
-| 3 — Relieve y escala del mundo | Pendiente | — | — |
+| 3 — Relieve y escala del mundo | **En curso** | — | [Continuidad de relieve](2026-10-24-relieve-continuidad.md); `50184fd`, `9dbabe9`; implementada y verificada el 2026-10-24, pendiente de la confirmación del piloto |
 | 4 — Scoreboard global con Redis | Pendiente | — | Requiere completar antes de la sesión 5 |
 | 5 — Conexión a Dokploy y comprobación global | Pendiente | — | Depende de la sesión 4 |
 
-**Siguiente sesión: 3 — Relieve y escala del mundo.** La sesión 2 se completó antes que la 1; ambas están cerradas. Las valoraciones de escucha humana y del monitor físico se conservan en sus registros como seguimiento, sin afirmar que se hayan realizado.
+**Sesión en curso: 3 — Relieve y escala del mundo.** Al confirmarla el piloto se marcará Cerrada y la siguiente será la 4 — Scoreboard global con Redis. La sesión 2 se completó antes que la 1; ambas están cerradas. La sesión 3 está implementada y verificada automáticamente y en navegador; queda su valoración en vuelo. Las valoraciones de escucha humana, del monitor físico y del vuelo sobre el nuevo relieve se conservan en sus registros como seguimiento, sin afirmar que se hayan realizado.
 
 Para mantener este índice entre chats:
 

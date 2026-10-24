@@ -37,7 +37,7 @@ Implementación y revisión compleja realizadas con subagentes `gpt-6-astra`, ra
 ## Pendientes reales
 
 - **Audio, resuelto el 24 de octubre de 2026:** al cierre de esta sesión aún no estaba implementado. Posteriormente se completó la [sesión 1 — efectos de sonido](2026-10-24-audio-continuidad.md).
-- Relieve, árboles, proporciones del mundo y colisiones se reservan para la siguiente sesión. No se ha modificado el terreno.
+- **Relieve, entregado el 24 de octubre de 2026:** al cierre de esta sesión no se había modificado el terreno. Véase la [sesión 3 — relieve y escala](2026-10-24-relieve-continuidad.md); los suministros nuevos aparecen al menos 28 u sobre el terreno.
 - Validar sensación visual y tamaño preferido del HUD directamente en el Dell físico; las pruebas reproducen sus 1920 × 1080, además de QHD y tamaños pequeños, sin afirmar una evaluación física del monitor.
 - Los objetos 3D pueden ocultarse físicamente entre sí si están perfectamente alineados, como cualquier geometría de la escena. El radar mantiene los tipos distinguibles. La siguiente sesión de relieve debe comprobar que las nuevas alturas no entierren suministros.
 
