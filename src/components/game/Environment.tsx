@@ -1,22 +1,20 @@
 "use client";
 
 import { Sky } from "@react-three/drei";
-import { RigidBody } from "@react-three/rapier";
+import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { WORLD_TOPOLOGY } from "@/lib/worldTopology";
+import { buildTerrainMesh } from "@/lib/terrainHeight";
+import { generateScatter, type ScatterItem } from "@/lib/terrainScatter";
 
-type EnvironmentQuality = "high" | "medium";
-type ScatterKind = "tree" | "pine" | "rock" | "bush";
-
-const QUALITY: EnvironmentQuality = "high";
-const DETAIL_COUNT = QUALITY === "high" ? 360 : 180;
 // Matches the Sky shader's horizon tint so distant terrain and ocean blend into it.
 const HORIZON_COLOR = "#cfdfea";
 
 export function Environment() {
-  const details = useMemo(() => createScatterDetails(DETAIL_COUNT), []);
+  const scatter = useMemo(() => generateScatter(), []);
+  const terrain = useMemo(() => buildTerrainMesh(), []);
 
   return (
     <>
@@ -25,8 +23,9 @@ export function Environment() {
 
       <ambientLight intensity={0.52} color="#b9d8ff" />
       <hemisphereLight args={["#bfe7ff", "#264f38", 0.85]} />
+      {/* Same sun direction as before, moved out so the shadow depth range (near/far) spans the whole relief. */}
       <directionalLight
-        position={[160, 320, 120]}
+        position={[800, 1600, 600]}
         intensity={2.15}
         castShadow
         shadow-mapSize={[2048, 2048]}
@@ -36,75 +35,37 @@ export function Environment() {
         shadow-camera-right={1200}
         shadow-camera-top={1200}
         shadow-camera-bottom={-1200}
+        shadow-camera-near={500}
+        shadow-camera-far={3300}
       />
 
       <OceanSurface />
 
-      <RigidBody type="fixed" colliders="hull" name="ground">
-        <TerrainSurface />
-        <MountainRange />
+      {/* The collider reuses the rendered surface's buffers, so lethal ground matches what the pilot sees. */}
+      <RigidBody type="fixed" colliders={false} name="ground">
+        <TrimeshCollider args={[terrain.positions, terrain.indices]} />
+        <TerrainSurface positions={terrain.positions} indices={terrain.indices} />
       </RigidBody>
 
-      <NatureScatter details={details} />
+      <NatureScatter items={scatter} />
       <CloudLayer />
       <fog attach="fog" args={[HORIZON_COLOR, 650, 3900]} />
     </>
   );
 }
 
-function TerrainSurface() {
-  const grassTexture = useMemo(() => createTerrainTexture(["#2d6a4f", "#40916c", "#184e37", "#95d5b2"], 180), []);
-  const sandTexture = useMemo(() => createTerrainTexture(["#c2b280", "#e6ccb2", "#a98467", "#f3d9a4"], 120), []);
-  const coastTexture = useMemo(() => createTerrainTexture(["#6b8f71", "#d8c27a", "#40916c", "#8d99ae"], 150), []);
+function TerrainSurface({ positions, indices }: { positions: Float32Array; indices: Uint32Array }) {
+  const detailTexture = useMemo(() => createTerrainTexture(["#e9eae4", "#cfd3c6", "#f7f7f1", "#b9beb0"], 220), []);
+  const geometry = useMemo(() => createTerrainGeometry(positions, indices), [indices, positions]);
 
   useMemo(() => {
-    configureTiledTexture(grassTexture, 28);
-    configureTiledTexture(sandTexture, 18);
-    configureTiledTexture(coastTexture, 22);
-  }, [coastTexture, grassTexture, sandTexture]);
+    configureTiledTexture(detailTexture, 90);
+  }, [detailTexture]);
 
   return (
-    <group>
-      <mesh receiveShadow position={[0, -1.24, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[WORLD_TOPOLOGY.coastRadius + 64, 96]} />
-        <meshStandardMaterial
-          map={sandTexture}
-          color={WORLD_TOPOLOGY.sandColor}
-          roughness={0.92}
-          metalness={0}
-          {...layerOffset(1)}
-        />
-      </mesh>
-
-      <mesh receiveShadow position={[0, -1.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[WORLD_TOPOLOGY.coastRadius, 96]} />
-        <meshStandardMaterial map={coastTexture} color="#9ba86f" roughness={0.88} metalness={0} {...layerOffset(2)} />
-      </mesh>
-
-      <mesh receiveShadow position={[0, -0.98, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[WORLD_TOPOLOGY.islandRadius, 128]} />
-        <meshStandardMaterial
-          map={grassTexture}
-          color="#e4f2d8"
-          roughness={0.96}
-          metalness={0}
-          {...layerOffset(3)}
-        />
-      </mesh>
-
-      <mesh position={[0, -0.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[WORLD_TOPOLOGY.islandRadius * 0.99, WORLD_TOPOLOGY.coastRadius + 18, 128]} />
-        <meshStandardMaterial
-          color="#e9d8a6"
-          roughness={0.68}
-          transparent
-          opacity={0.32}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-          {...layerOffset(4)}
-        />
-      </mesh>
-    </group>
+    <mesh geometry={geometry} castShadow receiveShadow>
+      <meshStandardMaterial map={detailTexture} vertexColors roughness={0.93} metalness={0} />
+    </mesh>
   );
 }
 
@@ -129,7 +90,7 @@ function OceanSurface() {
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WORLD_TOPOLOGY.seaLevel, 0]} receiveShadow>
         <planeGeometry args={[30000, 30000, 1, 1]} />
         <meshStandardMaterial
           ref={materialRef}
@@ -139,7 +100,7 @@ function OceanSurface() {
           metalness={0.12}
         />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4.94, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WORLD_TOPOLOGY.seaLevel + 0.06, 0]}>
         <ringGeometry args={[WORLD_TOPOLOGY.coastRadius + 18, WORLD_TOPOLOGY.coastRadius + 58, 160]} />
         <meshBasicMaterial
           color="#caf0f8"
@@ -154,124 +115,88 @@ function OceanSurface() {
   );
 }
 
-function MountainRange() {
-  const rockTexture = useMemo(() => createTerrainTexture(["#243b35", "#335c4d", "#5b6d5b", "#14213d"], 160), []);
+const TREE_TINTS = ["#3a7d44", "#4a8c3f", "#2f6b3a", "#5b9446"];
+const PINE_TINTS = ["#1b4332", "#24553a", "#173d2c", "#2d5e3e"];
+const ROCK_TINTS = ["#6b706a", "#7d7a70", "#5c625d", "#8a877c"];
 
-  useMemo(() => {
-    configureTiledTexture(rockTexture, 5);
-  }, [rockTexture]);
-
-  return (
-    <group position={[0, -1.0, 0]}>
-      {WORLD_TOPOLOGY.mountains.map((mountain, index) => (
-        <group key={`${mountain.x}:${mountain.z}`} position={[mountain.x, 0, mountain.z]}>
-          <mesh
-            castShadow
-            receiveShadow
-            position={[0, mountain.height / 2, 0]}
-            rotation={[0, seededNoise(index, 33) * Math.PI, 0]}
-          >
-            <coneGeometry args={[mountain.radius, mountain.height, mountain.segments + 3, 2]} />
-            <meshStandardMaterial map={rockTexture} color="#b9cdb4" roughness={0.86} />
-          </mesh>
-          <mesh castShadow position={[0, mountain.height + 2, 0]} rotation={[0, seededNoise(index, 37) * Math.PI, 0]}>
-            <coneGeometry args={[mountain.radius * 0.38, mountain.height * 0.22, mountain.segments + 1]} />
-            <meshStandardMaterial color="#dbeafe" roughness={0.7} />
-          </mesh>
-          <mesh receiveShadow position={[0, 1.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[mountain.radius * 0.72, mountain.radius * 1.12, mountain.segments + 8]} />
-            <meshStandardMaterial color="#254d3a" roughness={0.9} side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function NatureScatter({ details }: { details: ScatterDetail[] }) {
+// One instanced mesh per part keeps vegetation at a handful of draw calls; geometries are unit-sized
+// with their base at y = 0 and scaled by each item's size.
+function NatureScatter({ items }: { items: ScatterItem[] }) {
   const trunkRef = useRef<THREE.InstancedMesh>(null);
   const canopyRef = useRef<THREE.InstancedMesh>(null);
   const pineRef = useRef<THREE.InstancedMesh>(null);
   const rockRef = useRef<THREE.InstancedMesh>(null);
   const bushRef = useRef<THREE.InstancedMesh>(null);
 
-  const trees = useMemo(() => details.filter((item) => item.kind === "tree"), [details]);
-  const pines = useMemo(() => details.filter((item) => item.kind === "pine"), [details]);
-  const rocks = useMemo(() => details.filter((item) => item.kind === "rock"), [details]);
-  const bushes = useMemo(() => details.filter((item) => item.kind === "bush"), [details]);
+  const groups = useMemo(() => {
+    const byKind = (kind: ScatterItem["kind"]) => items.filter((item) => item.kind === kind);
+    const trees = byKind("tree");
+    const pines = byKind("pine");
+    return { trees, pines, trunks: [...trees, ...pines], rocks: byKind("rock"), bushes: byKind("bush") };
+  }, [items]);
+
+  const geometries = useMemo(
+    () => ({
+      trunk: new THREE.CylinderGeometry(0.055, 0.08, 0.42, 6).translate(0, 0.21, 0),
+      canopy: new THREE.DodecahedronGeometry(0.33, 1).translate(0, 0.66, 0),
+      pine: new THREE.ConeGeometry(0.25, 0.86, 7).translate(0, 0.57, 0),
+      bush: new THREE.IcosahedronGeometry(0.5, 0).translate(0, 0.42, 0),
+      rock: new THREE.DodecahedronGeometry(0.5, 0).translate(0, 0.32, 0),
+    }),
+    [],
+  );
 
   useLayoutEffect(() => {
-    const dummy = new THREE.Object3D();
-
-    trees.forEach((item, index) => {
-      dummy.position.set(item.position[0], item.position[1] + item.scale * 0.72, item.position[2]);
-      dummy.rotation.set(0, item.rotation, 0);
-      dummy.scale.set(item.scale * 0.42, item.scale * 1.48, item.scale * 0.42);
-      dummy.updateMatrix();
-      trunkRef.current?.setMatrixAt(index, dummy.matrix);
-
-      dummy.position.set(item.position[0], item.position[1] + item.scale * 1.74, item.position[2]);
-      dummy.scale.set(item.scale * 0.88, item.scale * 0.88, item.scale * 0.88);
-      dummy.updateMatrix();
-      canopyRef.current?.setMatrixAt(index, dummy.matrix);
-    });
-
-    pines.forEach((item, index) => {
-      dummy.position.set(item.position[0], item.position[1] + item.scale * 1.1, item.position[2]);
-      dummy.rotation.set(0, item.rotation, 0);
-      dummy.scale.set(item.scale * 0.75, item.scale * 1.65, item.scale * 0.75);
-      dummy.updateMatrix();
-      pineRef.current?.setMatrixAt(index, dummy.matrix);
-    });
-
-    rocks.forEach((item, index) => {
-      dummy.position.set(item.position[0], item.position[1] + item.scale * 0.28, item.position[2]);
-      dummy.rotation.set(item.rotation * 0.3, item.rotation, item.rotation * 0.17);
-      dummy.scale.set(item.scale * 0.85, item.scale * 0.42, item.scale * 0.65);
-      dummy.updateMatrix();
-      rockRef.current?.setMatrixAt(index, dummy.matrix);
-    });
-
-    bushes.forEach((item, index) => {
-      dummy.position.set(item.position[0], item.position[1] + item.scale * 0.34, item.position[2]);
-      dummy.rotation.set(0, item.rotation, 0);
-      dummy.scale.set(item.scale * 0.72, item.scale * 0.46, item.scale * 0.72);
-      dummy.updateMatrix();
-      bushRef.current?.setMatrixAt(index, dummy.matrix);
-    });
-
-    [trunkRef, canopyRef, pineRef, rockRef, bushRef].forEach((ref) => {
-      if (ref.current) {
-        ref.current.instanceMatrix.needsUpdate = true;
-        ref.current.computeBoundingSphere();
-      }
-    });
-  }, [bushes, pines, rocks, trees]);
+    const widen = (item: ScatterItem) => 0.9 + (item.rotation % 1) * 0.25;
+    placeInstances(trunkRef.current, groups.trunks, (item) => [item.size, item.size, item.size]);
+    placeInstances(canopyRef.current, groups.trees, (item) => [item.size * widen(item), item.size, item.size * widen(item)], TREE_TINTS);
+    placeInstances(pineRef.current, groups.pines, (item) => [item.size, item.size, item.size], PINE_TINTS);
+    placeInstances(bushRef.current, groups.bushes, (item) => [item.size * 1.2, item.size * 0.8, item.size * 1.1], TREE_TINTS);
+    placeInstances(rockRef.current, groups.rocks, (item) => [item.size, item.size * 0.62, item.size * 0.82], ROCK_TINTS, 0.18);
+  }, [groups]);
 
   return (
     <group>
-      <instancedMesh ref={trunkRef} args={[undefined, undefined, trees.length]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.38, 0.48, 1, 6]} />
+      <instancedMesh ref={trunkRef} args={[geometries.trunk, undefined, groups.trunks.length]} castShadow receiveShadow>
         <meshStandardMaterial color="#6f4e37" roughness={0.82} />
       </instancedMesh>
-      <instancedMesh ref={canopyRef} args={[undefined, undefined, trees.length]} castShadow receiveShadow>
-        <dodecahedronGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#3a7d44" roughness={0.88} />
+      <instancedMesh ref={canopyRef} args={[geometries.canopy, undefined, groups.trees.length]} castShadow receiveShadow>
+        <meshStandardMaterial color="#ffffff" roughness={0.88} />
       </instancedMesh>
-      <instancedMesh ref={pineRef} args={[undefined, undefined, pines.length]} castShadow receiveShadow>
-        <coneGeometry args={[0.9, 1.8, 7]} />
-        <meshStandardMaterial color="#1b4332" roughness={0.9} />
+      <instancedMesh ref={pineRef} args={[geometries.pine, undefined, groups.pines.length]} castShadow receiveShadow>
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
       </instancedMesh>
-      <instancedMesh ref={rockRef} args={[undefined, undefined, rocks.length]} castShadow receiveShadow>
-        <dodecahedronGeometry args={[1.1, 0]} />
-        <meshStandardMaterial color="#55605c" roughness={0.95} />
+      <instancedMesh ref={rockRef} args={[geometries.rock, undefined, groups.rocks.length]} castShadow receiveShadow>
+        <meshStandardMaterial color="#ffffff" roughness={0.95} flatShading />
       </instancedMesh>
-      <instancedMesh ref={bushRef} args={[undefined, undefined, bushes.length]} castShadow receiveShadow>
-        <icosahedronGeometry args={[0.82, 0]} />
-        <meshStandardMaterial color="#52b788" roughness={0.92} />
+      <instancedMesh ref={bushRef} args={[geometries.bush, undefined, groups.bushes.length]} castShadow receiveShadow>
+        <meshStandardMaterial color="#d8f0d0" roughness={0.92} flatShading />
       </instancedMesh>
     </group>
   );
+}
+
+function placeInstances(
+  mesh: THREE.InstancedMesh | null,
+  list: ScatterItem[],
+  shape: (item: ScatterItem) => [number, number, number],
+  tints?: string[],
+  tilt = 0,
+) {
+  if (!mesh) return;
+  const dummy = new THREE.Object3D();
+  const color = new THREE.Color();
+  list.forEach((item, index) => {
+    dummy.position.set(...item.position);
+    dummy.rotation.set(tilt * Math.sin(item.rotation * 3), item.rotation, tilt * Math.cos(item.rotation * 5));
+    dummy.scale.set(...shape(item));
+    dummy.updateMatrix();
+    mesh.setMatrixAt(index, dummy.matrix);
+    if (tints) mesh.setColorAt(index, color.set(tints[index % tints.length]));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  mesh.computeBoundingSphere();
 }
 
 function CloudLayer() {
@@ -358,29 +283,6 @@ function CloudPuff({
   );
 }
 
-interface ScatterDetail {
-  position: [number, number, number];
-  scale: number;
-  rotation: number;
-  kind: ScatterKind;
-}
-
-function createScatterDetails(count: number) {
-  const items: ScatterDetail[] = [];
-  for (let i = 0; i < count; i++) {
-    const angle = seededNoise(i, 1) * Math.PI * 2;
-    const radius = 120 + seededNoise(i, 2) * (WORLD_TOPOLOGY.islandRadius - 170);
-    const roll = seededNoise(i, 4);
-    items.push({
-      position: [Math.cos(angle) * radius, -0.95, Math.sin(angle) * radius],
-      scale: 0.85 + seededNoise(i, 3) * 2.4,
-      rotation: seededNoise(i, 5) * Math.PI * 2,
-      kind: roll > 0.72 ? "rock" : roll > 0.52 ? "bush" : roll > 0.25 ? "pine" : "tree",
-    });
-  }
-  return items;
-}
-
 function createTerrainTexture(colors: string[], flecks: number) {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -434,6 +336,63 @@ function createWaterTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+// Colour by height and slope: wet sand, beach, meadow, forest floor, bare rock on steep or high
+// ground and pale caps on the crests. A neutral detail texture breaks up the large faces.
+function createTerrainGeometry(positions: Float32Array, indices: Uint32Array) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.computeVertexNormals();
+
+  const count = positions.length / 3;
+  const extent = positions[(count - 1) * 3] - positions[0];
+  const uvs = new Float32Array(count * 2);
+  const colors = new Float32Array(count * 3);
+  const normals = geometry.getAttribute("normal");
+  const palette = {
+    wetSand: new THREE.Color("#a99766"),
+    sand: new THREE.Color("#dcc994"),
+    meadow: new THREE.Color("#6aa451"),
+    grass: new THREE.Color("#4b8a45"),
+    forest: new THREE.Color("#35693a"),
+    rock: new THREE.Color("#77746a"),
+    highRock: new THREE.Color("#9c998f"),
+    cap: new THREE.Color("#e6ebe9"),
+  };
+  const color = new THREE.Color();
+
+  for (let i = 0; i < count; i++) {
+    const x = positions[i * 3];
+    const h = positions[i * 3 + 1];
+    const z = positions[i * 3 + 2];
+    uvs[i * 2] = (x - positions[0]) / extent;
+    uvs[i * 2 + 1] = (z - positions[2]) / extent;
+
+    const ny = normals.getY(i);
+    const slope = Math.sqrt(Math.max(0, 1 - ny * ny)) / Math.max(ny, 0.05);
+    const jitter = (seededNoise(i, 61) - 0.5) * 6;
+    const level = h + jitter;
+
+    if (level < -2) color.copy(palette.wetSand);
+    else if (level < 3) color.copy(palette.sand);
+    else if (level < 8) color.copy(palette.sand).lerp(palette.meadow, (level - 3) / 5);
+    else if (level < 40) color.copy(palette.meadow).lerp(palette.grass, (level - 8) / 32);
+    else if (level < 110) color.copy(palette.grass).lerp(palette.forest, Math.min(1, (level - 40) / 50));
+    else color.copy(palette.forest).lerp(palette.rock, Math.min(1, (level - 110) / 35));
+
+    const rockiness = THREE.MathUtils.smoothstep(slope, 0.55, 0.95);
+    if (h > 3) color.lerp(level > 120 ? palette.highRock : palette.rock, rockiness);
+    if (level > 160) color.lerp(palette.cap, THREE.MathUtils.smoothstep(level, 160, 185) * (1 - rockiness * 0.5));
+
+    colors.set([color.r, color.g, color.b], i * 3);
+  }
+
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 // Ground and shore layers are nearly coplanar; at distance the depth buffer can't tell them apart

@@ -2,6 +2,8 @@ import { PerspectiveCamera } from "three";
 import * as THREE from "three";
 import { RapierRigidBody, vec3 } from "@react-three/rapier";
 import { Controls } from "@/hooks/useControls";
+import { sampleTerrainHeight } from "@/lib/terrainHeight";
+import { WORLD_TOPOLOGY } from "@/lib/worldTopology";
 
 export const FLIGHT_MODEL = {
   maxThrust: 118,
@@ -101,14 +103,17 @@ export function applySpeedCamera(camera: THREE.Camera, currentSpeed: number) {
   camera.updateProjectionMatrix();
 }
 
+// Three heights: physical y (Rapier), telemetry altitude above the sea surface (y + 5, unchanged),
+// and ground clearance above the terrain or sea directly below.
 export function getFlightTelemetry(
-  translation: { y: number },
+  translation: { x: number; y: number; z: number },
   currentSpeed: number,
   rotation: THREE.Quaternion
 ) {
   const euler = new THREE.Euler().setFromQuaternion(rotation, "YXZ");
   return {
     altitude: translation.y + 5,
+    groundClearance: translation.y - Math.max(WORLD_TOPOLOGY.seaLevel, sampleTerrainHeight(translation.x, translation.z)),
     speed: currentSpeed * 10,
     pitch: (euler.x * 180) / Math.PI,
     roll: (euler.z * 180) / Math.PI,

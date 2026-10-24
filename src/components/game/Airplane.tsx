@@ -11,6 +11,7 @@ import { playGameSound } from "@/lib/gameAudio";
 import { createWeaponAudioFeedback } from "@/lib/weaponAudioFeedback";
 import { Bullet } from "./Projectiles";
 import { AirplaneModel } from "./AirplaneModel";
+import { WORLD_TOPOLOGY } from "@/lib/worldTopology";
 import {
   DAMAGE,
   applyLocalDamage,
@@ -58,8 +59,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const lastMissile = useRef(0);
   const mgInterval = 150; 
   const missileInterval = 2000;
-  const warningRadius = 3800;
-  const damageRadius = 4600;
+  const { warningRadius, damageRadius } = WORLD_TOPOLOGY.combatBoundary;
 
   useEffect(() => {
     spawnTime.current = Date.now();
@@ -84,7 +84,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
 
     const currentSpeed = getBodySpeed(rb.current);
     
-    if (translation.y < -4.5) {
+    if (translation.y < WORLD_TOPOLOGY.seaLevel + 0.5) {
       eliminateLocalPlayer();
       return;
     }

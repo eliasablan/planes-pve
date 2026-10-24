@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { applyLocalDamage } from "@/lib/combatResolution";
 import { tickEmergencyResupply } from "@/lib/emergencyResupply";
+import { minimumAirborneY } from "@/lib/terrainHeight";
 import { EnemyRole, EnemyState, PickupKind, PickupState, PveExplosion, TargetLock, useGameStore } from "@/store/useGameStore";
 import { AirplaneModel } from "./AirplaneModel";
 import { PickupVisual } from "./PickupVisual";
@@ -20,6 +21,9 @@ const ROLE_STATS: Record<
 };
 
 const RUN_START_INVULNERABILITY_MS = 6500;
+// Enemies and supplies do not use physics; these keep them above the relief instead of inside it.
+const ENEMY_TERRAIN_CLEARANCE = 30;
+const PICKUP_TERRAIN_CLEARANCE = 28;
 const ENEMY_ATTACK_INTERVAL_MS = 2300;
 
 export function PveDirector() {
@@ -114,6 +118,7 @@ export function PveDirector() {
 
         position.add(desired.multiplyScalar(stats.speed * speedScale * delta));
         position.y = THREE.MathUtils.lerp(position.y, player.y + altitudeOffset(enemy.role, now), 0.018);
+        position.y = Math.max(position.y, minimumAirborneY(position.x, position.z, ENEMY_TERRAIN_CLEARANCE));
 
         const heading = Math.atan2(desired.x, desired.z);
         nextEnemies[enemy.id] = {
@@ -349,10 +354,12 @@ function createWave(wave: number) {
     const stats = ROLE_STATS[role];
     const angle = (Math.PI * 2 * index) / composition.length + wave * 0.62;
     const radius = 420 + wave * 18 + index * 36;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
     return {
       id: `wave-${wave}-${role}-${index}-${crypto.randomUUID().slice(0, 6)}`,
       role,
-      position: [Math.cos(angle) * radius, 210 + index * 24, Math.sin(angle) * radius] as [number, number, number],
+      position: [x, Math.max(210 + index * 24, minimumAirborneY(x, z, ENEMY_TERRAIN_CLEARANCE)), z] as [number, number, number],
       heading: angle + Math.PI,
       hp: stats.hp,
       maxHp: stats.hp,
@@ -384,14 +391,12 @@ function spawnPickupsAhead(
   spawnPvePickups(
     kinds.map((kind, index) => {
       const distance = 200 + index * 100;
+      const x = player.x - Math.sin(bearing) * distance;
+      const z = player.z - Math.cos(bearing) * distance;
       return {
         id: `pickup-${wave}-${kind}-${crypto.randomUUID().slice(0, 6)}`,
         kind,
-        position: [
-          player.x - Math.sin(bearing) * distance,
-          Math.max(30, player.y),
-          player.z - Math.cos(bearing) * distance,
-        ],
+        position: [x, Math.max(30, player.y, minimumAirborneY(x, z, PICKUP_TERRAIN_CLEARANCE)), z],
       };
     }),
   );

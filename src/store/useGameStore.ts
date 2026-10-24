@@ -115,6 +115,8 @@ interface GameState {
   
   // Flight Data
   altitude: number;
+  /** Height above the terrain surface directly below the aircraft (sea surface over water). */
+  groundClearance: number;
   speed: number;
   pitch: number;
   roll: number;
@@ -155,7 +157,7 @@ interface GameState {
   setShowLargeMap: (show: boolean) => void;
   setUser: (user: UserProfile | null) => void;
   setLocalPlayerPosition: (pos: [number, number]) => void;
-  setFlightData: (data: { altitude: number, speed: number, pitch: number, roll: number, heading: number }) => void;
+  setFlightData: (data: { altitude: number, groundClearance: number, speed: number, pitch: number, roll: number, heading: number }) => void;
   setZoneData: (data: { radius: number, center: [number, number] }) => void;
   setTargetZoneData: (data: { radius: number, center: [number, number] }) => void;
   setGameStatus: (status: GameStatus) => void;
@@ -201,6 +203,7 @@ export const useGameStore = create<GameState>((set) => ({
   killLog: [],
 
   altitude: 0,
+  groundClearance: 0,
   speed: 0,
   pitch: 0,
   roll: 0,

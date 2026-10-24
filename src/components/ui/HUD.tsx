@@ -21,6 +21,7 @@ export function HUD({ display, onDisplayChange }: { display: DisplaySettings; on
     maxMissiles,
     score,
     altitude,
+    groundClearance,
     speed,
     heading,
     selectedWeapon,
@@ -284,7 +285,7 @@ export function HUD({ display, onDisplayChange }: { display: DisplaySettings; on
       {/* Bottom row */}
       <div data-hud-resources className="relative z-10 flex flex-col gap-4 max-sm:gap-2 sm:flex-row sm:items-end sm:justify-between [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:items-end [@media(max-height:500px)]:justify-between">
         <div data-hud-flight className="flex flex-wrap gap-3 max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
-          <Telemetry icon={<Gauge />} label="Altitude" value={Math.round(altitude)} unit="ft" />
+          <Telemetry icon={<Gauge />} label="Altitude" value={Math.round(altitude)} unit="ft" detail={`AGL ${Math.round(groundClearance)}`} />
           <Telemetry icon={<Target />} label="Speed" value={Math.round(speed)} unit="kmh" />
           <div data-hud-health
             className={`min-w-64 border p-4 backdrop-blur-md transition-colors max-sm:min-w-32 max-sm:p-2 [@media(max-height:500px)]:min-w-28 [@media(max-height:500px)]:p-2 ${
@@ -404,11 +405,13 @@ function Telemetry({
   label,
   value,
   unit,
+  detail,
 }: {
   icon: ReactNode;
   label: string;
   value: number;
   unit: string;
+  detail?: string;
 }) {
   return (
     <div className="min-w-36 border border-white/12 bg-black/45 p-4 backdrop-blur-md max-sm:min-w-20 max-sm:p-2 [@media(max-height:500px)]:min-w-20 [@media(max-height:500px)]:p-2">
@@ -420,6 +423,7 @@ function Telemetry({
         {value}
         <span className="ml-1 text-[10px] uppercase text-white/35">{unit}</span>
       </div>
+      {detail && <div data-hud-telemetry-detail className="mt-1 max-sm:hidden [@media(max-height:500px)]:hidden text-[10px] font-bold uppercase tracking-[0.16em] text-white/55 tabular-nums">{detail}</div>}
     </div>
   );
 }
