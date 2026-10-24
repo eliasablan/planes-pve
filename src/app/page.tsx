@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { resetLocalMatch } from "@/lib/matchLifecycle";
 import { unlockGameAudio } from "@/lib/gameAudio";
+import { FLIGHT_CONTROLS } from "@/lib/flightControls";
 import { IslandBackdrop } from "@/components/ui/IslandBackdrop";
 import { SiteNav } from "@/components/ui/SiteNav";
 
@@ -15,18 +16,6 @@ const Scene = dynamic(() => import("@/components/game/Scene"), {
     </div>
   ),
 });
-
-const CONTROLS: { keys: string[]; label: string }[] = [
-  { keys: ["Mouse"], label: "Steer" },
-  { keys: ["W", "S"], label: "Throttle" },
-  { keys: ["A", "D"], label: "Roll" },
-  { keys: ["↑", "↓", "←", "→"], label: "Pitch / yaw" },
-  { keys: ["Click", "Space"], label: "Fire" },
-  { keys: ["1", "2"], label: "Gun / missile" },
-  { keys: ["Shift"], label: "Air brake" },
-  { keys: ["O"], label: "Mouse steering" },
-  { keys: ["M"], label: "Radar size" },
-];
 
 export default function Home() {
   const [inRun, setInRun] = useState(false);
@@ -64,7 +53,7 @@ export default function Home() {
           <aside className="wf-frame p-5">
             <h2 className="text-center text-lg font-medium">FLIGHT_CONTROLS</h2>
             <ul className="mt-4 divide-y divide-wf-hair">
-              {CONTROLS.map((control) => (
+              {FLIGHT_CONTROLS.map((control) => (
                 <li key={control.label} className="flex items-center justify-between py-2.5 text-sm">
                   <span className="text-wf-dim">{control.label}</span>
                   <span className="flex gap-1">

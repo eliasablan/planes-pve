@@ -127,6 +127,7 @@ interface GameState {
   targetZoneCenter: [number, number];
   selectedWeapon: 'mg' | 'missile';
   showLargeMap: boolean;
+  paused: boolean;
   localPlayerPosition: [number, number];
   user: UserProfile | null;
   
@@ -155,6 +156,7 @@ interface GameState {
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setShowLargeMap: (show: boolean) => void;
+  setPaused: (paused: boolean) => void;
   setUser: (user: UserProfile | null) => void;
   setLocalPlayerPosition: (pos: [number, number]) => void;
   setFlightData: (data: { altitude: number, groundClearance: number, speed: number, pitch: number, roll: number, heading: number }) => void;
@@ -214,6 +216,7 @@ export const useGameStore = create<GameState>((set) => ({
   targetZoneCenter: [0, 0],
   selectedWeapon: 'mg',
   showLargeMap: false,
+  paused: false,
   localPlayerPosition: [0, 0],
   user: null,
   
@@ -320,6 +323,7 @@ export const useGameStore = create<GameState>((set) => ({
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),
+  setPaused: (paused) => set({ paused }),
   setUser: (user) => set({ user }),
   setLocalPlayerPosition: (localPlayerPosition) => set({ localPlayerPosition }),
   setFlightData: (data) => set(data),
@@ -384,6 +388,7 @@ export const useGameStore = create<GameState>((set) => ({
     killLog: [],
     players: {},
     showLargeMap: false,
+  paused: false,
     selectedWeapon: "mg",
   })
 }));

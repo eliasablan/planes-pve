@@ -28,6 +28,7 @@ export default function DocumentationPage() {
           ["Click / Space", "Fire", "Hold to keep firing the selected weapon."], ["1 / 2", "Gun / missile", "Select your weapon."],
           ["Shift", "Air brake", "Hold to slow down."], ["O", "Mouse steering", "Toggle mouse steering to use keyboard flight controls."],
           ["M", "Radar size", "Cycle the radar through four sizes."],
+          ["P / Esc", "Pause", "Freeze the run and open the briefing: objective, enemies, supplies and controls."],
         ]} />
         <p>Sound and display settings are available from the controls inside the game.</p>
       </GuideSection>

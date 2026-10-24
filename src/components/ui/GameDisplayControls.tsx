@@ -1,6 +1,7 @@
 "use client";
 
-import { Maximize, Minimize, Settings2, X } from "lucide-react";
+import { Maximize, Minimize, Pause, Settings2, X } from "lucide-react";
+import { pauseLocalMatch } from "@/lib/matchLifecycle";
 import { useEffect, useId, useState } from "react";
 import { GameAudioControls } from "./GameAudioControls";
 
@@ -73,6 +74,9 @@ export function GameDisplayControls({ settings, onChange }: {
       if (event.key === "Escape") { event.stopPropagation(); closePanel(); }
       else if (event.target instanceof HTMLElement && (event.target.matches("input,select,textarea") || event.key === " ")) event.stopPropagation();
     }} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onMouseMove={event => event.stopPropagation()}>
+      <button aria-label="Pause" title="Pause [P]" onClick={pauseLocalMatch} className="wf-frame flex w-10 items-center justify-center text-wf-ink hover:border-wf-ink">
+        <Pause className="h-4 w-4" />
+      </button>
       <button aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} title="Fullscreen [F]" onClick={toggleFullscreen} className="wf-frame flex w-10 items-center justify-center text-wf-ink hover:border-wf-ink">
         {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
       </button>
@@ -89,7 +93,7 @@ export function GameDisplayControls({ settings, onChange }: {
             </select>
           </label>
           <div className="mt-4 border-t border-wf-hair pt-4"><GameAudioControls /></div>
-          <p className="mt-3 leading-5 text-wf-dim">Full screen: F · Exit: Esc<br />Adjust HUD size to your monitor.</p>
+          <p className="mt-3 leading-5 text-wf-dim">Full screen: F · Pause: P<br />Adjust HUD size to your monitor.</p>
           {error && <p role="status" className="mt-2 text-wf-danger">{error}</p>}
         </div>
       )}

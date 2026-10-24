@@ -217,25 +217,17 @@ export function HUD({ display, onDisplayChange }: { display: DisplaySettings; on
       {/* Center: crosshair + enemy arrows + alerts */}
       <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
         <div className={`relative h-20 w-20 transition-all duration-150 ${inSolution ? "scale-90 opacity-100" : "opacity-75"}`}>
-          <Crosshair
-            className={`h-full w-full stroke-[1.5px] transition-colors duration-150 ${inSolution ? "text-wf-danger" : "text-wf-ink"}`}
-            style={{ filter: inSolution ? "drop-shadow(0 0 1px #000) drop-shadow(0 0 8px #ff4d3d)" : "drop-shadow(0 0 1px #000)" }}
-          />
+          <Reticle inSolution={inSolution} />
           {/* Hit ring flash */}
           {damageIndicator && hitOpacity > 0.1 && (
             <div
-              className="absolute left-1/2 top-1/2 h-24 w-24 rounded-full border border-wf-danger"
+              className="absolute left-1/2 top-1/2 h-24 w-24 border border-wf-danger"
               style={{
                 opacity: hitOpacity * 0.7,
                 transform: `translate(-50%, -50%) scale(${1 + (1 - hitOpacity) * 0.5})`,
               }}
             />
           )}
-          <div
-            className={`absolute inset-[-18%] rounded-full border transition-colors duration-150 ${
-              inSolution ? "border-wf-danger/60" : "border-wf-hair"
-            }`}
-          />
           {/* Outgoing hit marker */}
           {enemyHitOpacity > 0 && (
             <HitMarker kill={Boolean(lastEnemyHit?.kill)} opacity={enemyHitOpacity} />
@@ -469,6 +461,27 @@ function Weapon({
   );
 }
 
+// Wireframe gunsight: bracketed box with a gapped cross; brackets close in and turn red on a firing solution.
+function Reticle({ inSolution }: { inSolution: boolean }) {
+  const color = inSolution ? "#ff4d3d" : "#f2f2f0";
+  const inset = inSolution ? 14 : 4;
+  const far = 80 - inset;
+  return (
+    <svg
+      viewBox="0 0 80 80"
+      aria-hidden="true"
+      className="h-full w-full overflow-visible"
+      style={{ filter: "drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000)" }}
+    >
+      <g stroke={color} strokeWidth={1} fill="none" className="transition-all duration-150">
+        <path d={`M${inset} ${inset + 12}V${inset}H${inset + 12}M${far - 12} ${inset}H${far}V${inset + 12}M${far} ${far - 12}V${far}H${far - 12}M${inset + 12} ${far}H${inset}V${far - 12}`} />
+        <path d="M40 22V34M40 46V58M22 40H34M46 40H58" />
+      </g>
+      <rect x={39} y={39} width={2} height={2} fill={color} />
+    </svg>
+  );
+}
+
 function HitMarker({ kill, opacity }: { kill: boolean; opacity: number }) {
   const color = kill ? "#f65f5f" : "#ffffff";
   const offset = kill ? 22 : 16;
@@ -494,9 +507,9 @@ function HitMarker({ kill, opacity }: { kill: boolean; opacity: number }) {
   );
 }
 
-// Radar width multipliers cycled with M; the default doubles the original 184px panel.
+// Radar width multipliers cycled with M; the default is 1.5× the original 184px panel.
 const RADAR_SCALES = [1, 1.5, 2, 2.5];
-const RADAR_DEFAULT_SIZE = 2;
+const RADAR_DEFAULT_SIZE = 1;
 
 const COMPASS_PX_PER_DEG = 3;
 const COMPASS_LABELS: Record<number, string> = { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" };

@@ -197,34 +197,32 @@ function EnemyAircraft({ enemy }: { enemy: EnemyState }) {
 }
 
 function TargetReticle({ enemy, lock }: { enemy: EnemyState; lock: NonNullable<TargetLock> }) {
-  const color = lock.inSolution ? "#f65f5f" : ROLE_STATS[enemy.role].color;
+  const color = lock.inSolution ? "#ff4d3d" : ROLE_STATS[enemy.role].color;
   const size = lock.inSolution ? 46 : 64;
+  const outline = { textShadow: "0 0 2px #000, 0 0 2px #000" };
 
   return (
     <Html position={enemy.position} center zIndexRange={[5, 0]} style={{ pointerEvents: "none" }}>
-      <div className="relative flex flex-col items-center font-mono text-white select-none">
-        <div
-          className="mb-1 h-4 text-[10px] font-black uppercase tracking-[0.24em]"
-          style={{ color, textShadow: "0 0 3px #000, 0 0 8px #000" }}
-        >
-          {lock.inSolution ? "Fire" : enemy.role}
+      <div className="relative flex select-none flex-col items-center whitespace-nowrap text-[11px] text-wf-ink">
+        <div className="mb-1 font-medium" style={{ color, ...outline }}>
+          {lock.inSolution ? "FIRE // IN_RANGE" : `${enemy.role.toUpperCase()}_LOCK`}
         </div>
         <div
           className="relative transition-all duration-150 ease-out"
-          style={{ width: size, height: size, filter: `drop-shadow(0 0 1px #000) drop-shadow(0 0 6px ${color})` }}
+          style={{ width: size, height: size, filter: "drop-shadow(0 0 1px #000)" }}
         >
-          {(["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"] as const).map(
+          {(["left-0 top-0 border-l border-t", "right-0 top-0 border-r border-t", "left-0 bottom-0 border-l border-b", "right-0 bottom-0 border-r border-b"] as const).map(
             (corner) => (
               <div key={corner} className={`absolute h-3 w-3 ${corner}`} style={{ borderColor: color }} />
             ),
           )}
           {lock.inSolution && (
-            <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ backgroundColor: color }} />
+            <div className="absolute left-1/2 top-1/2 h-0.5 w-0.5 -translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: color }} />
           )}
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[10px] font-black tabular-nums" style={{ textShadow: "0 0 3px #000, 0 0 8px #000" }}>
-          <span className="text-white/85">{lock.distance}m</span>
-          <span className="h-1 w-8 bg-black/60">
+        <div className="mt-1 flex items-center gap-2 tabular-nums" style={outline}>
+          <span>{lock.distance}M</span>
+          <span className="h-[2px] w-10 bg-black/50">
             <span className="block h-full" style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%`, backgroundColor: color }} />
           </span>
         </div>

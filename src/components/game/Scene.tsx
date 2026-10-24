@@ -11,7 +11,8 @@ import { useGameStore } from "@/store/useGameStore";
 import { HUD } from "../ui/HUD";
 import { useDisplaySettings } from "../ui/GameDisplayControls";
 import { GameOver } from "../ui/GameOver";
-import { resetLocalMatch, startLocalMatch } from "@/lib/matchLifecycle";
+import { PauseMenu } from "../ui/PauseMenu";
+import { pauseLocalMatch, resetLocalMatch, resumeLocalMatch, startLocalMatch } from "@/lib/matchLifecycle";
 import { stopGameAudio, unlockGameAudio } from "@/lib/gameAudio";
 
 function configureRenderer(state: RootState) {
@@ -27,11 +28,27 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
   const { settings, update, dpr } = useDisplaySettings();
   const gameStatus = useGameStore(state => state.gameStatus);
   const hp = useGameStore(state => state.hp);
+  const paused = useGameStore(state => state.paused);
   const isFinished = hp <= 0 || gameStatus === "finished";
 
   useEffect(() => {
     startLocalMatch();
     return stopGameAudio;
+  }, []);
+
+  useEffect(() => {
+    const togglePause = (event: KeyboardEvent) => {
+      if ((event.code !== "KeyP" && event.key !== "Escape") || event.repeat || event.ctrlKey || event.metaKey || event.altKey ||
+        (event.target instanceof HTMLElement && event.target.matches("input,select,textarea,[contenteditable]"))) return;
+      if (useGameStore.getState().paused) {
+        resumeLocalMatch();
+        document.querySelector<HTMLElement>("[data-game-shell]")?.focus({ preventScroll: true });
+      } else {
+        pauseLocalMatch();
+      }
+    };
+    window.addEventListener("keydown", togglePause);
+    return () => window.removeEventListener("keydown", togglePause);
   }, []);
 
   const handleRestart = () => {
@@ -51,6 +68,8 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
         <>
           <Canvas
             shadows="percentage"
+            // Every simulation step (flight, enemies, physics) runs in useFrame, so stopping the loop freezes the run.
+            frameloop={paused ? "never" : "always"}
             dpr={dpr}
             gl={{
               antialias: true,
@@ -60,7 +79,7 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
             camera={{ position: [0, 5, 10], fov: 60 }}
           >
             <Suspense fallback={null}>
-              <Physics gravity={[0, 0, 0]}>
+              <Physics gravity={[0, 0, 0]} paused={paused}>
                 <Environment />
                 <Airplane userId="solo-pilot" username="Solo Pilot" />
                 <PveDirector />
@@ -71,6 +90,7 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
         </>
       )}
 
+      {paused && !isFinished && <PauseMenu onExit={handleExit} />}
       {isFinished && <GameOver onRestart={handleRestart} onExit={handleExit} />}
     </div>
   );
