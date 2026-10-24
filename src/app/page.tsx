@@ -3,10 +3,9 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, Play, RotateCcw, Trophy, Waves } from "lucide-react";
+import { BookOpen, FileText, Play, Trophy, Waves } from "lucide-react";
 import { resetLocalMatch } from "@/lib/matchLifecycle";
 import { unlockGameAudio } from "@/lib/gameAudio";
-import { GameAudioControls } from "@/components/ui/GameAudioControls";
 
 const Scene = dynamic(() => import("@/components/game/Scene"), {
   ssr: false,
@@ -52,7 +51,7 @@ export default function Home() {
 
             <p className="mt-7 max-w-2xl text-lg font-semibold leading-8 text-white/62">
               Take off over the island and hold the sky against endless enemy waves.
-              Scouts, fighters and bombers get tougher every round. Grab supply drops
+              More scouts, fighters and bombers join the fight as waves build. Grab supply drops
               between waves and push your score as far as the airframe lasts.
             </p>
 
@@ -64,17 +63,6 @@ export default function Home() {
                 <Play className="h-5 w-5 fill-current" />
                 Play
               </button>
-              <button
-                onClick={() => resetLocalMatch()}
-                className="inline-flex h-16 items-center justify-center gap-3 border border-white/18 bg-white/[0.04] px-8 text-sm font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-white/35 hover:bg-white/[0.08]"
-              >
-                <RotateCcw className="h-5 w-5" />
-                Reset run state
-              </button>
-            </div>
-
-            <div className="mt-5 max-w-sm border border-white/15 bg-black/30 p-4">
-              <GameAudioControls />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/42">
@@ -84,7 +72,11 @@ export default function Home() {
               </Link>
               <Link href="/docs" className="inline-flex items-center gap-2 transition hover:text-[#f4c95d]">
                 <BookOpen className="h-3.5 w-3.5" />
-                Asset docs
+                How to play
+              </Link>
+              <Link href="/docs/assets" className="inline-flex items-center gap-2 transition hover:text-[#f4c95d]">
+                <FileText className="h-3.5 w-3.5" />
+                Asset record
               </Link>
             </div>
           </div>

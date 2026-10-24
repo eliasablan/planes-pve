@@ -1,152 +1,74 @@
-import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, BadgeCheck, FileText, ShieldCheck } from "lucide-react";
-import { ASSET_POLICY, ASSET_SOURCES, BUNDLED_ASSET_TARGETS } from "@/lib/assetCredits";
+import { DocumentationShell, GuideSection, GuideTable } from "@/components/ui/DocumentationShell";
+import { ROLE_STATS } from "@/lib/pveRules";
+
+const sections = [
+  { id: "quick-start", label: "First flight" }, { id: "controls", label: "Controls" },
+  { id: "weapons", label: "Weapons & aiming" }, { id: "enemies", label: "Enemy aircraft" },
+  { id: "supplies", label: "Resupply" }, { id: "survival", label: "Waves & survival" },
+  { id: "scoring", label: "Score & ranking" },
+] as const;
 
 export default function DocumentationPage() {
   return (
-    <main className="min-h-screen bg-[#0d1110] text-[#f2efe7]">
-      <div className="mx-auto w-full max-w-6xl px-5 py-5 sm:px-8">
-        <header className="flex items-center justify-between border-b border-[#f2efe7]/10 pb-4">
-          <Link href="/" className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-[#f2efe7]/55 transition hover:text-[#f2efe7]">
-            <ArrowLeft className="size-4" />
-            Start
-          </Link>
-          <span className="text-[10px] font-black uppercase tracking-[0.28em] text-[#d8a24a]">Documentation</span>
-        </header>
-
-        <section className="grid gap-10 py-12 lg:grid-cols-[0.85fr_1.15fr]">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <p className="max-w-fit border-l-2 border-[#d8a24a] pl-3 text-[11px] font-black uppercase tracking-[0.28em] text-[#d8a24a]">
-                Asset record
-              </p>
-              <h1 className="text-5xl font-black leading-[0.95] tracking-tight sm:text-7xl">
-                Credits, licenses, and intake rules.
-              </h1>
-              <p className="max-w-xl text-base leading-7 text-[#f2efe7]/62">
-                This page documents where visual resources may come from, what each license means for this PvE
-                spin-off, and the checklist required before bundling third-party files.
-              </p>
-            </div>
-
-            <div className="grid gap-3">
-              <SummaryCard icon={<ShieldCheck className="size-4" />} label="Default" value="CC0 first" />
-              <SummaryCard icon={<BadgeCheck className="size-4" />} label="Commercial intent" value="Portfolio only" />
-              <SummaryCard icon={<FileText className="size-4" />} label="Bundled third-party files" value="1 aircraft model" />
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <section className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
-              <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Sound effects</h2>
-              <p className="mt-4 text-sm leading-6 text-[#f2efe7]/58">
-                Combat and supply sounds are synthesized in the browser with original Web Audio code.
-                No third-party audio clips are bundled or downloaded.
-              </p>
-            </section>
-            <section className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
-              <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Approved Sources</h2>
-              <div className="mt-5 divide-y divide-[#f2efe7]/10">
-                {ASSET_SOURCES.map((source) => (
-                  <a
-                    key={source.name}
-                    href={source.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group grid gap-3 py-5 first:pt-0 last:pb-0 sm:grid-cols-[0.8fr_1.2fr_auto]"
-                  >
-                    <div>
-                      <p className="font-black uppercase tracking-[0.12em] text-[#f8f4e8]">{source.name}</p>
-                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#f2efe7]/38">{source.license}</p>
-                    </div>
-                    <p className="text-sm leading-6 text-[#f2efe7]/58">{source.use}</p>
-                    <span className="flex items-start justify-end gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#d8a24a]">
-                      {source.status}
-                      <ArrowUpRight className="size-3 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            <section className="grid gap-5 md:grid-cols-2">
-              <LicenseBlock
-                title="CC0"
-                tone="Preferred"
-                body="Best fit for assets that may live in the repository. It allows use, modification, redistribution, and commercial use without required attribution, while still avoiding protected logos or recognizable third-party IP."
-              />
-              <LicenseBlock
-                title="Pixabay License"
-                tone="Conditional"
-                body="Acceptable for integrated portfolio visuals when quality is clearly better than CC0 alternatives. Do not redistribute the asset as a standalone pack, and avoid assets with brands, people, or implied endorsement."
-              />
-            </section>
-
-            <section className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
-              <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Target Assets</h2>
-              <div className="mt-5 space-y-4">
-                {BUNDLED_ASSET_TARGETS.map((asset) => (
-                  <a
-                    key={asset.name}
-                    href={asset.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-lg border border-[#f2efe7]/10 bg-[#0d1110] p-4 transition hover:border-[#d8a24a]/35"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-black uppercase tracking-[0.1em]">{asset.name}</p>
-                        <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#f2efe7]/38">
-                          {asset.source} · {asset.license}
-                        </p>
-                      </div>
-                      <ArrowUpRight className="size-4 shrink-0 text-[#d8a24a]" />
-                    </div>
-                    <p className="mt-4 break-all rounded-md bg-[#f2efe7]/5 px-3 py-2 text-xs font-bold text-[#f2efe7]/55">
-                      {asset.targetPath}
-                    </p>
-                    <p className="mt-3 text-sm leading-6 text-[#f2efe7]/55">{asset.notes}</p>
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-[#f2efe7]/12 bg-[#0d1110] p-5">
-              <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Intake Checklist</h2>
-              <ul className="mt-5 space-y-3">
-                {ASSET_POLICY.map((item) => (
-                  <li key={item} className="flex gap-3 text-sm leading-6 text-[#f2efe7]/62">
-                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#d8a24a]" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-4 rounded-lg border border-[#f2efe7]/10 bg-[#f2efe7]/[0.03] p-4">
-      <span className="flex size-9 items-center justify-center rounded-md bg-[#d8a24a]/12 text-[#d8a24a]">{icon}</span>
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f2efe7]/35">{label}</p>
-        <p className="mt-1 text-sm font-black uppercase tracking-[0.08em]">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function LicenseBlock({ title, tone, body }: { title: string; tone: string; body: string }) {
-  return (
-    <article className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#d8a24a]">{tone}</p>
-      <h2 className="mt-3 text-2xl font-black uppercase tracking-tight">{title}</h2>
-      <p className="mt-4 text-sm leading-6 text-[#f2efe7]/58">{body}</p>
-    </article>
+    <DocumentationShell page="guide" title="Pilot’s handbook" intro="Everything you need to fly, fight and survive over the island. Learn your aircraft, read the threats and plan your next supply pickup." sections={sections}>
+      <GuideSection id="quick-start" title="Your first flight">
+        <p>Press <strong>Play</strong> to start airborne above the island with <strong>100 health, 120 gun rounds and 3 missiles</strong>. Move the mouse gently to steer; keep it near the centre of the screen to steady your flight.</p>
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>Line up an enemy with your crosshair. The target marker says <strong>Fire</strong> when your selected weapon has a firing solution.</li>
+          <li>Hold click or Space to fire. Use the gun for lighter aircraft and save missiles for heavy targets.</li>
+          <li>Clear the wave, then fly through supply boxes ahead of you. Keep enough height to clear the mountains.</li>
+        </ol>
+        <p>Your run ends when health reaches zero. Enemy attacks have a <strong>6.5-second grace period</strong> at the start, giving you time to orient yourself.</p>
+      </GuideSection>
+      <GuideSection id="controls" title="Flight controls">
+        <GuideTable label="Keyboard and mouse controls" headers={["Input", "Action", "How to use it"]} rows={[
+          ["Mouse", "Steer", "Move away from centre to turn; return towards centre to steady the aircraft."],
+          ["W / S", "Throttle up / down", "Adjust engine power."], ["A / D", "Roll left / right", "Bank the aircraft."],
+          ["↑ / ↓", "Pitch", "Control the nose vertically."], ["← / →", "Yaw", "Turn the nose left or right."],
+          ["Click / Space", "Fire", "Hold to keep firing the selected weapon."], ["1 / 2", "Gun / missile", "Select your weapon."],
+          ["Shift", "Air brake", "Hold to slow down."], ["O", "Mouse steering", "Toggle mouse steering to use keyboard flight controls."],
+          ["M", "Map", "Toggle the large tactical map."],
+        ]} />
+        <p>Sound and display settings are available from the controls inside the game.</p>
+      </GuideSection>
+      <GuideSection id="weapons" title="Weapons and aiming">
+        <GuideTable label="Player weapon statistics" headers={["Weapon", "Damage per hit", "Fire interval", "Range"]} rows={[
+          ["Machine gun", "12", "0.15 seconds", "780 world units"], ["Missile", "80", "2 seconds", "1,200 world units"],
+        ]} />
+        <p>The gun needs a tighter aim; missiles accept a wider angle around the crosshair. A shot spends ammunition even when it misses. <strong>Mountains block shots and target acquisition</strong>, so gain height or move around the ridge to get a clear line of sight.</p>
+        <p>Hits are resolved when you fire. The target marker tracks an enemy near your crosshair; bring it into the centre until it reads <strong>Fire</strong>. When enemies overlap, damage goes to the nearest eligible target.</p>
+      </GuideSection>
+      <GuideSection id="enemies" title="Know the enemy">
+        <p>Colours identify each aircraft’s role. Health and damage stay the same across waves; later waves add more aircraft.</p>
+        <GuideTable label="Enemy health and attack statistics" headers={["Aircraft", "Health", "Damage / hit", "Shots / burst", "Reload after burst"]} rows={Object.entries(ROLE_STATS).map(([role, stats]) => [
+          <span key={role} className="inline-flex items-center gap-2 capitalize"><span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: stats.color }} />{role}</span>, stats.hp, stats.damage, stats.burst, `${stats.reloadMs / 1000} seconds`,
+        ])} />
+        <ul className="list-disc space-y-3 pl-5">
+          <li><strong>Scout, green:</strong> the fastest and lightest aircraft. Closes in and circles you. Three gun hits or one missile will destroy it.</li>
+          <li><strong>Fighter, red:</strong> a balanced threat with the longest burst. Takes six gun hits or one missile.</li>
+          <li><strong>Bomber, yellow:</strong> slow, durable and able to attack from farther away. Takes ten gun hits or two missiles.</li>
+        </ul>
+        <p>Enemy attacks are spaced by at least <strong>2.3 seconds</strong> within a burst, followed by the reload above. Each hit removes the listed health immediately; enemies also need a clear line of sight through the terrain.</p>
+      </GuideSection>
+      <GuideSection id="supplies" title="Keep your aircraft supplied">
+        <p>Clear a wave to spawn boxes ahead of your current heading. Fly close to a box to collect it automatically; the pickup radius is <strong>85 world units</strong>. Boxes sit above the terrain, so check their altitude as you approach.</p>
+        <GuideTable label="Supply rewards and availability" headers={["Supply", "Restores", "Capacity", "Appears after"]} rows={[
+          ["Gun ammunition", "+60 rounds", "180 rounds", "Every wave"], ["Repair", "+50 health", "100 health", "Every even wave"], ["Missile", "+1 missile", "5 missiles", "Every fifth wave"],
+        ]} />
+        <p>Rewards stop at capacity. A box is consumed even if you are already full. If you run out of gun ammunition while enemies remain and no ammo box is available, an <strong>emergency ammo box appears after 5 seconds</strong>.</p>
+      </GuideSection>
+      <GuideSection id="survival" title="Waves, terrain and survival">
+        <p>Every wave starts with a scout, a fighter and a bomber. One extra aircraft joins every two waves, up to <strong>8 enemies per wave</strong>. The next wave arrives <strong>2.4 seconds</strong> after the last enemy is destroyed.</p>
+        <p><strong>Hitting the ground or the sea is fatal.</strong> Watch your ground clearance, especially when diving or turning near a ridge. Terrain can provide cover from enemy fire, but you still need room to manoeuvre.</p>
+        <p>The combat area has a fixed boundary. A warning appears beyond 3,800 world units from the centre; beyond 4,600, your aircraft takes <strong>20 damage per second</strong>. Turn back when the warning appears.</p>
+      </GuideSection>
+      <GuideSection id="scoring" title="Your score and the local ranking">
+        <GuideTable label="Scoring rewards" headers={["Achievement", "Points"]} rows={[
+          ["Destroy a scout", "100"], ["Destroy a fighter", "160"], ["Destroy a bomber", "260"], ["Clear a wave", "180 + (25 × wave number)"],
+        ]} />
+        <p>When your run ends, save a qualifying score with an arcade name of <strong>3–12 letters or numbers</strong>. The top 10 is saved in this browser. Clearing browser storage removes these scores; they are not shared across devices.</p>
+        <p>Choose <strong>Fly again</strong> for a fresh run, or <strong>Start screen</strong> to return to the menu.</p>
+      </GuideSection>
+    </DocumentationShell>
   );
 }
