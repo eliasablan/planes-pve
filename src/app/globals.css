@@ -5,6 +5,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-chakra-petch), sans-serif;
+  --font-mono: var(--font-chakra-petch), monospace;
+  /* Wireframe identity: white line work on pure black; red only for danger. */
+  --color-wf-ink: #f2f2f0;
+  --color-wf-dim: rgb(242 242 240 / 0.6);
+  --color-wf-line: rgb(242 242 240 / 0.85);
+  --color-wf-hair: rgb(242 242 240 / 0.22);
+  --color-wf-fill: rgb(0 0 0 / 0.6);
+  --color-wf-danger: #ff4d3d;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -44,35 +53,26 @@
 }
 
 :root {
-  /* Metallic Blue Theme (Primary) */
-  --background: oklch(0.12 0.04 250);
-  --foreground: oklch(0.98 0.02 220);
-  --card: oklch(0.15 0.05 250);
-  --card-foreground: oklch(0.98 0.02 220);
-  --popover: oklch(0.15 0.05 250);
-  --popover-foreground: oklch(0.98 0.02 220);
-  --primary: oklch(0.55 0.18 240);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.25 0.08 250);
-  --secondary-foreground: oklch(0.98 0.02 220);
-  --muted: oklch(0.2 0.04 250);
-  --muted-foreground: oklch(0.7 0.05 220);
-  --accent: oklch(0.65 0.22 210);
-  --accent-foreground: oklch(0.1 0.05 250);
-  --destructive: oklch(0.6 0.25 25);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.3 0.08 250);
-  --input: oklch(0.3 0.08 250);
-  --ring: oklch(0.55 0.18 240);
-  --radius: 0.5rem;
-}
-
-/* We keep these classes but link them to the new blue palette or similar tones */
-.theme-military, .theme-neon, .theme-classic {
-  --background: oklch(0.12 0.04 250);
-  --foreground: oklch(0.98 0.02 220);
-  --primary: oklch(0.55 0.18 240);
-  --border: oklch(0.3 0.08 250);
+  --background: #000000;
+  --foreground: #f2f2f0;
+  --card: #000000;
+  --card-foreground: #f2f2f0;
+  --popover: #000000;
+  --popover-foreground: #f2f2f0;
+  --primary: #f2f2f0;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f2f2f0;
+  --muted: #141414;
+  --muted-foreground: rgb(242 242 240 / 0.6);
+  --accent: #f2f2f0;
+  --accent-foreground: #000000;
+  --destructive: #ff4d3d;
+  --destructive-foreground: #000000;
+  --border: rgb(242 242 240 / 0.22);
+  --input: rgb(242 242 240 / 0.22);
+  --ring: #f2f2f0;
+  --radius: 0;
 }
 
 @layer base {
@@ -80,11 +80,38 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    letter-spacing: 0.02em;
   }
-  html {
-    @apply font-mono tracking-tight;
+}
+
+@layer components {
+  /* Corner brackets: eight 1px strokes painted as backgrounds, so any element can wear them
+     without extra DOM. Pair with a background-color utility to change the fill. */
+  .wf-frame {
+    border: 1px solid var(--color-wf-hair);
+    background-color: var(--color-wf-fill);
+    background-image:
+      linear-gradient(var(--color-wf-line), var(--color-wf-line)), linear-gradient(var(--color-wf-line), var(--color-wf-line)),
+      linear-gradient(var(--color-wf-line), var(--color-wf-line)), linear-gradient(var(--color-wf-line), var(--color-wf-line)),
+      linear-gradient(var(--color-wf-line), var(--color-wf-line)), linear-gradient(var(--color-wf-line), var(--color-wf-line)),
+      linear-gradient(var(--color-wf-line), var(--color-wf-line)), linear-gradient(var(--color-wf-line), var(--color-wf-line));
+    background-repeat: no-repeat;
+    background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+    background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%;
   }
+  .wf-button {
+    border: 1px solid var(--color-wf-ink);
+    color: var(--color-wf-ink);
+    transition: background-color 120ms, color 120ms;
+  }
+  .wf-button:hover:not(:disabled), .wf-button:focus-visible {
+    background-color: var(--color-wf-ink);
+    color: #000;
+    outline: none;
+  }
+  .wf-button:disabled { border-color: var(--color-wf-hair); color: var(--color-wf-hair); cursor: not-allowed; }
+  :focus-visible { outline: 1px solid var(--color-wf-ink); outline-offset: 3px; }
 }
 
 /* Smooth Scroll and Selection */
@@ -93,7 +120,7 @@ html {
 }
 
 ::selection {
-  @apply bg-primary/30 text-white;
+  @apply bg-wf-ink text-black;
 }
 
 /* Game UI animations */
