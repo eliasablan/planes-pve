@@ -13,11 +13,11 @@ export default function AssetRecordPage() {
       <GuideSection id="bundled" title="Bundled third-party assets">
         <p>One aircraft model is currently bundled with the game.</p>
         {BUNDLED_ASSET_TARGETS.map((asset) => (
-          <div key={asset.name} className="space-y-3 border-l-2 border-[#f4c95d] pl-5">
-            <h3 className="text-xl font-semibold text-white"><a href={asset.href} target="_blank" rel="noopener noreferrer">{asset.name}</a></h3>
+          <div key={asset.name} className="space-y-3 border-l border-wf-ink pl-5">
+            <h3 className="text-xl font-medium text-wf-ink"><a href={asset.href} target="_blank" rel="noopener noreferrer">{asset.name}</a></h3>
             <p><strong>Source:</strong> {asset.source}. <strong>License:</strong> {asset.license}.</p>
             <p>{asset.notes}</p>
-            <code className="block break-all bg-white/5 p-3 text-sm text-white/75">{asset.targetPath}</code>
+            <code className="block break-all border border-wf-hair p-3 text-sm text-wf-ink">{asset.targetPath}</code>
           </div>
         ))}
       </GuideSection>
@@ -27,9 +27,9 @@ export default function AssetRecordPage() {
         <GuideTable label="Asset sources and review status" headers={["Source", "License", "Intended use", "Status"]} rows={ASSET_SOURCES.map((source) => [<a key={source.name} href={source.href} target="_blank" rel="noopener noreferrer">{source.name}</a>, source.license, source.use, source.status])} />
       </GuideSection>
       <GuideSection id="licenses" title="License policy">
-        <h3 className="text-xl font-semibold text-white">CC0 · preferred</h3>
+        <h3 className="text-xl font-medium text-wf-ink">CC0 · preferred</h3>
         <p>Best fit for assets that may live in the repository. It allows use, modification, redistribution, and commercial use without required attribution, while still avoiding protected logos or recognizable third-party IP.</p>
-        <h3 className="pt-3 text-xl font-semibold text-white">Pixabay License · conditional</h3>
+        <h3 className="pt-3 text-xl font-medium text-wf-ink">Pixabay License · conditional</h3>
         <p>Acceptable for integrated portfolio visuals when quality is clearly better than CC0 alternatives. Do not redistribute the asset as a standalone pack, and avoid assets with brands, people, or implied endorsement.</p>
       </GuideSection>
       <GuideSection id="intake" title="Before adding an asset"><ul className="list-disc space-y-3 pl-5">{ASSET_POLICY.map((item) => <li key={item}>{item}</li>)}</ul></GuideSection>

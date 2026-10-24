@@ -27,7 +27,7 @@ export default function DocumentationPage() {
           ["↑ / ↓", "Pitch", "Control the nose vertically."], ["← / →", "Yaw", "Turn the nose left or right."],
           ["Click / Space", "Fire", "Hold to keep firing the selected weapon."], ["1 / 2", "Gun / missile", "Select your weapon."],
           ["Shift", "Air brake", "Hold to slow down."], ["O", "Mouse steering", "Toggle mouse steering to use keyboard flight controls."],
-          ["M", "Map", "Toggle the large tactical map."],
+          ["M", "Radar size", "Cycle the radar through four sizes."],
         ]} />
         <p>Sound and display settings are available from the controls inside the game.</p>
       </GuideSection>
