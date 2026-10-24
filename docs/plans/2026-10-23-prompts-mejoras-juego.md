@@ -1,8 +1,28 @@
 # Prompts para mejorar Skybound Survival
 
-Ejecuta las sesiones en orden, dentro de este proyecto. Cada bloque es un prompt completo que puedes copiar en un chat nuevo. Los prompts piden implementar y verificar la sesión correspondiente. Este documento solo prepara el trabajo; todavía no modifica el juego ni despliega servicios.
+Este documento reúne los prompts y el seguimiento de las cinco sesiones. Antes de iniciar una, consulta su estado y los registros de continuidad enlazados. Copia el bloque de la siguiente sesión pendiente en un chat nuevo dentro de este proyecto. Los prompts originales se conservan como referencia del alcance; los registros documentan la entrega final y los ajustes acordados durante cada sesión.
 
 Las sesiones 1–3 mejoran la experiencia de vuelo; la 4 implementa el ranking global y la 5 lo conecta con tu Redis en Dokploy. Las tareas complejas se delegan a subagentes **Astra (`gpt-6-astra`), razonamiento `medium`**.
+
+## Seguimiento de sesiones
+
+Actualizado el **24 de octubre de 2026**, según los cierres confirmados por el piloto, los registros de continuidad y los commits del repositorio.
+
+| Sesión | Estado | Fecha de cierre | Registro y commits de entrega |
+| --- | --- | --- | --- |
+| 1 — Sonidos de combate y reabastecimiento | **Cerrada** | 2026-10-24 | [Continuidad de audio](2026-10-24-audio-continuidad.md); `fae1c5a`, `c7fb354`, `1e6f8bd` |
+| 2 — Suministros fáciles de reconocer | **Cerrada** | 2026-10-23 | [Continuidad de suministros](2026-10-23-suministros-continuidad.md); `49e40c6`, `a330cf4`, `e15b114` |
+| 3 — Relieve y escala del mundo | Pendiente | — | — |
+| 4 — Scoreboard global con Redis | Pendiente | — | Requiere completar antes de la sesión 5 |
+| 5 — Conexión a Dokploy y comprobación global | Pendiente | — | Depende de la sesión 4 |
+
+**Siguiente sesión: 3 — Relieve y escala del mundo.** La sesión 2 se completó antes que la 1; ambas están cerradas. Las valoraciones de escucha humana y del monitor físico se conservan en sus registros como seguimiento, sin afirmar que se hayan realizado.
+
+Para mantener este índice entre chats:
+
+1. Al iniciar una sesión pendiente, marca su fila **En curso** y lee los registros de las sesiones cerradas.
+2. Al terminar, actualiza o crea su registro de continuidad con lo entregado, los ajustes de alcance acordados, las pruebas realizadas y los pendientes reales. Marca **Cerrada** cuando el alcance acordado esté completado y comprobado; conserva por separado las valoraciones humanas pendientes.
+3. Actualiza aquí el estado, la fecha, el enlace al registro y los commits si ya existen. Señala la siguiente sesión pendiente. Si queda trabajo requerido, mantén **En curso** y explica en el registro qué falta.
 
 ## Sesión 1 — Sonidos de combate y reabastecimiento
 
@@ -24,6 +44,8 @@ Agrega volumen de efectos y mute accesibles desde la interfaz, con preferencias 
 Aceptación: comprueba en navegador disparo continuo, última bala, arma vacía, cambio entre armas, daño enemigo normal y fatal, cada suministro, mute/volumen, recarga y varias partidas consecutivas. Incluye una recogida con capacidad casi llena para verificar que sonido y beneficio real coinciden. Añade solo pruebas automatizadas útiles para eventos, repetición y limpieza; ejecuta las comprobaciones pertinentes y build/lint. Distingue lo verificado automáticamente de lo escuchado o pendiente de escucha humana.
 
 Entrega la implementación, el resultado de las pruebas y los ajustes auditivos que aún requieran valoración humana. Deja en docs/plans un breve registro de esta sesión con decisiones, archivos y pendientes para que la siguiente sesión continúe desde el estado real. Esta sesión termina con audio funcional; la iconografía y el mapa se implementarán después.
+
+Actualiza la tabla de seguimiento de docs/plans/2026-10-23-prompts-mejoras-juego.md con el estado, la fecha, el registro y los commits disponibles de esta sesión.
 ```
 
 ## Sesión 2 — Suministros fáciles de reconocer
@@ -40,12 +62,14 @@ En el HUD muestra el tipo, el beneficio disponible, distancia, dirección y dife
 Aceptación: se distinguen los tres tipos por su símbolo sin depender del color; las representaciones 3D/HUD/radar coinciden; la guía sigue el suministro útil correcto; se entiende cómo aproximarse y recogerlo; el beneficio mostrado respeta los máximos. Prueba cámara y distancias reales, varios suministros cercanos, reparación y munición casi llenas, reabastecimiento de emergencia y reinicio de partida. Mantén rendimiento comparable y controles accesibles en los tamaños de pantalla soportados.
 
 Entrega la mejora implementada con capturas antes/después y evidencia de pruebas. Ejecuta las comprobaciones pertinentes, build y lint. Actualiza el registro de continuidad en docs/plans con las decisiones visuales y pendientes. El relieve del mapa se abordará en la siguiente sesión.
+
+Actualiza la tabla de seguimiento de docs/plans/2026-10-23-prompts-mejoras-juego.md con el estado, la fecha, el registro y los commits disponibles de esta sesión.
 ```
 
 ## Sesión 3 — Relieve y escala del mundo
 
 ```text
-Mejora la topografía y la escala visual del mundo de Skybound Survival: quiero montañas, árboles y aviones que parezcan pertenecer al mismo entorno. Lee AGENTS.md, CONTEXT.md, ADR 0004 y los registros de sesiones anteriores. Consulta las guías locales de Next y las habilidades de Three.js pertinentes. Usa subagentes gpt-6-astra con razonamiento medium para terreno, integración y revisión, con responsabilidades que eviten conflictos de edición.
+Mejora la topografía y la escala visual del mundo de Skybound Survival: quiero montañas, árboles y aviones que parezcan pertenecer al mismo entorno. Lee AGENTS.md, CONTEXT.md, ADR 0004 y los registros de sesiones anteriores. Consulta las guías locales de Next y las habilidades de Three.js pertinentes.
 
 Empieza midiendo el tamaño renderizado del avión GLB, su alternativa procedural y los enemigos; usa sus dimensiones como referencia y documenta las proporciones elegidas para árboles y montañas. Revisa AirplaneModel.tsx, Environment.tsx, worldTopology.ts, Airplane.tsx, flightFrame.ts, PveDirector.tsx y HUD.tsx. El HUD activo muestra un radar; Minimap.tsx es heredado y no está montado. Conserva esa distinción y comprueba cualquier consumidor de la topología compartida.
 
@@ -58,6 +82,8 @@ Haz coincidir las colisiones con la superficie visible y deja los valles transit
 Aceptación: proporciones documentadas y convincentes desde la cámara de juego; laderas y valles con relieve continuo; vegetación asentada correctamente; partida inicial y suministros seguros; colisiones coherentes; radar y topología compartida sin discrepancias introducidas; vuelo y oleadas siguen siendo jugables. Verifica alturas/generación con pruebas útiles, recorre visualmente el mapa y entrega capturas comparables, resultados de rendimiento y build/lint.
 
 Entrega la mejora implementada y actualiza el registro de continuidad en docs/plans. Explica las dimensiones elegidas, la estrategia de colisión y cualquier limitación visual o de rendimiento que haya quedado pendiente.
+
+Actualiza la tabla de seguimiento de docs/plans/2026-10-23-prompts-mejoras-juego.md con el estado, la fecha, el registro y los commits disponibles de esta sesión.
 ```
 
 ## Sesión 4 — Scoreboard global con Redis
@@ -80,6 +106,8 @@ Incluye límites básicos de abuso con alcance documentado. El cliente sigue cal
 Registra una nueva decisión que sustituya la elección previa de PostgreSQL y la fase local; conserva el historial de ADR. Actualiza CONTEXT.md, textos de interfaz y README. Agrega variables de ejemplo sin secretos y una forma local reproducible de probar Redis con persistencia.
 
 Aceptación: dos contextos de navegador independientes ven el mismo top 10; orden y corte correctos con empates; concurrencia sin pérdida de resultados; reintentos sin duplicados; conflicto de payload para un mismo runId; nombres repetidos entre partidas permitidos; rechazo de datos inválidos; caída y recuperación de Redis recuperables. Prueba contra Redis real aislado, además de las pruebas de contrato y ranking. Ejecuta los checks pertinentes, lint y build; registra evidencia y los datos de configuración que necesitará la sesión de despliegue, sin secretos.
+
+Actualiza la tabla de seguimiento de docs/plans/2026-10-23-prompts-mejoras-juego.md con el estado, la fecha, el registro y los commits disponibles de esta sesión.
 ```
 
 ## Sesión 5 — Conexión a Dokploy y comprobación global
@@ -98,6 +126,8 @@ Configura REDIS_URL y las variables necesarias como secretos de runtime, desplie
 Comprueba por separado que el ranking sobrevive al reinicio de la aplicación y al reinicio controlado del servicio Redis con su volumen conservado. Coordina el reinicio si la instancia es compartida; usa el servicio concreto, sin reiniciar todo el VPS. Verifica también el comportamiento ante una interrupción temporal y el reintento del mismo envío. Evita que las pruebas de disponibilidad afecten a otras aplicaciones.
 
 Aceptación: el ranking se comparte entre navegadores; el resultado sobrevive a ambos reinicios comprobados; reintentar no duplica; no hay credenciales en bundle, respuestas o logs; la vía de red prevista funciona; una caída produce error recuperable. Entrega evidencia de las comprobaciones, configuración operativa sin secretos, rollback y pendientes reales. Si un acceso o permiso impide una prueba, deja claro qué falta; no des por demostrada la persistencia o restauración sin comprobarlas.
+
+Actualiza la tabla de seguimiento de docs/plans/2026-10-23-prompts-mejoras-juego.md con el estado, la fecha, el registro y los commits disponibles de esta sesión.
 ```
 
 ## Fundamento de las decisiones

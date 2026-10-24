@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Seguimiento de mejoras
+
+Consulta los [prompts y el estado de las sesiones](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones) para saber qué está cerrado, qué sigue pendiente y dónde están los registros de entrega y pruebas. Actualiza ese índice al iniciar y cerrar cada sesión.
+
 ## Getting Started
 
 Install dependencies:

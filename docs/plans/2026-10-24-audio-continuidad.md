@@ -1,6 +1,8 @@
 # Continuidad — efectos de sonido
 
-Sesión iniciada el 23 y terminada el 24 de octubre de 2026. Audio implementado sobre el estado limpio de la sesión anterior; se conservan suministros, radar y controles de pantalla. Iconografía y mapa quedan para después.
+Sesión 1 iniciada el 23 y terminada el 24 de octubre de 2026, cerrada y confirmada por el piloto. Audio implementado sobre el estado limpio de la sesión 2; se conservan sus suministros, iconografía, radar y controles de pantalla. El mapa y el relieve corresponden a la siguiente sesión pendiente.
+
+Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones). Commits de entrega: `fae1c5a`, `c7fb354`, `1e6f8bd`.
 
 ## Decisiones y archivos
 
@@ -25,4 +27,4 @@ Sesión iniciada el 23 y terminada el 24 de octubre de 2026. Audio implementado 
 
 - **Escucha humana:** se comprobó generación de señal y comportamiento en navegador, sin afirmar escucha humana. Valorar timbre de disparos/misil, diferenciación de los tres motivos de suministro, aspereza del agotamiento y balance de alertas durante ráfagas en los altavoces/auriculares del piloto. Ajustes en las capas y niveles de `gameAudio.ts`; no quedan enlaces o funciones de audio pendientes de implementar.
 - Validación adicional opcional en Safari/Firefox y dispositivos de audio distintos. El bloqueo de autoplay y fallos de inicialización/dispositivo tienen cobertura automática con Web Audio simulado.
-- Iconografía y mapa/relieve siguen fuera de esta sesión.
+- La iconografía quedó entregada en la [sesión 2](2026-10-23-suministros-continuidad.md). El mapa y el relieve siguen pendientes en la sesión 3.
