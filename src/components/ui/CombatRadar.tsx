@@ -21,19 +21,19 @@ export function CombatRadar({ enemies, pickups, position, heading, selectedId }:
   }
   const north = projectRadarContact(0, -900, heading);
   return (
-    <div data-hud-radar-panel className="border border-white/15 bg-[#05070a]/85 p-2 shadow-lg">
-      <div className="mb-1 flex justify-between gap-2 text-[10px] font-bold text-white/70"><span>Nose up</span><span>900 m</span></div>
+    <div data-hud-radar-panel className="wf-frame p-2">
+      <div className="mb-1 flex justify-between gap-2 text-[10px] text-wf-dim"><span>RADAR // NOSE_UP</span><span>900M</span></div>
       <svg role="img" aria-label="Radar, aircraft nose at top, tail at bottom" data-hud-radar viewBox="-120 -120 240 240" className="block h-full w-full overflow-visible">
-        <circle r={105} fill="#0a2530" stroke="#51d6a3" strokeOpacity={0.65} />
+        <circle r={105} fill="#000" fillOpacity={0.55} stroke="#f2f2f0" strokeOpacity={0.8} />
         <circle r={51} fill="none" stroke="white" strokeOpacity={0.14} />
         <path d="M0 -103V-12M0 12V103M-103 0H-12M12 0H103" stroke="white" strokeOpacity={0.12} />
-        <path d="M0 0L-41 -98A106 106 0 0 1 41 -98Z" fill="#51d6a3" fillOpacity={0.08} />
-        <text x={north.x * 1.2} y={north.y * 1.2 + 3} fill="#a3c7d4" textAnchor="middle" fontSize={11}>N</text>
+        <path d="M0 0L-41 -98A106 106 0 0 1 41 -98Z" fill="#f2f2f0" fillOpacity={0.07} />
+        <text x={north.x * 1.2} y={north.y * 1.2 + 3} fill="#f2f2f0" textAnchor="middle" fontSize={11}>N</text>
         {supplyMarkers.map(marker => (
           <g key={marker.id} data-radar-pickup={marker.id} data-radar-x={marker.anchorX} data-radar-y={marker.anchorY} transform={`translate(${marker.x} ${marker.y})`}>
             <title>{PICKUP_PRESENTATION[marker.kind].label}</title>
             <path d={`M0 0L${marker.anchorX-marker.x} ${marker.anchorY-marker.y}`} stroke={PICKUP_PRESENTATION[marker.kind].color} strokeWidth={1} />
-            <rect x={-10} y={-10} width={20} height={20} rx={3} fill="#05070a" stroke={marker.id === selectedId ? "white" : PICKUP_PRESENTATION[marker.kind].color} strokeWidth={1.6} />
+            <rect x={-10} y={-10} width={20} height={20} rx={3} fill="#000" stroke={marker.id === selectedId ? "white" : PICKUP_PRESENTATION[marker.kind].color} strokeWidth={1.6} />
             <PickupIcon kind={marker.kind} x={-8} y={-8} width={16} height={16} color="white" />
           </g>
         ))}

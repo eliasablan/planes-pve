@@ -7,16 +7,16 @@ export function GameAudioControls() {
   const { volume, muted } = useSyncExternalStore(subscribeAudioPreferences, getAudioPreferences, getServerAudioPreferences);
 
   return (
-    <fieldset className="min-w-0 text-xs font-medium text-white" aria-label="Sound effects">
+    <fieldset className="min-w-0 text-xs text-wf-ink" aria-label="Sound effects">
       <legend className="sr-only">Sound effects</legend>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="font-bold">Sound effects</span>
+        <span className="font-medium">SOUND_EFFECTS</span>
         <button
           type="button"
           aria-label="Mute sound effects"
           aria-pressed={muted}
           onClick={() => { unlockGameAudio(); setAudioPreferences({ muted: !muted }); }}
-          className="border border-white/30 px-3 py-1.5 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#f4c95d]"
+          className="wf-button px-3 py-1.5"
         >
           {muted ? "Muted" : "Sound on"}
         </button>
@@ -31,7 +31,7 @@ export function GameAudioControls() {
           step={5}
           value={Math.round(volume * 100)}
           onChange={event => { unlockGameAudio(); setAudioPreferences({ volume: Number(event.target.value) / 100 }); }}
-          className="mt-3 block w-full accent-[#f4c95d] focus-visible:outline-2 focus-visible:outline-[#f4c95d]"
+          className="mt-3 block w-full accent-wf-ink"
         />
       </label>
     </fieldset>
