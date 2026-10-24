@@ -171,6 +171,10 @@ Current controls are W/S for throttle, A/D for roll, arrow keys for pitch/yaw, S
 
 PvE hits resolve locally at firing time using weapon range and an aiming cone. The machine gun deals 12 damage and missiles deal 80; each shot consumes its resource even if it misses. Machine-gun tracers are visual feedback. Missiles currently apply immediate damage rather than simulating a guided projectile. The target indicator tracks an enemy near the crosshair and shows whether that enemy is within the selected weapon's firing solution.
 
+Sound effects use procedural Web Audio synthesis with one reusable context and noise buffer, unlocked directly by Play or Fly again. Confirmed gunfire and missile launches sound even on a miss. Spending the last round or missile adds a depletion alert; a later attempt on an empty weapon gives a distinct mechanical click, limited to one warning per weapon per trigger hold. Collecting ammunition re-arms that warning. Actual enemy damage emits an impact for each attack, including attacks in the same frame; environmental damage does not impersonate enemy fire. The fatal impact keeps playing after the Canvas unmounts, and reset/exit stops all voices. Pickups use their actual capacity-limited benefit: positive gains have a sound per supply type, while a consumed box with zero gain uses a neutral descending cue.
+
+Effects volume and mute are available on the start screen and inside the combat HUD's Display settings panel. They persist under `planes-pve:audio:v1` (initial volume 65%). The mix limits simultaneous voices, prioritizes alerts and destruction, lowers gun tails under alerts without cancelling the last shot, and compresses peaks. Browser audio or storage failures leave the game playable. No external audio assets or downloads are used; subjective timbre and loudness still need the pilot's listening assessment.
+
 Enemies attack in role-specific bursts when within range, with a 6.5-second grace period against enemy attacks at run start. Destroying a Scout awards 100 points, a Fighter 160, and a Bomber 260. A kill also updates the kill feed, hit marker, and explosion feedback.
 
 Ground collision destroys the player aircraft after its initial 3-second collision grace period. Falling below the water threshold also ends the run. The combat boundary warns beyond a radius of 3,800 and applies 20 damage per second beyond 4,600; it does not shrink.
@@ -209,6 +213,9 @@ Saving a result preserves its final metrics, not the run's playable state. Activ
 - `src/components/ui/LocalScoreboardPanel.tsx` and `src/components/ui/LocalScoreboardTable.tsx`: local score subscription and display
 - `src/store/useGameStore.ts`: runtime state, enemy damage and kill scoring, resource collection, and reset
 - `src/lib/matchLifecycle.ts`: local run timestamps and lifecycle transitions, retaining inherited names
+- `src/lib/gameAudio.ts`: procedural effects, shared audio context, voice cleanup, mix limits, and local audio preferences
+- `src/lib/weaponAudioFeedback.ts`: confirmed-shot/depletion events and empty-trigger repetition policy
+- `src/components/ui/GameAudioControls.tsx`: accessible volume and mute controls shared by entry and HUD settings
 - `src/lib/combatResolution.ts`: shared player-damage and defeat helpers alongside inherited PvP combat functions; PvE weapon values are in `Airplane.tsx`
 - `src/lib/localScoreboard.ts`: arcade-name rules, qualification, ordering, and local persistence
 - `src/lib/localScoreboard.test.ts`: existing scoreboard validation and ordering tests

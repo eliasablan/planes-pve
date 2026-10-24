@@ -1,0 +1,28 @@
+# Continuidad — efectos de sonido
+
+Sesión iniciada el 23 y terminada el 24 de octubre de 2026. Audio implementado sobre el estado limpio de la sesión anterior; se conservan suministros, radar y controles de pantalla. Iconografía y mapa quedan para después.
+
+## Decisiones y archivos
+
+- `src/lib/gameAudio.ts`: síntesis Web Audio original, sin clips externos, dependencias ni descargas. Un contexto y buffer de ruido reutilizables; capas de ruido filtrado, percusión y tonos. Volumen inicial 65%, mute y volumen persistidos bajo `planes-pve:audio:v1`. Fallos de audio/autoplay/storage no interrumpen la partida ni encolan sonidos para reproducir tarde.
+- Mezcla: hasta 12 voces de evento; límites por tipo y prioridad para alertas/fatal. Las alertas bajan las colas de ametralladora al 35%, sin detener la última bala; compresor limita picos. Impactos y recogidas confirmadas no tienen cooldown que descarte eventos en el mismo frame. La duplicación se evita en el origen de las acciones; intentos vacíos tienen además un límite de 350 ms.
+- `Airplane.tsx` y `weaponAudioFeedback.ts`: disparos confirmados, aunque fallen; última bala/misil agrega agotamiento. Arma vacía tiene clic propio una vez por arma y pulsación sostenida, sin avisar otra vez al mantener tras agotar. Soltar o reabastecer rearma el aviso. Cadencias, daño y cantidades conservados.
+- `PveDirector.tsx`, `combatResolution.ts`: fuente explícita `enemy`; evento tras daño realmente aplicado, antes de finalizar si es fatal. Cada ataque lee salud vigente. Daño de límite/colisión no reproduce impacto enemigo. Se evita recoger reparación después del fatal en el mismo frame.
+- `useGameStore.ts`: sonido después de confirmar recogida atómica, según beneficio real. Munición, misil y reparación tienen motivos ascendentes diferentes. Ganancia cero usa dos notas descendentes neutrales, nunca recuperación. Recoger dos veces la misma caja no emite otro evento.
+- `page.tsx`, `Scene.tsx`, `matchLifecycle.ts`: desbloqueo síncrono desde Play/Fly again; begin limpia la sesión anterior; finish preserva la cola fatal fuera del Canvas; reset/exit/desmontaje de Scene detienen y desconectan fuentes y callbacks pendientes. No hay suscripción React que pueda perder eventos de combate agrupados.
+- `GameAudioControls.tsx`, `GameDisplayControls.tsx`: volumen y mute accesibles desde inicio y ajustes del HUD; rango con etiqueta, mute con `aria-pressed`, aislamiento de entradas de vuelo y restauración del foco. `CONTEXT.md` y `/docs` actualizados para describir audio y su origen.
+- Implementación compleja y revisión independiente con subagentes `gpt-6-astra`, razonamiento `medium`, con archivos separados. Se corrigió el hallazgo de revisión que cancelaba la última bala al lanzar agotamiento; test de regresión añadido.
+
+## Verificación
+
+- `bun test`: 35 pruebas, cero fallos. Tres suites nuevas cubren eventos confirmados, repetición por arma/gatillo, varias recogidas/impactos síncronos, beneficio parcial/cero, mezcla acotada, última bala, cola fatal, limpieza, contexto reusable, fallos y preferencias.
+- `bun run lint`, `bun run build` y `git diff --check` correctos tras retirar instrumentación. El build requiere permiso para el puerto interno de Turbopack fuera del sandbox; TypeScript de producción correcto. Advertencia externa de Node sobre `module.register()`; navegador sin errores y con avisos heredados de Three.Clock/Rapier.
+- Playwright con Scene/Airplane/PveDirector/HUD reales: 24 comprobaciones pasan en 1920×1080. Primera partida tras recarga desbloquea un AudioContext real y produce PCM no nulo; seis disparos fallidos continuos, última bala, vacío sostenido y rearme, cambio de armas y último misil. Recogidas reales por radio con capacidad casi llena: +1 bala, +1 misil, +1 salud y un evento de cada tipo. Caja llena: +0 y solo señal neutral. Tres enemigos atacan en un frame: -16 salud y tres impactos. Fatal conserva tres capas después de desaparecer el Canvas; reinicio/salida limpian y segunda partida reutiliza contexto. Volumen/mute persisten tras recarga; desmutear restaura siguiente tiro.
+- Evidencia: `output/playwright/audio-browser-results.json`, `audio-settings-fullhd.png` y `audio-browser-check.cjs`. El script usa teclas de 80 ms y espera un frame tras soltar, para que el simulador observe ambas transiciones antes de sembrar recursos.
+- Para reproducir el script se necesita un puente **temporal, retirado de la entrega**: en Home, un effect expone `useGameStore` como `window.__audioStore` y `applyLocalDamage` como `__applyAudioDamage`. En `unlockGameAudio`, exponer `__audioDebug()` devolviendo `{enabled, voices: voices.map(v => ({type:v.type,sources:v.sources.length})), context, master, preferences}` e inicializar `__audioEvents=[]`. Después de `lastPlayed.set` agregar `{type:event.type,time:now}` a ese arreglo. No incorporar estos globals al producto. El escenario usa una caja de munición lejana para aislar el suministro de emergencia y semillas de enemigos solo para controlar distancias/ataques.
+
+## Pendientes reales
+
+- **Escucha humana:** se comprobó generación de señal y comportamiento en navegador, sin afirmar escucha humana. Valorar timbre de disparos/misil, diferenciación de los tres motivos de suministro, aspereza del agotamiento y balance de alertas durante ráfagas en los altavoces/auriculares del piloto. Ajustes en las capas y niveles de `gameAudio.ts`; no quedan enlaces o funciones de audio pendientes de implementar.
+- Validación adicional opcional en Safari/Firefox y dispositivos de audio distintos. El bloqueo de autoplay y fallos de inicialización/dispositivo tienen cobertura automática con Web Audio simulado.
+- Iconografía y mapa/relieve siguen fuera de esta sesión.

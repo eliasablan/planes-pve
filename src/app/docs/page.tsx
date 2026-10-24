@@ -38,6 +38,13 @@ export default function DocumentationPage() {
 
           <div className="space-y-5">
             <section className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
+              <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Sound effects</h2>
+              <p className="mt-4 text-sm leading-6 text-[#f2efe7]/58">
+                Combat and supply sounds are synthesized in the browser with original Web Audio code.
+                No third-party audio clips are bundled or downloaded.
+              </p>
+            </section>
+            <section className="rounded-lg border border-[#f2efe7]/12 bg-[#151b18] p-5">
               <h2 className="text-sm font-black uppercase tracking-[0.22em] text-[#d8a24a]">Approved Sources</h2>
               <div className="mt-5 divide-y divide-[#f2efe7]/10">
                 {ASSET_SOURCES.map((source) => (
