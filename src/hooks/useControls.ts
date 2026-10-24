@@ -43,6 +43,7 @@ export function useControls() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && e.target.matches("input,select,textarea,[contenteditable]")) return;
       switch (e.key.toLowerCase()) {
         case "w": setControls((c) => ({ ...c, throttleUp: true })); break;
         case "s": setControls((c) => ({ ...c, throttleDown: true })); break;
@@ -85,12 +86,14 @@ export function useControls() {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("[data-display-controls]")) return;
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = (e.clientY / window.innerHeight) * 2 - 1;
       setControls((c) => ({ ...c, mouseX: x, mouseY: y }));
     };
 
     const handleMouseDown = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("[data-display-controls]")) return;
       if (e.button === 0) setControls((c) => ({ ...c, fire: true }));
     };
 
@@ -98,6 +101,8 @@ export function useControls() {
       if (e.button === 0) setControls((c) => ({ ...c, fire: false }));
     };
 
+    const releaseInput = () => setControls(c => ({ ...c, throttleUp: false, throttleDown: false, rollLeft: false, rollRight: false, pitchUp: false, pitchDown: false, yawLeft: false, yawRight: false, fire: false, flare: false, brake: false, selectMG: false, selectMissile: false }));
+    window.addEventListener("blur", releaseInput);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("mousemove", handleMouseMove);
@@ -105,6 +110,7 @@ export function useControls() {
     window.addEventListener("mouseup", handleMouseUp);
     
     return () => {
+      window.removeEventListener("blur", releaseInput);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("mousemove", handleMouseMove);

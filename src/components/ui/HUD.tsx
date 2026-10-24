@@ -5,13 +5,13 @@ import { PickupIcon } from "@/components/ui/PickupIcon";
 import { PICKUP_PRESENTATION } from "@/lib/pickupPresentation";
 import { findUsefulPickup } from "@/lib/pveSupplies";
 import { CombatRadar } from "./CombatRadar";
+import { GameDisplayControls, type DisplaySettings } from "./GameDisplayControls";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Crosshair, Gauge, HeartPulse, MousePointer2, Rocket, Shell, Target } from "lucide-react";
-import { useControls } from "@/hooks/useControls";
+import { AlertTriangle, Crosshair, Gauge, HeartPulse, Rocket, Shell, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-export function HUD() {
+export function HUD({ display, onDisplayChange }: { display: DisplaySettings; onDisplayChange: (settings: DisplaySettings) => void }) {
   const {
     hp,
     maxHp,
@@ -44,7 +44,6 @@ export function HUD() {
     true,
   );
   const inSolution = Boolean(targetLock?.inSolution);
-  const { mouseControlEnabled } = useControls();
   const isLowHealth = hp < 30;
 
   const [now, setNow] = useState(Date.now);
@@ -77,11 +76,12 @@ export function HUD() {
   const enemyHitOpacity = Math.max(0, 1 - enemyHitAge / enemyHitWindow);
 
   return (
-    <div data-combat-hud className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
+    <div data-combat-hud style={{ width: `${10000 / display.hudScale}%`, height: `${10000 / display.hudScale}%`, transform: `scale(${display.hudScale / 100})`, transformOrigin: "top left" }} className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 font-mono text-white sm:p-6">
       <style>{`
-        [data-hud-metrics] > div, [data-hud-flight] > div, [data-hud-weapons] > div { background-color: rgb(5 7 10 / .8); }
+        [data-hud-metrics] > div, [data-hud-flight] > div, [data-hud-weapons] > div:not([data-display-controls]) { background-color: rgb(5 7 10 / .8); }
         [data-hud-radar-panel] { width: 184px; order: 2; }
         [data-hud-notifications] { top: 244px; }
+        [data-display-controls] { min-height: 56px; }
         @media (min-width: 1920px) {
           [data-hud-radar-panel] { width: 216px; }
           [data-hud-notifications] { top: 280px; width: 256px; }
@@ -99,6 +99,8 @@ export function HUD() {
           [data-hud-health] { width: 116px; }
           [data-hud-health] > div:first-child { gap: 4px; font-size: 9px; }
           [data-hud-weapons] { margin-left: auto; }
+          [data-display-controls] { min-height: 44px; padding: 0 !important; }
+          [data-display-controls] > button { width: 30px; }
           [data-hud-notifications] { top: 232px; left: 24px; right: auto; width: 300px; gap: 3px; }
           [data-hud-notifications] [role="log"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
           [data-hud-notifications] [role="log"] svg { width: 12px; height: 12px; }
@@ -127,6 +129,8 @@ export function HUD() {
           [data-hud-health] > div:first-child > span:first-child svg { display: none; }
           [data-hud-flight] > div > div:first-child { font-size: 9px; letter-spacing: 0; }
           [data-hud-weapons] > div { flex: 1; min-width: 0; padding: 6px; }
+          [data-display-controls] { flex: none !important; min-height: 44px; padding: 0 !important; }
+          [data-display-controls] > button { width: 30px; }
         }
       `}</style>
       {/* Health vignette */}
@@ -309,10 +313,7 @@ export function HUD() {
         <div data-hud-weapons className="flex flex-wrap justify-end gap-3 max-sm:justify-start max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
           <Weapon label="MG" count={ammo} low={ammo < 25} active={selectedWeapon === "mg"} shortcut="1" icon={<Shell />} />
           <Weapon label="Missile" count={missiles} low={missiles === 0} active={selectedWeapon === "missile"} shortcut="2" icon={<Rocket />} />
-          <div className="flex min-w-36 items-center gap-3 border border-white/12 bg-black/45 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur-md">
-            <MousePointer2 className="h-4 w-4 text-[#65a6ff]" />
-            {mouseControlEnabled ? "Mouse steer" : "Key steer"}
-          </div>
+          <GameDisplayControls settings={display} onChange={onDisplayChange} />
         </div>
       </div>
     </div>
