@@ -1,3 +1,4 @@
+import { playGameSound } from "../lib/gameAudio";
 import { create } from "zustand";
 import { getPickupBenefit } from "../lib/pveSupplies";
 
@@ -284,28 +285,35 @@ export const useGameStore = create<GameState>((set) => ({
     for (const pickup of pickups) pvePickups[pickup.id] = pickup;
     return { pvePickups };
   }),
-  collectPvePickup: (pickupId) => set((state) => {
-    const pickup = state.pvePickups[pickupId];
-    if (!pickup) return {};
+  collectPvePickup: (pickupId) => {
+    let collected: { kind: PickupKind; amount: number } | undefined;
+    set((state) => {
+      const pickup = state.pvePickups[pickupId];
+      if (!pickup) return {};
 
-    const { [pickupId]: removedPickup, ...pvePickups } = state.pvePickups;
-    void removedPickup;
+      const { [pickupId]: removedPickup, ...pvePickups } = state.pvePickups;
+      void removedPickup;
 
-    const amount = getPickupBenefit(pickup.kind, state);
-    // Keep every collection in a burst, including boxes consumed at capacity.
-    const pvePickupReceipts = [
-      ...state.pvePickupReceipts.slice(-(MAX_PICKUP_RECEIPTS - 1)),
-      { id: pickup.id, kind: pickup.kind, amount, collectedAt: Date.now() },
-    ];
+      const amount = getPickupBenefit(pickup.kind, state);
+      collected = { kind: pickup.kind, amount };
+      // Keep every collection in a burst, including boxes consumed at capacity.
+      const pvePickupReceipts = [
+        ...state.pvePickupReceipts.slice(-(MAX_PICKUP_RECEIPTS - 1)),
+        { id: pickup.id, kind: pickup.kind, amount, collectedAt: Date.now() },
+      ];
 
-    if (pickup.kind === "ammo") {
-      return { pvePickups, pvePickupReceipts, ammo: state.ammo + amount };
+      if (pickup.kind === "ammo") {
+        return { pvePickups, pvePickupReceipts, ammo: state.ammo + amount };
+      }
+      if (pickup.kind === "missile") {
+        return { pvePickups, pvePickupReceipts, missiles: state.missiles + amount };
+      }
+      return { pvePickups, pvePickupReceipts, hp: state.hp + amount };
+    });
+    if (collected) {
+      playGameSound({ type: collected.amount > 0 ? `pickup-${collected.kind}` : "pickup-full" });
     }
-    if (pickup.kind === "missile") {
-      return { pvePickups, pvePickupReceipts, missiles: state.missiles + amount };
-    }
-    return { pvePickups, pvePickupReceipts, hp: state.hp + amount };
-  }),
+  },
   
   setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
   setShowLargeMap: (showLargeMap) => set({ showLargeMap }),

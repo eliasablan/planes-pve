@@ -7,6 +7,8 @@ import * as THREE from "three";
 import { useControls } from "@/hooks/useControls";
 import { PerspectiveCamera, Trail } from "@react-three/drei";
 import { useGameStore } from "@/store/useGameStore";
+import { playGameSound } from "@/lib/gameAudio";
+import { createWeaponAudioFeedback } from "@/lib/weaponAudioFeedback";
 import { Bullet } from "./Projectiles";
 import { AirplaneModel } from "./AirplaneModel";
 import {
@@ -29,7 +31,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const rb = useRef<RapierRigidBody>(null);
   const propellerRef = useRef<THREE.Group | null>(null);
   const controls = useControls();
-  const { hp, selectedWeapon, ammo, missiles, pveEnemies } = useGameStore();
+  const hp = useGameStore((state) => state.hp);
   const {
     setFlightData,
     setSelectedWeapon,
@@ -51,6 +53,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   const invulnerabilityDuration = 3000;
   const lastDamage = useRef(0);
 
+  const weaponAudio = useRef(createWeaponAudioFeedback());
   const lastShot = useRef(0);
   const lastMissile = useRef(0);
   const mgInterval = 150; 
@@ -67,10 +70,11 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
   }, [controls.showLargeMap, setShowLargeMap]);
 
   useFrame((state, delta) => {
-    if (!rb.current || hp <= 0) return;
+    if (!rb.current || useGameStore.getState().hp <= 0) return;
 
     if (controls.selectMG) setSelectedWeapon('mg');
     if (controls.selectMissile) setSelectedWeapon('missile');
+    const { selectedWeapon, ammo, missiles, pveEnemies } = useGameStore.getState();
 
     const rotation = rb.current.rotation();
     const translation = rb.current.translation();
@@ -115,6 +119,9 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
 
     // 8. SHOOTING & BROADCAST
     const now = Date.now();
+    for (const event of weaponAudio.current.update(controls.fire, selectedWeapon, ammo, missiles)) {
+      playGameSound(event);
+    }
     if (controls.fire) {
       if (selectedWeapon === 'mg' && now - lastShot.current > mgInterval && ammo > 0) {
         lastShot.current = now;
@@ -135,6 +142,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
             });
 
         if (shot.fired) {
+          weaponAudio.current.confirmShot("mg", useGameStore.getState().ammo).forEach(playGameSound);
           const bId = crypto.randomUUID();
           setBullets((prev) => [...prev, { id: bId, pos: [translation.x, translation.y, translation.z], rot: [rotation.x, rotation.y, rotation.z, rotation.w] }]);
           setTimeout(() => setBullets((prev) => prev.filter(b => b.id !== bId)), 2000);
@@ -142,6 +150,7 @@ export function Airplane({ userId, username, roomName }: { userId: string, usern
       } else if (selectedWeapon === 'missile' && now - lastMissile.current > missileInterval && missiles > 0) {
         lastMissile.current = now;
         consumeMissile();
+        weaponAudio.current.confirmShot("missile", useGameStore.getState().missiles).forEach(playGameSound);
         firePveMissile({
           enemies: Object.values(pveEnemies),
           origin: [translation.x, translation.y, translation.z],

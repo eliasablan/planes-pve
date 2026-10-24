@@ -1,3 +1,4 @@
+import { playGameSound } from "@/lib/gameAudio";
 import { finishLocalMatch } from "@/lib/matchLifecycle";
 import { PlayerState, UserProfile, useGameStore } from "@/store/useGameStore";
 
@@ -86,10 +87,13 @@ export function resolveFlareUse() {
   return true;
 }
 
-export function applyLocalDamage(damage: number) {
+export function applyLocalDamage(damage: number, source: "enemy" | "environment" = "environment") {
   const state = useGameStore.getState();
   const nextHp = Math.max(0, state.hp - damage);
   state.setHp(nextHp);
+  if (source === "enemy" && nextHp < state.hp) {
+    playGameSound({ type: nextHp === 0 ? "enemy-fatal" : "enemy-hit" });
+  }
   if (state.hp > 0 && nextHp === 0) {
     finishLocalMatch();
   }

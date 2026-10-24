@@ -2,6 +2,7 @@
 
 import { Maximize, Minimize, Settings2, X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
+import { GameAudioControls } from "./GameAudioControls";
 
 export type DisplaySettings = { hudScale: number; quality: "native" | "sharp" | "performance" };
 const DEFAULT_SETTINGS: DisplaySettings = { hudScale: 100, quality: "native" };
@@ -87,6 +88,7 @@ export function GameDisplayControls({ settings, onChange }: {
               <option value="native">Native resolution</option><option value="sharp">Sharp · 125%</option><option value="performance">Performance</option>
             </select>
           </label>
+          <div className="mt-4 border-t border-white/20 pt-4"><GameAudioControls /></div>
           <p className="mt-3 leading-5 text-white/60">Full screen: F · Exit: Esc<br />Adjust HUD size to your monitor.</p>
           {error && <p role="status" className="mt-2 text-[#f4c95d]">{error}</p>}
         </div>

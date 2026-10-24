@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { BookOpen, Play, RotateCcw, Trophy, Waves } from "lucide-react";
 import { resetLocalMatch } from "@/lib/matchLifecycle";
+import { unlockGameAudio } from "@/lib/gameAudio";
+import { GameAudioControls } from "@/components/ui/GameAudioControls";
 
 const Scene = dynamic(() => import("@/components/game/Scene"), {
   ssr: false,
@@ -20,6 +22,7 @@ export default function Home() {
 
   const startRun = () => {
     resetLocalMatch();
+    unlockGameAudio();
     setInRun(true);
   };
 
@@ -68,6 +71,10 @@ export default function Home() {
                 <RotateCcw className="h-5 w-5" />
                 Reset run state
               </button>
+            </div>
+
+            <div className="mt-5 max-w-sm border border-white/15 bg-black/30 p-4">
+              <GameAudioControls />
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/42">

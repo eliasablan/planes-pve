@@ -12,6 +12,7 @@ import { HUD } from "../ui/HUD";
 import { useDisplaySettings } from "../ui/GameDisplayControls";
 import { GameOver } from "../ui/GameOver";
 import { resetLocalMatch, startLocalMatch } from "@/lib/matchLifecycle";
+import { stopGameAudio, unlockGameAudio } from "@/lib/gameAudio";
 
 function configureRenderer(state: RootState) {
   const { gl } = state;
@@ -30,10 +31,12 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
 
   useEffect(() => {
     startLocalMatch();
+    return stopGameAudio;
   }, []);
 
   const handleRestart = () => {
     resetLocalMatch();
+    unlockGameAudio();
     startLocalMatch();
   };
 

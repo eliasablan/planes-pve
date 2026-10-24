@@ -138,7 +138,7 @@ export function PveDirector() {
         ) {
           lastAttackByEnemy.current[enemy.id] = now;
           shotsInBurstByEnemy.current[enemy.id] -= 1;
-          applyLocalDamage(stats.damage);
+          applyLocalDamage(stats.damage, "enemy");
           setDamageIndicator({
             angle: Math.atan2(position.x - player.x, position.z - player.z),
             intensity: enemy.role === "bomber" ? 1 : enemy.role === "fighter" ? 0.78 : 0.56,
@@ -154,6 +154,8 @@ export function PveDirector() {
       setPveEnemies(nextEnemies);
     }
 
+    // A repair pickup must not revive the aircraft after a fatal attack this frame.
+    if (useGameStore.getState().hp <= 0) return;
     for (const pickup of Object.values(state.pvePickups)) {
       const pickupPosition = new THREE.Vector3(...pickup.position);
       if (pickupPosition.distanceTo(new THREE.Vector3(player.x, state.altitude - 5, player.z)) < 85) {
