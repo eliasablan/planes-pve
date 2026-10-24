@@ -1,0 +1,301 @@
+{
+  "browser": {
+    "status": "passed",
+    "checks": [
+      "Actual radius collection caps ammo, missiles and health",
+      "One synchronous frame records real +10 / +1 / +5 gains",
+      "Boxes disappear and duplicate collect calls create no extra receipt",
+      "HUD displays each real increment exactly once",
+      "Full-capacity box is consumed with zero gain",
+      "Receipts expire after the brief confirmation window",
+      "Supply direction cards are removed as requested",
+      "Emergency supply does not appear before five seconds",
+      "Emergency creates one physical ammo pickup while missiles remain",
+      "Flying into emergency supply restores +60 exactly once",
+      "Actual Fly again button resets resources, old pickups and receipts"
+    ],
+    "batch": {
+      "resources": [
+        180,
+        5,
+        100
+      ],
+      "receipts": [
+        {
+          "kind": "ammo",
+          "amount": 10
+        },
+        {
+          "kind": "missile",
+          "amount": 1
+        },
+        {
+          "kind": "repair",
+          "amount": 5
+        }
+      ],
+      "remaining": 0
+    },
+    "receiptText": "+10 rounds collected\n+1 missile collected\n+5 health collected"
+  },
+  "camera": {
+    "status": "passed",
+    "perspective": [
+      {
+        "distance": 600,
+        "bounds": [
+          {
+            "kind": "ammo",
+            "widthPx": 24.6122190058501,
+            "heightPx": 26.371970660914535,
+            "meshes": 16
+          },
+          {
+            "kind": "missile",
+            "widthPx": 14.763818859071554,
+            "heightPx": 34.66231154349917,
+            "meshes": 9
+          },
+          {
+            "kind": "repair",
+            "widthPx": 15.49771605373702,
+            "heightPx": 30.959778566827545,
+            "meshes": 15
+          }
+        ]
+      },
+      {
+        "distance": 350,
+        "bounds": [
+          {
+            "kind": "ammo",
+            "widthPx": 41.83283753664604,
+            "heightPx": 44.47362727447808,
+            "meshes": 16
+          },
+          {
+            "kind": "missile",
+            "widthPx": 24.11686720048451,
+            "heightPx": 58.818855819571546,
+            "meshes": 9
+          },
+          {
+            "kind": "repair",
+            "widthPx": 26.586313840260356,
+            "heightPx": 52.45896745301576,
+            "meshes": 15
+          }
+        ]
+      },
+      {
+        "distance": 130,
+        "bounds": [
+          {
+            "kind": "ammo",
+            "widthPx": 112.14535883376936,
+            "heightPx": 116.84020655666983,
+            "meshes": 16
+          },
+          {
+            "kind": "missile",
+            "widthPx": 61.12205606517601,
+            "heightPx": 156.46768272039048,
+            "meshes": 9
+          },
+          {
+            "kind": "repair",
+            "widthPx": 72.26005856529977,
+            "heightPx": 138.15200309157936,
+            "meshes": 15
+          }
+        ]
+      }
+    ],
+    "reducedMotion": true
+  },
+  "display-radar": {
+    "status": "passed",
+    "checks": [
+      "Radar nose/tail/right correct at heading 0",
+      "Radar nose/tail/right correct at heading 45",
+      "Radar nose/tail/right correct at heading 90",
+      "Radar nose/tail/right correct at heading 180",
+      "Radar nose/tail/right correct at heading 270",
+      "Radar nose/tail/right correct at heading -90",
+      "No supply guidance cards remain",
+      "Native QHD canvas uses full monitor-sized resolution",
+      "Default QHD HUD size is 125%",
+      "Sharp quality renders at125% pixels",
+      "HUD scale changes without scaling the game canvas",
+      "Escape closes settings while a slider has focus",
+      "Closing settings returns focus to flight controls",
+      "Fullscreen button enters actual browser fullscreen",
+      "F exits fullscreen after using the button",
+      "Display controls do not fire the aircraft weapon",
+      "HUD size preference survives reload",
+      "Render quality preference survives reload"
+    ],
+    "headings": [
+      {
+        "heading": 0,
+        "contacts": {
+          "front": {
+            "x": -0.03980955230344803,
+            "y": -40.373900915582475
+          },
+          "tail": {
+            "x": 0.005549718731613494,
+            "y": 40.59627934093101
+          },
+          "right": {
+            "x": 40.4861244086658,
+            "y": 0.07161346679868337
+          }
+        }
+      },
+      {
+        "heading": 45,
+        "contacts": {
+          "front": {
+            "x": -0.16878059336443257,
+            "y": -40.28917684221683
+          },
+          "tail": {
+            "x": -0.10705102088435221,
+            "y": 40.52708731139273
+          },
+          "right": {
+            "x": 40.28934679994836,
+            "y": 0.06977377938187462
+          }
+        }
+      },
+      {
+        "heading": 90,
+        "contacts": {
+          "front": {
+            "x": -0.15942331627821904,
+            "y": -40.48548247156423
+          },
+          "tail": {
+            "x": -0.10150401066190656,
+            "y": 40.48357530957971
+          },
+          "right": {
+            "x": 40.36842793153937,
+            "y": -0.043015866446378545
+          }
+        }
+      },
+      {
+        "heading": 180,
+        "contacts": {
+          "front": {
+            "x": -0.05142658999626379,
+            "y": -40.594745472042035
+          },
+          "tail": {
+            "x": 0.022653519413568805,
+            "y": 40.23364905801491
+          },
+          "right": {
+            "x": 40.415183849056895,
+            "y": -0.22959353931544002
+          }
+        }
+      },
+      {
+        "heading": 270,
+        "contacts": {
+          "front": {
+            "x": 0.1200018063437212,
+            "y": -40.48173200958132
+          },
+          "tail": {
+            "x": 0.1883268164130665,
+            "y": 40.479812865261344
+          },
+          "right": {
+            "x": 40.64724649761826,
+            "y": -0.0445903925463973
+          }
+        }
+      },
+      {
+        "heading": -90,
+        "contacts": {
+          "front": {
+            "x": 0.13137187671431783,
+            "y": -40.48130548860421
+          },
+          "tail": {
+            "x": 0.2032642631964278,
+            "y": 40.47962546965666
+          },
+          "right": {
+            "x": 40.65805554692978,
+            "y": -0.044466877043741644
+          }
+        }
+      }
+    ],
+    "native": {
+      "width": 2560,
+      "height": 1440,
+      "cssWidth": 2560,
+      "cssHeight": 1440,
+      "scale": "scale(1.25)"
+    },
+    "sharp": {
+      "width": 3200,
+      "height": 1800
+    }
+  },
+  "responsive": {
+    "status": "passed",
+    "placement": "DOM assertions verify all notification logs below radar and inside viewport",
+    "results": [
+      {
+        "width": 844,
+        "height": 390,
+        "receiptBottom": 277
+      },
+      {
+        "width": 568,
+        "height": 320,
+        "receiptBottom": 233
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "receiptBottom": 296
+      },
+      {
+        "width": 320,
+        "height": 700,
+        "receiptBottom": 278
+      }
+    ]
+  },
+  "notifications": {
+    "status": "passed",
+    "radarBefore": {
+      "x": 1680,
+      "y": 24,
+      "width": 216,
+      "height": 235
+    },
+    "radarAfter": {
+      "x": 1680,
+      "y": 24,
+      "width": 216,
+      "height": 235
+    },
+    "notificationCount": 5,
+    "text": "BOMBER destroyed\nSCOUT destroyed\n+10 rounds collected\n+1 missile collected\n+5 health collected",
+    "nativeFullHD": [
+      1920,
+      1080
+    ]
+  }
+}

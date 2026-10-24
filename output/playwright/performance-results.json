@@ -1,0 +1,26 @@
+{
+  "current": {
+    "samples": 179,
+    "medianMs": 16.699999999999818,
+    "p95Ms": 16.799999999999727,
+    "viewport": [
+      1440,
+      900
+    ],
+    "dpr": 1,
+    "drawCalls": 153,
+    "pickups": 3
+  },
+  "legacy": {
+    "samples": 179,
+    "medianMs": 16.699999999999818,
+    "p95Ms": 16.700000000000728,
+    "viewport": [
+      1440,
+      900
+    ],
+    "dpr": 1,
+    "drawCalls": 125,
+    "pickups": 3
+  }
+}
