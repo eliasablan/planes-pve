@@ -1,5 +1,15 @@
 import type { EnemyRole } from "@/store/useGameStore";
 
+export const INTER_WAVE_DELAY_MS = 2400;
+
+export function getWaveEnemyCount(wave: number) {
+  return 3 + Math.min(5, Math.floor((wave - 1) / 2));
+}
+
+export function getWaveClearBonus(wave: number) {
+  return 180 + wave * 25;
+}
+
 export const ROLE_STATS: Record<
   EnemyRole,
   { hp: number; speed: number; damage: number; range: number; color: string; scale: number; burst: number; reloadMs: number }

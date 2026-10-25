@@ -1,4 +1,5 @@
 import type { RunResult } from "../src/lib/scoreboard";
+import { getWaveClearBonus, getWaveEnemyCount, INTER_WAVE_DELAY_MS } from "../src/lib/pveRules";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -59,13 +60,16 @@ export function validateResult(body: Record<string, unknown>, elapsedMs: number)
   const result = body as RunResult & { status: "completed" | "abandoned" };
   if (result.durationMs > elapsedMs + 15_000) throw new ApiError(400, "Run duration exceeds server elapsed time.");
   let previousKills = 0;
-  for (let wave = 1; wave < result.wave; wave++) previousKills += 3 + Math.min(5, Math.floor((wave - 1) / 2));
-  const currentEnemies = 3 + Math.min(5, Math.floor((result.wave - 1) / 2));
-  const previousBonus = 180 * (result.wave - 1) + 25 * result.wave * (result.wave - 1) / 2;
-  const maxBonus = previousBonus + (result.kills === previousKills + currentEnemies ? 180 + 25 * result.wave : 0);
+  let previousBonus = 0;
+  for (let wave = 1; wave < result.wave; wave++) {
+    previousKills += getWaveEnemyCount(wave);
+    previousBonus += getWaveClearBonus(wave);
+  }
+  const currentEnemies = getWaveEnemyCount(result.wave);
+  const maxBonus = previousBonus + (result.kills === previousKills + currentEnemies ? getWaveClearBonus(result.wave) : 0);
   if (result.kills < previousKills || result.kills > previousKills + currentEnemies ||
     result.score < result.kills * 100 + previousBonus || result.score > result.kills * 260 + maxBonus ||
-    result.durationMs < Math.max(0, result.wave - 2) * 2400 || result.kills > 12 + result.durationMs / 100) {
+    result.durationMs < Math.max(0, result.wave - 2) * INTER_WAVE_DELAY_MS || result.kills > 12 + result.durationMs / 100) {
     throw new ApiError(400, "Run metrics are inconsistent with survival rules.");
   }
   return result;
