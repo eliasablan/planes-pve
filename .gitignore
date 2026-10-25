@@ -9,6 +9,12 @@
 
 # production
 /build
+/out/
+/.wrangler/
+.dev.vars*
+!.dev.vars.example
+/output/playwright/
+/.playwright-cli/
 
 # misc
 .DS_Store

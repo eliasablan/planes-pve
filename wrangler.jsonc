@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "planes-pve",
+  "account_id": "7de119c4da0acbdc2e66bee49d492ad1",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-24",
+  "workers_dev": true,
+  "routes": [{ "pattern": "planes.eablan.dev", "custom_domain": true }],
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "planes-pve",
+      "database_id": "961c493a-9479-47a2-bbf6-f4fdaeec5e20",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    { "name": "RUN_START_LIMITER", "namespace_id": "1792886401", "simple": { "limit": 20, "period": 60 } },
+    { "name": "API_LIMITER", "namespace_id": "1792886402", "simple": { "limit": 120, "period": 60 } }
+  ]
+}

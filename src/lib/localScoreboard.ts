@@ -1,7 +1,7 @@
 export const LOCAL_SCOREBOARD_KEY = "planes-pve:scoreboard:v1";
 export const LOCAL_SCOREBOARD_LIMIT = 10;
-export const ARCADE_NAME_MIN_LENGTH = 3;
-export const ARCADE_NAME_MAX_LENGTH = 12;
+import { ARCADE_NAME_MAX_LENGTH, ARCADE_NAME_MIN_LENGTH, compareScoreEntries, isValidArcadeName, normalizeArcadeName } from "./scoreboard";
+export { ARCADE_NAME_MAX_LENGTH, ARCADE_NAME_MIN_LENGTH, isValidArcadeName, normalizeArcadeName };
 
 export type LocalScoreEntry = {
   id: string;
@@ -92,28 +92,12 @@ export function saveLocalScore(
   return scores;
 }
 
-export function normalizeArcadeName(name: string) {
-  return name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ARCADE_NAME_MAX_LENGTH);
-}
-
-export function isValidArcadeName(name: string) {
-  return /^[A-Z0-9]+$/.test(name) && name.length >= ARCADE_NAME_MIN_LENGTH && name.length <= ARCADE_NAME_MAX_LENGTH;
-}
-
 export function sortLocalScores(scores: LocalScoreEntry[]) {
   return [...scores].sort(compareScoreEntries).slice(0, LOCAL_SCOREBOARD_LIMIT);
 }
 
 function normalizeScores(scores: unknown[]) {
   return sortLocalScores(scores.filter(isLocalScoreEntry));
-}
-
-function compareScoreEntries(a: LocalScoreEntry, b: LocalScoreEntry) {
-  if (b.score !== a.score) return b.score - a.score;
-  if (b.wave !== a.wave) return b.wave - a.wave;
-  if (b.kills !== a.kills) return b.kills - a.kills;
-  if (a.durationMs !== b.durationMs) return a.durationMs - b.durationMs;
-  return Date.parse(a.createdAt) - Date.parse(b.createdAt);
 }
 
 function toComparableEntry(run: LocalScoreRun): LocalScoreEntry {

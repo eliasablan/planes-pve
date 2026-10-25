@@ -4,9 +4,17 @@
   "private": true,
   "packageManager": "bun@1.3.4",
   "scripts": {
-    "dev": "next dev",
+    "dev": "bun run build && bun run db:migrate:local && wrangler dev",
+    "dev:ui": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "wrangler dev",
+    "preview": "wrangler dev",
+    "deploy": "bun run build && bun run db:migrate:remote && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "test": "bun test src",
+    "test:worker": "bun build ./worker/index.ts --target=browser --outfile=.wrangler/test-worker.mjs && node --test worker/check-d1.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint"
   },
   "dependencies": {
@@ -31,6 +39,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261025.1",
     "@tailwindcss/postcss": "^4",
     "@types/bun": "^1.4.4",
     "@types/node": "^20",
@@ -39,7 +48,9 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "miniflare": "5.20261019.1-beta",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "4.151.3"
   }
 }
