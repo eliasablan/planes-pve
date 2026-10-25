@@ -4,7 +4,7 @@ export class ScoreServiceError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
-export async function scoreRequest<T>(path: string, body?: unknown, token?: string): Promise<T> {
+export async function scoreRequest<T>(path: string, body?: unknown, token?: string, signal?: AbortSignal): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {
@@ -12,7 +12,7 @@ export async function scoreRequest<T>(path: string, body?: unknown, token?: stri
       headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       cache: "no-store",
-      signal: AbortSignal.timeout(6000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(6000)]) : AbortSignal.timeout(6000),
     });
   } catch {
     throw new ScoreServiceError(503, "Could not reach the score service. Check your connection and retry.");
@@ -25,7 +25,7 @@ export async function scoreRequest<T>(path: string, body?: unknown, token?: stri
   return data as T;
 }
 
-export const getGlobalScores = () => scoreRequest<{ scores: ScoreEntry[] }>("/api/leaderboard").then(data => data.scores);
+export const getGlobalScores = (signal?: AbortSignal) => scoreRequest<{ scores: ScoreEntry[] }>("/api/leaderboard", undefined, undefined, signal).then(data => data.scores);
 export type RunRegistration = { runId: string; startedAt: string };
 export type SaveScoreResponse = { runId: string; scores: ScoreEntry[]; inTopTen: boolean };
 type RunStatus = "starting" | "ready" | "syncing" | "synced" | "error";

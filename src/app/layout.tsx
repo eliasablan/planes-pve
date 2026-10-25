@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Chakra_Petch } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ScoreQueryProvider } from "@/components/ScoreQueryProvider";
 
 const chakraPetch = Chakra_Petch({
   variable: "--font-chakra-petch",
@@ -30,7 +31,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ScoreQueryProvider>{children}</ScoreQueryProvider>
         </ThemeProvider>
       </body>
     </html>

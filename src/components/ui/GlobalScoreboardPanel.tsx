@@ -1,26 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getGlobalScores } from "@/lib/scoreService";
-import type { ScoreEntry } from "@/lib/scoreboard";
+import { useQuery } from "@tanstack/react-query";
+import { globalScoreboardQuery } from "@/lib/scoreQueries";
 import { LocalScoreboardTable } from "./LocalScoreboardTable";
 
-export function GlobalScoreboardPanel() {
-  const [scores, setScores] = useState<ScoreEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let active = true;
-    getGlobalScores().then(scores => { if (active) setScores(scores); }).catch(error => {
-      if (active) setError(error instanceof Error ? error.message : "Scores unavailable.");
-    });
-    return () => { active = false; };
-  }, [attempt]);
-
-  if (error) return <div role="alert" className="space-y-3 text-sm text-wf-dim">
-    <p>{error}</p>
-    <button className="wf-button px-4 py-2" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Retry</button>
+export function GlobalScoreboardPanel({ highlightId, compact = false }: { highlightId?: string; compact?: boolean }) {
+  const { data: scores, error, isFetching, refetch } = useQuery(globalScoreboardQuery);
+  return <div className="space-y-3">
+    {error ? <div role="alert" className="space-y-3 text-sm text-wf-dim">
+      <p>{scores ? "Could not refresh the ranking. Showing the last loaded scores. " : ""}{error.message}</p>
+      <button className="wf-button px-4 py-2" disabled={isFetching} onClick={() => { void refetch(); }}>
+        {isFetching ? "Retrying…" : "Retry ranking"}
+      </button>
+    </div> : null}
+    {scores ? <LocalScoreboardTable scores={scores} highlightId={highlightId} compact={compact} /> :
+      !error ? <p role="status" className="text-sm text-wf-dim">Loading global scores…</p> : null}
   </div>;
-  if (!scores) return <p role="status" className="text-sm text-wf-dim">Loading global scores…</p>;
-  return <LocalScoreboardTable scores={scores} />;
 }
