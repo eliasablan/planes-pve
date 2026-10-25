@@ -1,0 +1,5 @@
+# Host on Cloudflare Workers and retain survival runs in D1
+
+The pilot chose Workers hosting and D1 for shared scores and game history, superseding the PostgreSQL plan in ADR 0010, the Next.js API boundary in ADR 0011, and the browser-only phase in ADR 0013. The active game uses browser simulation and static pages, so Next.js exports the frontend and a small same-origin Worker owns the D1 API; adding a full Next.js server adapter would provide no needed runtime feature. Existing Supabase PvP modules and old local scores remain separate and are not imported.
+
+D1 retains every registered run with a server start timestamp, approximate country, and an immutable completed or abandoned result. A named, positive completed result can appear in the indexed global top ten; naming retries preserve the first save timestamp, and historical runs remain even after leaving the ranking. This introduces a Cloudflare binding dependency, while static export means future Next.js server features will require revisiting the deployment architecture. Validation and rate limits provide basic abuse protection; browser-computed results remain forgeable.

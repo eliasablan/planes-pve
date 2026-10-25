@@ -2,7 +2,7 @@
 
 Este documento reúne los prompts y el seguimiento de las cinco sesiones. Antes de iniciar una, consulta su estado y los registros de continuidad enlazados. Copia el bloque de la siguiente sesión pendiente en un chat nuevo dentro de este proyecto. Los prompts originales se conservan como referencia del alcance; los registros documentan la entrega final y los ajustes acordados durante cada sesión.
 
-Las sesiones 1–3 mejoran la experiencia de vuelo; la 4 implementa el ranking global y la 5 lo conecta con tu Redis en Dokploy. Las tareas complejas se delegan a subagentes **Astra (`gpt-6-astra`), razonamiento `medium`**.
+Las sesiones 1–3 mejoran la experiencia de vuelo. El 24 de octubre el piloto sustituyó Redis/Dokploy por **Cloudflare Workers + D1**, incluyendo hosting, ranking compartido e historial de partidas. Los prompts originales 4–5 se conservan debajo como historia; el alcance vigente y su evidencia están en el [registro de migración](2026-10-24-cloudflare-continuidad.md).
 
 ## Seguimiento de sesiones
 
@@ -13,10 +13,10 @@ Actualizado el **24 de octubre de 2026**, según los cierres confirmados por el 
 | 1 — Sonidos de combate y reabastecimiento | **Cerrada** | 2026-10-24 | [Continuidad de audio](2026-10-24-audio-continuidad.md); `fae1c5a`, `c7fb354`, `1e6f8bd` |
 | 2 — Suministros fáciles de reconocer | **Cerrada** | 2026-10-23 | [Continuidad de suministros](2026-10-23-suministros-continuidad.md); `49e40c6`, `a330cf4`, `e15b114` |
 | 3 — Relieve y escala del mundo | **En curso** | — | [Continuidad de relieve](2026-10-24-relieve-continuidad.md); `50184fd`, `9dbabe9`; implementada y verificada el 2026-10-24, pendiente de la confirmación del piloto |
-| 4 — Scoreboard global con Redis | Pendiente | — | Requiere completar antes de la sesión 5 |
-| 5 — Conexión a Dokploy y comprobación global | Pendiente | — | Depende de la sesión 4 |
+| 4 — Scoreboard global e historial en D1 | **Cerrada** | 2026-10-24 | [Continuidad Cloudflare](2026-10-24-cloudflare-continuidad.md); D1 aprovisionado y verificado con API remota y dos contextos de navegador |
+| 5 — Hosting en Workers y dominio | **Cerrada** | 2026-10-24 | [Continuidad Cloudflare](2026-10-24-cloudflare-continuidad.md); dominio `planes.eablan.dev` conectado y verificado por HTTPS con assets y D1 |
 
-**Sesión en curso: 3 — Relieve y escala del mundo.** Al confirmarla el piloto se marcará Cerrada y la siguiente será la 4 — Scoreboard global con Redis. La sesión 2 se completó antes que la 1; ambas están cerradas. La sesión 3 está implementada y verificada automáticamente y en navegador; queda su valoración en vuelo. Las valoraciones de escucha humana, del monitor físico y del vuelo sobre el nuevo relieve se conservan en sus registros como seguimiento, sin afirmar que se hayan realizado.
+**Sesiones 4–5 cerradas — Workers y D1.** El ranking, historial y hosting están desplegados en `planes.eablan.dev`. La sesión 3 sigue pendiente de valoración del piloto; esta migración no la cierra. Las sesiones 1–2 están cerradas. Las valoraciones de escucha humana, del monitor físico y del vuelo sobre el relieve se conservan en sus registros.
 
 Para mantener este índice entre chats:
 

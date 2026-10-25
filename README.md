@@ -1,48 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skybound Survival
 
-## Seguimiento de mejoras
+A browser airplane survival game built with Next.js 16, React 19, Three.js, Rapier and Zustand. Cloudflare Workers serves the static Next.js export and a same-origin API; D1 stores run history and the shared top ten. No account is needed to play.
 
-Consulta los [prompts y el estado de las sesiones](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones) para saber qué está cerrado, qué sigue pendiente y dónde están los registros de entrega y pruebas. Actualiza ese índice al iniciar y cerrar cada sesión.
+Play at [planes.eablan.dev](https://planes.eablan.dev). The [Workers URL](https://planes-pve.eliasgui32.workers.dev) serves the same application and shared scores.
 
-## Getting Started
+## Local development
 
-Install dependencies:
-
-```bash
-bun install
-```
-
-Then, run the development server:
+Use Bun 1.3.4 and a current Node.js runtime (the D1 integration suite runs in Node).
 
 ```bash
+bun install --frozen-lockfile
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-Other common commands:
+`bun dev` builds the frontend, applies local D1 migrations and starts Wrangler at `http://localhost:8787`. D1 data persists under ignored `.wrangler/state/`. After frontend changes, rebuild and restart; Worker source changes reload automatically. `bun run dev:ui` provides Next.js hot reload on port 3000 for UI work, but that server does not serve the Worker API. Use Wrangler for the complete game, score saving and ranking flow.
 
 ```bash
-bun run build
-bun start
+bun run build                 # Next.js static export into out/
+bun run db:migrate:local
+bun run preview               # Serve the existing export in workerd
+bun test                      # Gameplay and client lifecycle tests
+bun run test:worker            # Isolated workerd + D1 integration tests
+bun run typecheck
 bun run lint
 ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`next start` is not used: production is a static frontend with a separate Worker API. Server Actions, SSR and other Next.js server features require a deployment architecture change. The existing Google font is fetched at build time; game models, images, JS and physics assets are served from the export.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cloudflare deployment
 
-## Learn More
+The nonsecret account ID, D1 database ID, Worker name and rate-limit namespaces are in `wrangler.jsonc`. The `DB` binding is available only inside the Worker. No database URL, public token or application environment secret is required. Wrangler's OAuth login or a restricted CI API token supplies deployment credentials; never commit credentials or enable verbose HTTP logging around authenticated package managers.
 
-To learn more about Next.js, take a look at the following resources:
+For this account, authenticate with the needed deployment scopes when necessary:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+bunx wrangler login --scopes account:read user:read workers:write workers_scripts:write workers_routes:write zone:read d1:write ssl_certs:write
+bun run deploy
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`deploy` builds, applies remote D1 migrations, then publishes the Worker and assets. For a new account, create a new database with `bunx wrangler d1 create planes-pve`, replace both IDs in `wrangler.jsonc`, and apply the same migration. IDs are environment-specific, not secrets. A fresh deployment should be verified on its `workers.dev` hostname before a custom-domain cutover; see the [migration record](docs/plans/2026-10-24-cloudflare-continuidad.md) for actual provisioning, URLs, verification and remaining work.
 
-## Deploy on Vercel
+The former Vercel project can remain available for rollback. Do not delete it or its domains as part of normal Workers deployment. To roll back a Worker release, use `bunx wrangler rollback <previous-version-id>` after inspecting `bunx wrangler deployments list`; keep D1 data and only use schema changes compatible with both versions. Domain rollback requires restoring the original Cloudflare DNS configuration recorded before cutover. A Worker rollback does not undo a D1 migration.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scores and game history
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+At takeoff, `POST /api/runs` uses a random browser credential to register one server-generated run ID, server start timestamp, approximate country from `request.cf`, game rules version and mode. The credential is hashed in D1. Country can be unavailable or reflect a VPN; raw IP is not persisted. Explicit exit records `abandoned`; closing a tab may leave an `active` (unfinished) history row.
+
+`POST /api/runs/:id/finish` records immutable score, wave, kills, active duration, finish timestamp and terminal status. Pauses affect active duration without shifting the original server start time. `POST /api/runs/:id/name` attaches a normalized 3–12 character arcade name to a completed positive result. All runs are retained, including zero scores, unnamed and displaced results. Repeated names can label different runs. Identical retries preserve the first timestamps; conflicting finishes or names return HTTP 409.
+
+`GET /api/leaderboard` returns only the best ten named completed positive results, ordered by score descending, wave descending, kills descending, active duration ascending, name-save time ascending, then ID for an exact tie. The ranking index keeps reads bounded. History and country are not exposed by a public endpoint; authorized operators can query D1:
+
+```bash
+bunx wrangler d1 execute DB --remote --command "SELECT id, started_at, country, status, finished_at, score, wave, kills, duration_ms, name FROM runs ORDER BY started_at DESC LIMIT 100"
+bunx wrangler d1 export DB --remote --output /private/tmp/planes-pve-backup.sql
+```
+
+Backups include hashed run credentials and country history: store them privately. See [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/) for provider restore options; a remote restore has not been exercised by this migration. There is no automatic deletion of game history; monitor storage growth and [D1 limits](https://developers.cloudflare.com/d1/platform/limits/) before adding a retention policy.
+
+Failures leave flight playable and appear as an unavailable service, never as an empty ranking or a successful save. Retry before leaving game over: pending results and credentials are in memory and do not survive refresh. A lost registration response can recover an existing run, but an offline run is never backdated into a new database entry. Old browser scores under `planes-pve:scoreboard:v1` remain untouched and are not uploaded. Audio and display preferences continue using local storage.
+
+Requests have a 2 KiB JSON limit, origin checks, per-run bearer ownership, integer/range checks and broad survival plausibility checks. Rate-limit bindings allow approximately 20 registrations and 120 other API requests per minute per connecting IP in each Cloudflare location; shared networks share that allowance. [Cloudflare's limits are approximate and per location](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), and are not a strict global quota. The browser still computes results, so these controls do not make scores cheat-proof.
+
+## Project continuity
+
+The [session index](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones) links earlier work and current migration status. [CONTEXT.md](CONTEXT.md) describes the active PvE architecture; old Supabase multiplayer modules remain separate.

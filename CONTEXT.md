@@ -2,9 +2,9 @@
 
 ## Project
 
-Skybound Survival is a browser-based, single-player arcade airplane combat game. The pilot survives successive waves of enemy aircraft over an island, manages limited ammunition and health, collects supplies, and tries to earn a place in the local top 10. A run continues until the player's aircraft is destroyed; there is no final wave or campaign victory.
+Skybound Survival is a browser-based, single-player arcade airplane combat game. The pilot survives successive waves of enemy aircraft over an island, manages limited ammunition and health, collects supplies, and tries to earn a place in the global top 10. A run continues until the player's aircraft is destroyed; there is no final wave or campaign victory.
 
-The playable flow is start screen → airborne run → game over → optional arcade-name entry → local scoreboard, with options to fly again or return to the start screen. Playing does not require an account or a multiplayer session.
+The playable flow is start screen → airborne run → game over → optional arcade-name entry → global scoreboard, with options to fly again or return to the start screen. Playing does not require an account or a multiplayer session.
 
 This repository evolved from Skybound Battle Royale. Some files, types, and older documents still describe that PvP game. The terms below describe the current PvE product; historical multiplayer concepts do not define its domain.
 
@@ -128,11 +128,11 @@ _Avoid_: Ranking points, lifetime points
 The points awarded for clearing a wave, in addition to the points earned for individual kills.
 
 **High score**:
-A final run score that earns a place in the local top 10.
+A final run score that earns a place in the global top 10.
 
-**Local scoreboard**:
-The ordered table of up to ten arcade score entries retained in the same browser. It ranks individual runs rather than pilot profiles.
-_Avoid_: Global ranking, pilot leaderboard
+**Global scoreboard**:
+The shared ordered table of up to ten named arcade run results. It ranks individual runs rather than pilot profiles. Earlier local scoreboards remain private to their original browsers.
+_Avoid_: Pilot profiles, lifetime ranking
 
 **Arcade score entry**:
 A saved result from a qualifying finished run, attributed to an arcade name. It contains score, wave reached, kills, run duration, and the time it was saved.
@@ -146,11 +146,11 @@ _Avoid_: Username, login identity
 
 The app uses Next.js 16.2.1, React 19.2.4, Tailwind CSS v4, shadcn UI primitives, Three.js through `@react-three/fiber`, Rapier through `@react-three/rapier`, and Zustand. Bun is the package manager and development command runner.
 
-The homepage is a client component with the start screen and links to the local scoreboard and asset documentation. Starting a run resets the runtime state and dynamically loads `Scene` with SSR disabled. `Scene` starts play immediately and mounts the environment, player aircraft, and `PveDirector` inside the 3D canvas and physics world, with the combat HUD overlaid in React.
+The homepage is a client component with the start screen and links to the global scoreboard and asset documentation. Starting a run resets the runtime state and dynamically loads `Scene` with SSR disabled. `Scene` starts play immediately and mounts the environment, player aircraft, and `PveDirector` inside the 3D canvas and physics world, with the combat HUD overlaid in React. Next.js exports the static frontend to `out/`; Cloudflare Workers serves those assets and handles `/api/*` using its D1 binding. No Next.js server runs in production.
 
 Zustand bridges the frame-based simulation and React UI. It holds aircraft resources and telemetry, enemies, pickups, wave progression, score, combat feedback, and run timestamps. The local lifecycle helpers start, finish, and reset a run; their existing names still use `Match`. The active flow uses `playing` and `finished`; `lobby` remains a reset-state label and `countdown` remains in the status type.
 
-The active PvE scene does not mount authentication, a multiplayer lobby, remote players, or the shrinking zone. Supabase remains in the dependencies and inherited PvP modules, but the playable PvE flow and local scoreboard do not use it.
+The active PvE scene does not mount authentication, a multiplayer lobby, remote players, or the shrinking zone. Supabase remains in the dependencies and inherited PvP modules, but the playable PvE flow and global scoreboard do not use it.
 
 ## Run And Wave Progression
 
@@ -183,15 +183,19 @@ The world is an island surrounded by ocean. The combat HUD includes a heading-re
 
 ## Score Persistence
 
-The current scoreboard stores up to ten entries in browser `localStorage` under `planes-pve:scoreboard:v1`, as decided in [ADR 0013](docs/adr/0013-use-localstorage-for-initial-pve-scoreboard.md). It is available at game over and on `/leaderboard`, and scores do not sync between browsers or devices.
+The current implementation uses Cloudflare D1 through a same-origin Worker API, as recorded in [ADR 0014](docs/adr/0014-host-on-workers-and-store-survival-runs-in-d1.md). It is available at game over and on `/leaderboard`. Earlier entries under `planes-pve:scoreboard:v1` remain in the original browser and are neither erased nor uploaded automatically. Remote provisioning and verification status is recorded in [migration continuity](docs/plans/2026-10-24-cloudflare-continuidad.md).
 
-A run must have a positive score and qualify for the top 10 before the game-over screen offers name entry. Entries are ordered by score descending, wave reached descending, kills descending, duration ascending, and then save time ascending. Names are normalized to uppercase letters and digits and must be 3–12 characters long. Reusing a name creates another run entry rather than updating a profile.
+A run must have a positive score and qualify for the top 10 before the game-over screen offers name entry. Entries are ordered by score descending, wave reached descending, kills descending, duration ascending, and then server name-save time ascending (run ID resolves identical timestamps). Names are normalized to uppercase letters and digits and must be 3–12 characters long. Reusing a name creates another run entry rather than updating a profile. A concurrent better result can displace a score between showing the form and saving it; the result remains in history.
+
+Run registration begins at takeoff without blocking flight. D1 assigns the run ID and original server timestamp and records only approximate country from Cloudflare request metadata; it stores no raw IP. A random per-run browser credential is stored only as a hash in D1. Finishing records score, wave, kills and active duration independently of the original start time; explicit exit records abandonment. Closing a tab can leave an `active` history row, which means unfinished rather than proof of ongoing play. Registration, finish and name retries are idempotent; conflicting completed metrics or names return a conflict. Lost start responses can be recovered without creating a run retroactively.
+
+Network failures leave gameplay available and appear as recoverable errors at game over or on the ranking page. Pending results live in memory: retry before leaving the game-over screen; refresh or exit can lose an unsent result. Basic rate limits, request size limits and survival plausibility checks reduce abuse but do not establish score authenticity.
 
 Saving a result preserves its final metrics, not the run's playable state. Active runs and recovery supplies are not saved for resumption.
 
 ## Planned Features And Historical Context
 
-- A future global ranking is a shared table of arcade run results. [ADR 0009](docs/adr/0009-separate-pve-score-storage-from-pvp-supabase.md), [ADR 0010](docs/adr/0010-use-postgresql-for-pve-score-storage.md), and [ADR 0011](docs/adr/0011-submit-pve-scores-through-nextjs-api.md) describe separate PvE score storage in PostgreSQL through a Next.js API route. The current app has neither that submission endpoint nor global score persistence; ADR 0013 establishes the interim local scoreboard.
+- [ADR 0014](docs/adr/0014-host-on-workers-and-store-survival-runs-in-d1.md) supersedes the PostgreSQL/Next.js API plan and local scoreboard phase with Workers hosting and D1 history. ADR 0009 still applies: PvE score storage is separate from inherited PvP Supabase infrastructure.
 - Streak multipliers, a pause screen, and graduated collision damage appeared in the earlier domain description but are not implemented in the active loop. They should be evaluated as future design work rather than assumed to be current rules.
 - Waves are endless, but enemy count stops increasing at eight and role statistics remain fixed. Broader difficulty escalation is future balancing work.
 - `AuthForm`, `Lobby`, `MultiplayerProvider`, `RemoteAirplane`, `TheZone`, `Minimap`, the Supabase schema, and realtime/match-logging helpers are inherited PvP code. The store also retains profile, remote-player, zone, and flare state. Their presence does not imply active PvE features.
@@ -200,7 +204,7 @@ Saving a result preserves its final metrics, not the run's playable state. Activ
 ## Source Map
 
 - `src/app/page.tsx`: start screen and entry into a fresh run
-- `src/app/leaderboard/page.tsx`: local scoreboard page
+- `src/app/leaderboard/page.tsx`: global scoreboard page
 - `src/app/docs/page.tsx`: asset credits and licensing
 - `src/components/game/Scene.tsx`: PvE scene, immediate run start, game over, restart, and exit
 - `src/components/game/Airplane.tsx`: player flight, PvE weapons, target selection, collisions, and combat boundary
@@ -210,14 +214,20 @@ Saving a result preserves its final metrics, not the run's playable state. Activ
 - `src/components/game/Projectiles.tsx`: visual projectile components; active PvE hit resolution happens when firing
 - `src/components/ui/HUD.tsx`: combat readouts, radar, compass, aiming feedback, damage feedback, and kill feed
 - `src/components/ui/GameOver.tsx`: run summary, qualifying name entry, score save, and replay/exit actions
-- `src/components/ui/LocalScoreboardPanel.tsx` and `src/components/ui/LocalScoreboardTable.tsx`: local score subscription and display
+- `src/components/ui/GlobalScoreboardPanel.tsx`: global score loading, unavailable state and retry
+- `src/components/ui/LocalScoreboardTable.tsx`: shared ranking table, retaining its original filename
 - `src/store/useGameStore.ts`: runtime state, enemy damage and kill scoring, resource collection, and reset
 - `src/lib/matchLifecycle.ts`: local run timestamps and lifecycle transitions, retaining inherited names
 - `src/lib/gameAudio.ts`: procedural effects, shared audio context, voice cleanup, mix limits, and local audio preferences
 - `src/lib/weaponAudioFeedback.ts`: confirmed-shot/depletion events and empty-trigger repetition policy
 - `src/components/ui/GameAudioControls.tsx`: accessible volume and mute controls shared by entry and HUD settings
 - `src/lib/combatResolution.ts`: shared player-damage and defeat helpers alongside inherited PvP combat functions; PvE weapon values are in `Airplane.tsx`
-- `src/lib/localScoreboard.ts`: arcade-name rules, qualification, ordering, and local persistence
+- `src/lib/scoreboard.ts`: shared arcade-name and ranking contracts
+- `src/lib/scoreService.ts`: browser API client and per-run registration/completion tracking
+- `worker/index.ts`, `worker/validation.ts`: same-origin D1 API, request validation and basic abuse controls
+- `migrations/0001_runs.sql`: history schema and ranking index
+- `wrangler.jsonc`: Workers assets, D1 and rate-limit bindings
+- `src/lib/localScoreboard.ts`: preserved legacy local persistence helpers
 - `src/lib/localScoreboard.test.ts`: existing scoreboard validation and ordering tests
 - `src/lib/flightFrame.ts`: player flight forces, torque, camera, and telemetry helpers
 - `src/lib/worldTopology.ts`: shared world dimensions, relief control points, sea level, combat boundary, and map projection constants
