@@ -3,15 +3,18 @@
 import { useGameStore } from "@/store/useGameStore";
 import {
   isValidArcadeName,
-  loadLocalScores,
   normalizeArcadeName,
-  qualifiesForLocalScoreboard,
-  saveLocalScore,
-  type LocalScoreEntry,
-} from "@/lib/localScoreboard";
+  qualifiesForScoreboard,
+  type ScoreEntry,
+} from "@/lib/scoreboard";
+import { getCurrentRunSession, getGlobalScores, type RunSnapshot } from "@/lib/scoreService";
 import { Home, RotateCcw, Save } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { LocalScoreboardTable } from "./LocalScoreboardTable";
+
+const noSession: RunSnapshot = { status: "error", error: "This run was not registered. Please start a new run." };
+const emptySubscribe = () => () => {};
+const getNoSession = () => noSession;
 
 export function GameOver({
   onRestart,
@@ -21,29 +24,50 @@ export function GameOver({
   onExit?: () => void;
 }) {
   const { score, localKills, wave, startTime, endTime } = useGameStore();
-  const [scores, setScores] = useState<LocalScoreEntry[]>(() => loadLocalScores());
+  const [session] = useState(getCurrentRunSession);
+  const sync = useSyncExternalStore(session?.subscribe ?? emptySubscribe, session?.getSnapshot ?? getNoSession, getNoSession);
+  const [scores, setScores] = useState<ScoreEntry[] | null>(null);
+  const [scoresError, setScoresError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [name, setName] = useState("ACE");
   const [savedScoreId, setSavedScoreId] = useState<string | undefined>();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [nameLocked, setNameLocked] = useState(false);
+  const [savedInTopTen, setSavedInTopTen] = useState(false);
   const durationMs = Math.max(0, (endTime ?? startTime ?? 0) - (startTime ?? endTime ?? 0));
   const run = { score, wave, kills: localKills, durationMs };
-  const qualifies = !savedScoreId && qualifiesForLocalScoreboard(run, scores);
+  const qualifies = !savedScoreId && scores !== null && (nameLocked || qualifiesForScoreboard(run, scores));
   const normalizedName = normalizeArcadeName(name);
-  const canSave = qualifies && isValidArcadeName(normalizedName);
+  const canSave = qualifies && isValidArcadeName(normalizedName) && sync.status === "synced" && !saving;
+
+  useEffect(() => {
+    let active = true;
+    getGlobalScores().then(scores => { if (active) setScores(scores); }).catch(error => {
+      if (active) setScoresError(error instanceof Error ? error.message : "Scores unavailable.");
+    });
+    return () => { active = false; };
+  }, [attempt]);
 
   const handleNameChange = (value: string) => {
     setName(normalizeArcadeName(value));
     setSaveError(null);
   };
 
-  const handleSaveScore = () => {
+  const handleSaveScore = async () => {
+    if (!canSave || !session) return;
+    setSaving(true);
+    setNameLocked(true);
     try {
-      const nextScores = saveLocalScore({ ...run, name });
-      setScores(nextScores);
-      setSavedScoreId(nextScores.find((entry) => entry.name === normalizedName && entry.score === score)?.id);
+      const result = await session.saveName(normalizedName);
+      setScores(result.scores);
+      setSavedScoreId(result.runId);
+      setSavedInTopTen(result.inTopTen);
       setSaveError(null);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save score.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -65,10 +89,15 @@ export function GameOver({
             </dl>
 
             <section className="wf-frame mt-6 p-4">
-              <h3 className="text-sm font-medium">LOCAL_SCOREBOARD</h3>
+              <h3 className="text-sm font-medium">GLOBAL_SCOREBOARD</h3>
               <p className="mb-5 mt-1 text-xs leading-5 text-wf-dim">
-                Saved only in this browser. Global ranking will come later.
+                Save your arcade name to share this run across devices.
               </p>
+
+              {sync.status === "error" ? <div role="alert" className="mb-4 space-y-2 text-xs text-wf-danger">
+                <p>{sync.error}</p>
+                {session && <button className="wf-button px-3 py-2" onClick={() => { void session.sync().catch(() => {}); }}>Retry run sync</button>}
+              </div> : sync.status !== "synced" ? <p role="status" className="mb-4 text-xs text-wf-dim">Recording run… You can keep playing.</p> : null}
 
               {qualifies ? (
                 <div className="space-y-3">
@@ -79,6 +108,7 @@ export function GameOver({
                     <input
                       id="arcade-name"
                       value={name}
+                      disabled={nameLocked}
                       onChange={(event) => handleNameChange(event.target.value)}
                       maxLength={12}
                       className="h-12 min-w-0 flex-1 border border-wf-line bg-black px-4 text-lg uppercase tracking-[0.12em] text-wf-ink outline-none placeholder:text-wf-hair focus:border-wf-ink"
@@ -90,15 +120,16 @@ export function GameOver({
                       className="wf-button inline-flex h-12 items-center justify-center gap-2 px-4 text-sm font-medium"
                     >
                       <Save className="h-4 w-4" />
-                      Save score
+                      {saving ? "Saving…" : nameLocked ? "Retry save" : "Save score"}
                     </button>
                   </div>
                   <p className="text-[11px] text-wf-dim">3–12 letters or numbers</p>
-                  {saveError && <p className="text-xs text-wf-danger">{saveError}</p>}
+                  {saveError && <p role="alert" className="text-xs text-wf-danger">{saveError}</p>}
                 </div>
               ) : (
                 <p className="text-sm leading-6 text-wf-dim">
-                  {savedScoreId ? "Score saved to the local top 10." : "This run did not enter the local top 10."}
+                  {savedScoreId ? (savedInTopTen ? "Score saved to the global top 10." : "Score saved. Other runs have moved ahead in the top 10.") :
+                    scores === null ? "Waiting for the global ranking…" : "This run did not enter the global top 10."}
                 </p>
               )}
             </section>
@@ -119,9 +150,13 @@ export function GameOver({
               )}
             </div>
           </div>
-          <section className="min-w-0" aria-label="Local top 10">
-            <h3 className="mb-4 text-sm font-medium">LOCAL_TOP_10</h3>
-            <LocalScoreboardTable scores={scores} highlightId={savedScoreId} compact />
+          <section className="min-w-0" aria-label="Global top 10">
+            <h3 className="mb-4 text-sm font-medium">GLOBAL_TOP_10</h3>
+            {scoresError ? <div role="alert" className="space-y-3 text-sm text-wf-dim">
+              <p>{scoresError}</p>
+              <button className="wf-button px-4 py-2" onClick={() => { setScoresError(null); setAttempt(value => value + 1); }}>Retry ranking</button>
+            </div> : scores === null ? <p role="status" className="text-sm text-wf-dim">Loading global scores…</p> :
+              <LocalScoreboardTable scores={scores} highlightId={savedScoreId} compact />}
           </section>
         </div>
       </div>

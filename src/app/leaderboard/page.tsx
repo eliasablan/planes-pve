@@ -1,4 +1,4 @@
-import { LocalScoreboardPanel } from "@/components/ui/LocalScoreboardPanel";
+import { GlobalScoreboardPanel } from "@/components/ui/GlobalScoreboardPanel";
 import { IslandBackdrop } from "@/components/ui/IslandBackdrop";
 import { SiteNav } from "@/components/ui/SiteNav";
 
@@ -14,10 +14,10 @@ export default function Leaderboard() {
               High scores <span className="text-[0.4em] font-normal text-wf-dim">{"// Top 10"}</span>
             </h1>
             <p className="max-w-sm text-sm leading-6 text-wf-dim">
-              Saved in this browser only. Scores don’t sync between devices until the global ranking arrives.
+              The best survival runs, shared across pilots and devices.
             </p>
           </div>
-          <LocalScoreboardPanel />
+          <GlobalScoreboardPanel />
         </section>
       </div>
     </main>

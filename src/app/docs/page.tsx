@@ -63,11 +63,12 @@ export default function DocumentationPage() {
         <p><strong>Hitting the ground or the sea is fatal.</strong> Watch your ground clearance, especially when diving or turning near a ridge. Terrain can provide cover from enemy fire, but you still need room to manoeuvre.</p>
         <p>The combat area has a fixed boundary. A warning appears beyond 3,800 world units from the centre; beyond 4,600, your aircraft takes <strong>20 damage per second</strong>. Turn back when the warning appears.</p>
       </GuideSection>
-      <GuideSection id="scoring" title="Your score and the local ranking">
+      <GuideSection id="scoring" title="Your score and the global ranking">
         <GuideTable label="Scoring rewards" headers={["Achievement", "Points"]} rows={[
           ["Destroy a scout", "100"], ["Destroy a fighter", "160"], ["Destroy a bomber", "260"], ["Clear a wave", "180 + (25 × wave number)"],
         ]} />
-        <p>When your run ends, save a qualifying score with an arcade name of <strong>3–12 letters or numbers</strong>. The top 10 is saved in this browser. Clearing browser storage removes these scores; they are not shared across devices.</p>
+        <p>When your run ends, save a qualifying score with an arcade name of <strong>3–12 letters or numbers</strong>. The global top 10 is shared across devices. Runs are recorded with their start time and approximate country; no account is required.</p>
+        <p>If the score service is unavailable, you can keep flying. Retry recording or saving from the game-over screen before leaving it. Earlier scores saved only in your browser stay on that device and are not uploaded automatically.</p>
         <p>Choose <strong>Fly again</strong> for a fresh run, or <strong>Start screen</strong> to return to the menu.</p>
       </GuideSection>
     </DocumentationShell>

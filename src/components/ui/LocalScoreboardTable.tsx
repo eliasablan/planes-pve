@@ -1,6 +1,6 @@
 "use client";
 
-import type { LocalScoreEntry } from "@/lib/localScoreboard";
+import type { ScoreEntry } from "@/lib/scoreboard";
 import { Trophy } from "lucide-react";
 
 export function LocalScoreboardTable({
@@ -8,7 +8,7 @@ export function LocalScoreboardTable({
   highlightId,
   compact = false,
 }: {
-  scores: LocalScoreEntry[];
+  scores: ScoreEntry[];
   highlightId?: string;
   compact?: boolean;
 }) {
@@ -26,7 +26,7 @@ export function LocalScoreboardTable({
   return (
     <div className="wf-frame overflow-x-auto">
       <table className="w-full min-w-[440px] text-left">
-        <caption className="sr-only">Local top 10 scores</caption>
+        <caption className="sr-only">Global top 10 scores</caption>
         <thead className="border-b border-wf-line text-[11px] font-medium text-wf-dim">
           <tr>
             {["RANK", "NAME", "SCORE", "WAVE", "KILLS"].map((label, index) => (
