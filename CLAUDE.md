@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues for `eliasablan/planes-br`. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues for this repository. Resolve the repository from its Git remote; see `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

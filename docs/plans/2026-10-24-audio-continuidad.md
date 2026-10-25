@@ -1,5 +1,7 @@
 # Continuidad — efectos de sonido
 
+> Registro histórico de una sesión cerrada. Las capturas y scripts de `output/playwright/` descritos aquí se retiraron durante la limpieza final; su versión se conserva en el commit `c7fb354`. Los pasos de instrumentación son una referencia histórica y requieren recuperar esos archivos. Las pruebas automatizadas del juego se mantienen.
+
 Sesión 1 iniciada el 23 y terminada el 24 de octubre de 2026, cerrada y confirmada por el piloto. Audio implementado sobre el estado limpio de la sesión 2; se conservan sus suministros, iconografía, radar y controles de pantalla. El mapa y el relieve corresponden a la siguiente sesión pendiente.
 
 Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones). Commits de entrega: `fae1c5a`, `c7fb354`, `1e6f8bd`.
@@ -11,7 +13,7 @@ Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#se
 - `Airplane.tsx` y `weaponAudioFeedback.ts`: disparos confirmados, aunque fallen; última bala/misil agrega agotamiento. Arma vacía tiene clic propio una vez por arma y pulsación sostenida, sin avisar otra vez al mantener tras agotar. Soltar o reabastecer rearma el aviso. Cadencias, daño y cantidades conservados.
 - `PveDirector.tsx`, `combatResolution.ts`: fuente explícita `enemy`; evento tras daño realmente aplicado, antes de finalizar si es fatal. Cada ataque lee salud vigente. Daño de límite/colisión no reproduce impacto enemigo. Se evita recoger reparación después del fatal en el mismo frame.
 - `useGameStore.ts`: sonido después de confirmar recogida atómica, según beneficio real. Munición, misil y reparación tienen motivos ascendentes diferentes. Ganancia cero usa dos notas descendentes neutrales, nunca recuperación. Recoger dos veces la misma caja no emite otro evento.
-- `page.tsx`, `Scene.tsx`, `matchLifecycle.ts`: desbloqueo síncrono desde Play/Fly again; begin limpia la sesión anterior; finish preserva la cola fatal fuera del Canvas; reset/exit/desmontaje de Scene detienen y desconectan fuentes y callbacks pendientes. No hay suscripción React que pueda perder eventos de combate agrupados.
+- `page.tsx`, `Scene.tsx`, `runLifecycle.ts`: desbloqueo síncrono desde Play/Fly again; begin limpia la sesión anterior; finish preserva la cola fatal fuera del Canvas; reset/exit/desmontaje de Scene detienen y desconectan fuentes y callbacks pendientes. No hay suscripción React que pueda perder eventos de combate agrupados.
 - `GameAudioControls.tsx`, `GameDisplayControls.tsx`: volumen y mute accesibles desde inicio y ajustes del HUD; rango con etiqueta, mute con `aria-pressed`, aislamiento de entradas de vuelo y restauración del foco. `CONTEXT.md` y `/docs` actualizados para describir audio y su origen.
 - Implementación compleja y revisión independiente con subagentes `gpt-6-astra`, razonamiento `medium`, con archivos separados. Se corrigió el hallazgo de revisión que cancelaba la última bala al lanzar agotamiento; test de regresión añadido.
 

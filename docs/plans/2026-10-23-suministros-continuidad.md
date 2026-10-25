@@ -1,5 +1,7 @@
 # Continuidad — suministros, radar y pantalla completa
 
+> Registro histórico de una sesión cerrada. Las capturas y scripts de `output/playwright/` descritos aquí se retiraron durante la limpieza final; su versión se conserva en el commit `e15b114`. Los pasos de instrumentación son una referencia histórica y requieren recuperar esos archivos. Las pruebas automatizadas del juego se mantienen.
+
 Fecha: 23 de octubre de 2026. Objetivo vigente: claridad de suministros y ajuste al Dell de 27 pulgadas **1920 × 1080**, resolución confirmada por el piloto.
 
 Sesión 2 cerrada y confirmada por el piloto. Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones). Commits de entrega: `49e40c6`, `a330cf4`, `e15b114`.

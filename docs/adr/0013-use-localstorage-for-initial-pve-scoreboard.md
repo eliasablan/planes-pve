@@ -1,5 +1,9 @@
 # Use localStorage for the initial PvE scoreboard
 
+## Status
+
+Superseded by [ADR 0014](0014-host-on-workers-and-store-survival-runs-in-d1.md).
+
 The first deployed PvE scoreboard will store top-10 arcade score entries in browser `localStorage` instead of PostgreSQL. This keeps the Vercel deployment usable without provisioning a database and makes the end-of-run arcade loop playable now.
 
 This is an interim decision for the local scoreboard only. ADR 0010 and ADR 0011 remain the preferred direction for a future global ranking, where score submissions go through a Next.js API route and a separate PostgreSQL score store.

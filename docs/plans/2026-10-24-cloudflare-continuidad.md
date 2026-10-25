@@ -1,5 +1,7 @@
 # Continuidad — Cloudflare Workers y D1
 
+> Las capturas temporales de `output/playwright/` citadas en este registro se retiraron al cerrar el ciclo. Se conservan los resultados de verificación y la documentación operativa; los recursos remotos y los datos D1 no se modificaron.
+
 Sesión del **24 de octubre de 2026**, zona del piloto America/Caracas. **Migración completada**: Workers y D1 están implementados, aprovisionados y verificados remotamente, con `https://planes.eablan.dev` conectado y funcionando por HTTPS.
 
 ## Recursos y entrega
@@ -12,7 +14,7 @@ Sesión del **24 de octubre de 2026**, zona del piloto America/Caracas. **Migrac
 - Migración `0001_runs.sql` aplicada en D1 remoto y local. Las filas de prueba remotas se eliminan al acabar la verificación; se confirmó que el historial remoto quedó vacío tras la prueba del preview.
 - Proyecto Vercel preservado: `prj_JlTSowwJKDxgTnsOaoiOvmeLbo4i`, equipo `team_SixjD2nOjXotbMfM1VsouW22`. Sus dominios son `planes.eablan.dev` y `planes-pve.vercel.app`.
 - Primera versión verificada del preview: `f3806c4e-04ce-4442-b9b6-5cd727a34593`. Versión vigente: `4455ecaf-9bfa-4d44-a573-faec68fcc89b`; mismo código y assets. El dominio se conectó después con `wrangler triggers deploy`, sin publicar otra versión del código.
-- Cambios locales sin commit: no se creó ni publicó un commit en esta sesión.
+- Commits de entrega: `da5cbe6` (Workers/D1), `934a056` (registro de partidas y ranking) y `f8b34e9` (operación y verificación).
 
 ## Arquitectura elegida
 
@@ -22,7 +24,7 @@ La tabla `runs` conserva inicio original de servidor, país aproximado de `reque
 
 Un secreto aleatorio por partida se conserva solo en memoria del navegador y como hash SHA-256 en D1. Inicio, finalización y asignación de nombre admiten reintentos sin duplicar; métricas o nombres distintos para una partida ya guardada devuelven conflicto. El ranking usa un índice parcial con score ↓, wave ↓, kills ↓, duración ↑, momento de guardar nombre ↑ e ID para un empate completo. El historial conserva también ceros, resultados sin nombre y resultados fuera del top diez.
 
-Los errores no bloquean el vuelo ni se muestran como un ranking vacío o un guardado exitoso. Hay reintento en game over y ranking. Los resultados pendientes se pierden al recargar/salir antes de enviarlos; no se inventan inicios retroactivos si la partida no pudo registrarse. Los scores locales anteriores se conservan sin subirlos. Las preferencias locales y el código PvP/Supabase heredado permanecen separados.
+Los errores no bloquean el vuelo ni se muestran como un ranking vacío o un guardado exitoso. Hay reintento en game over y ranking. Los resultados pendientes se pierden al recargar/salir antes de enviarlos; no se inventan inicios retroactivos si la partida no pudo registrarse. Los scores locales anteriores se conservan sin subirlos. Las preferencias de audio y pantalla siguen almacenándose localmente.
 
 Controles básicos: JSON de hasta 2 KiB, comprobación de origen, credencial de partida, validación de enteros/rangos y coherencia amplia con las oleadas. Rate limits aproximados por IP y ubicación Cloudflare: 20 registros/minuto y 120 otras peticiones/minuto. No acreditan autenticidad de scores calculados por el navegador. No hay purga automática de historial; vigilar crecimiento de D1.
 

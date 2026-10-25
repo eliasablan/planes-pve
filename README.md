@@ -63,4 +63,4 @@ Requests have a 2 KiB JSON limit, origin checks, per-run bearer ownership, integ
 
 ## Project continuity
 
-The [session index](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones) links earlier work and current migration status. [CONTEXT.md](CONTEXT.md) describes the active PvE architecture; old Supabase multiplayer modules remain separate.
+All five improvement sessions are complete. The [session summary](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones) links their delivery records; the executable prompts and temporary browser evidence have been retired. [CONTEXT.md](CONTEXT.md) describes the active PvE architecture. The runtime and dependencies contain only the single-player game and its D1 score API.

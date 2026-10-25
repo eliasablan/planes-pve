@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Deprecated (2026-10-25). The single-player scope established in [ADR 0005](0005-build-pve-as-a-separate-spin-off.md) no longer requires this backend; its remaining implementation has been removed. Current run persistence is defined in [ADR 0014](0014-host-on-workers-and-store-survival-runs-in-d1.md).
 
 ## Date
 

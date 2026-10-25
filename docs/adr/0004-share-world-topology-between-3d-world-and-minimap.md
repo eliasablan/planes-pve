@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Deprecated (2026-10-25) for the tactical-map integration, whose implementation has been removed. Shared world topology remains in use by rendering and simulation; see [Current Architecture](../../CONTEXT.md#current-architecture) for the current consumers.
 
 ## Date
 

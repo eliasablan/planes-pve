@@ -1,6 +1,8 @@
 # Continuidad — relieve y escala del mundo
 
-Sesión 3, 24 de octubre de 2026. Implementada y verificada por el agente; pendiente de la valoración en vuelo del piloto. Commits de entrega: `50184fd` (código), `9dbabe9` (pruebas y evidencia), más el commit de documentación que añade este registro. Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones).
+> Registro histórico de una sesión cerrada. Las capturas y scripts de `output/playwright/` descritos aquí se retiraron durante la limpieza final; su versión se conserva en el commit `9dbabe9`. Los pasos de instrumentación son una referencia histórica y requieren recuperar esos archivos. Las pruebas automatizadas del juego se mantienen.
+
+Sesión 3, 24 de octubre de 2026. Cerrada tras la confirmación del piloto de que completó todas las sesiones. Commits de entrega: `50184fd` (código), `9dbabe9` (pruebas y evidencia), `8e520a5` (documentación) y `462d43b` (oclusión de disparos por terreno). Estado general: [seguimiento de sesiones](2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones).
 
 ## Medición de referencia
 
@@ -98,7 +100,7 @@ Medido con la entrega final: 1444 objetos y rango de sombras ampliado. El paso d
 
 El puente temporal se **retiró de la entrega**. Para repetir las medidas:
 
-1. Crear `src/app/terrain-test/page.tsx` como página client que cargue `Scene` con `dynamic(..., { ssr: false })`, llame una vez a `resetLocalMatch()` y exponga `{ __store: useGameStore, __terrain: import * from "@/lib/terrainHeight", __scatter: generateScatter }` en `window`.
+1. Crear `src/app/terrain-test/page.tsx` como página client que cargue `Scene` con `dynamic(..., { ssr: false })`, llame una vez a `resetRun()` y exponga `{ __store: useGameStore, __terrain: import * from "@/lib/terrainHeight", __scatter: generateScatter }` en `window`.
 2. En `configureRenderer` de `Scene.tsx`, exponer `state` como `window.__render`. En el `useFrame` de `Airplane.tsx`, exponer `rb.current` como `__rb` y, con `useRapier()`, `world` y `rapier` como `__world` / `__rapier`.
 3. Copiar `output/playwright/terrain-debug-helpers.js` a `public/__terrain-helpers.js`, abrir `http://localhost:3000/terrain-test` con el panel visible (en segundo plano `requestAnimationFrame` se detiene) e importar el script. Usar `__pose(pos, yaw, pitch)` y `__perf(label, pos, yaw, pitch)` con las poses de la tabla.
 4. Para la línea base, restaurar temporalmente desde `HEAD` los archivos de juego modificados y volver a aplicar solo los puntos 2–3. Retirar todo antes de build.

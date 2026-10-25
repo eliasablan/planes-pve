@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted for the client-rendered scene boundary. Hosting and server-rendering consequences are superseded by [ADR 0014](0014-host-on-workers-and-store-survival-runs-in-d1.md).
 
 ## Date
 
