@@ -1,6 +1,7 @@
 import { playGameSound } from "../lib/gameAudio";
 import { create } from "zustand";
 import { getPickupBenefit } from "../lib/pveSupplies";
+import { WORLD_TOPOLOGY } from "../lib/worldTopology";
 
 export type KillLogEntry = {
   id: string;
@@ -62,7 +63,22 @@ export type DamageIndicator = {
   timestamp: number;
 } | null;
 
-interface GameState {
+export type FlightSnapshot = {
+  localPlayerPosition: [number, number];
+  altitude: number;
+  /** Height above the terrain surface directly below the aircraft (sea surface over water). */
+  groundClearance: number;
+  speed: number;
+  pitch: number;
+  roll: number;
+  heading: number;
+};
+
+const INITIAL_FLIGHT: FlightSnapshot = {
+  localPlayerPosition: [0, 0], altitude: 0, groundClearance: 0, speed: 0, pitch: 0, roll: 0, heading: 0,
+};
+
+interface GameState extends FlightSnapshot {
   // Player aircraft
   hp: number;
   maxHp: number;
@@ -90,17 +106,8 @@ interface GameState {
   
   killLog: KillLogEntry[];
   
-  // Flight Data
-  altitude: number;
-  /** Height above the terrain surface directly below the aircraft (sea surface over water). */
-  groundClearance: number;
-  speed: number;
-  pitch: number;
-  roll: number;
-  heading: number;
   selectedWeapon: 'mg' | 'missile';
   paused: boolean;
-  localPlayerPosition: [number, number];
   
   // Actions
   setHp: (hp: number) => void;
@@ -113,7 +120,6 @@ interface GameState {
   addLocalKill: () => void;
   setWave: (wave: number) => void;
   setEnemiesRemaining: (count: number) => void;
-  setBoundaryWarning: (message: string | null) => void;
   setDamageIndicator: (indicator: DamageIndicator) => void;
   setTargetLock: (lock: TargetLock) => void;
   setPveEnemies: (enemies: Record<string, EnemyState>) => void;
@@ -125,8 +131,7 @@ interface GameState {
   
   setSelectedWeapon: (weapon: 'mg' | 'missile') => void;
   setPaused: (paused: boolean) => void;
-  setLocalPlayerPosition: (pos: [number, number]) => void;
-  setFlightData: (data: { altitude: number, groundClearance: number, speed: number, pitch: number, roll: number, heading: number }) => void;
+  publishFlight: (snapshot: FlightSnapshot) => void;
   setGameStatus: (status: GameStatus) => void;
   setStartTime: (time: number | null) => void;
   setEndTime: (time: number | null) => void;
@@ -161,15 +166,9 @@ export const useGameStore = create<GameState>((set) => ({
   
   killLog: [],
 
-  altitude: 0,
-  groundClearance: 0,
-  speed: 0,
-  pitch: 0,
-  roll: 0,
-  heading: 0,
+  ...INITIAL_FLIGHT,
   selectedWeapon: 'mg',
   paused: false,
-  localPlayerPosition: [0, 0],
   
   // Actions
   setHp: (hp) => set({ hp }),
@@ -182,9 +181,13 @@ export const useGameStore = create<GameState>((set) => ({
   addLocalKill: () => set((state) => ({ localKills: state.localKills + 1 })),
   setWave: (wave) => set({ wave }),
   setEnemiesRemaining: (enemiesRemaining) => set({ enemiesRemaining }),
-  setBoundaryWarning: (boundaryWarning) => set({ boundaryWarning }),
   setDamageIndicator: (damageIndicator) => set({ damageIndicator }),
-  setTargetLock: (targetLock) => set({ targetLock }),
+  setTargetLock: (targetLock) => set((state) => {
+    const current = state.targetLock;
+    if (targetLock?.id === current?.id && targetLock?.inSolution === current?.inSolution &&
+      (!targetLock || !current || Math.abs(targetLock.distance - current.distance) < 10)) return state;
+    return { targetLock };
+  }),
   setPveEnemies: (pveEnemies) => set({ pveEnemies, enemiesRemaining: Object.keys(pveEnemies).length }),
   spawnPveEnemies: (enemies) => set((state) => {
     const pveEnemies = { ...state.pveEnemies };
@@ -270,15 +273,25 @@ export const useGameStore = create<GameState>((set) => ({
     }
   },
   
-  setSelectedWeapon: (selectedWeapon) => set({ selectedWeapon }),
+  setSelectedWeapon: (selectedWeapon) => set((state) => state.selectedWeapon === selectedWeapon ? state : { selectedWeapon }),
   setPaused: (paused) => set({ paused }),
-  setLocalPlayerPosition: (localPlayerPosition) => set({ localPlayerPosition }),
-  setFlightData: (data) => set(data),
+  publishFlight: (snapshot) => set((state) => {
+    const [x, z] = snapshot.localPlayerPosition;
+    const boundaryWarning = Math.hypot(x, z) > WORLD_TOPOLOGY.combatBoundary.warningRadius
+      ? "Return to combat airspace" : null;
+    const samePosition = x === state.localPlayerPosition[0] && z === state.localPlayerPosition[1];
+    if (samePosition && snapshot.altitude === state.altitude && snapshot.groundClearance === state.groundClearance &&
+      snapshot.speed === state.speed && snapshot.pitch === state.pitch && snapshot.roll === state.roll &&
+      snapshot.heading === state.heading && boundaryWarning === state.boundaryWarning) return state;
+    // Observers receive one coherent frame; retain position identity when only telemetry changes.
+    return { ...snapshot, localPlayerPosition: samePosition ? state.localPlayerPosition : [x, z], boundaryWarning };
+  }),
   setGameStatus: (status) => set({ gameStatus: status }),
   setStartTime: (time) => set({ startTime: time }),
   setEndTime: (time) => set({ endTime: time }),
 
   resetGame: () => set({
+    ...INITIAL_FLIGHT,
     hp: 100,
     ammo: 120,
     missiles: 3,

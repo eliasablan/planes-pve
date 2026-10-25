@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { Home, Play } from "lucide-react";
 import { FLIGHT_CONTROLS } from "@/lib/flightControls";
 import { resumeRun } from "@/lib/runLifecycle";
@@ -20,7 +21,9 @@ const SUPPLIES: { kind: PickupKind; restores: string; when: string }[] = [
 ];
 
 export function PauseMenu({ onExit }: { onExit?: () => void }) {
-  const { score, wave, enemiesRemaining } = useGameStore();
+  const { score, wave, enemiesRemaining } = useGameStore(useShallow(state => ({
+    score: state.score, wave: state.wave, enemiesRemaining: state.enemiesRemaining,
+  })));
   const resumeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useShallow } from "zustand/react/shallow";
 import { useGameStore } from "@/store/useGameStore";
 import { PickupIcon } from "@/components/ui/PickupIcon";
 import { PICKUP_PRESENTATION } from "@/lib/pickupPresentation";
@@ -12,41 +13,6 @@ import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 export function HUD({ display, onDisplayChange }: { display: DisplaySettings; onDisplayChange: (settings: DisplaySettings) => void }) {
-  const {
-    hp,
-    maxHp,
-    ammo,
-    maxAmmo,
-    missiles,
-    maxMissiles,
-    score,
-    altitude,
-    groundClearance,
-    speed,
-    heading,
-    selectedWeapon,
-    wave,
-    enemiesRemaining,
-    boundaryWarning,
-    localPlayerPosition,
-    pveEnemies,
-    pvePickups,
-    pvePickupReceipts,
-    damageIndicator,
-    lastEnemyHit,
-    targetLock,
-    killLog,
-  } = useGameStore();
-  const supply = findUsefulPickup(
-    pvePickups,
-    { ammo, maxAmmo, missiles, maxMissiles, hp, maxHp },
-    [localPlayerPosition[0], altitude - 5, localPlayerPosition[1]],
-    heading,
-    true,
-  );
-  const inSolution = Boolean(targetLock?.inSolution);
-  const isLowHealth = hp < 30;
-
   const [radarSize, setRadarSize] = useState(RADAR_DEFAULT_SIZE);
   useEffect(() => {
     const cycle = (event: KeyboardEvent) => {
@@ -57,35 +23,6 @@ export function HUD({ display, onDisplayChange }: { display: DisplaySettings; on
     window.addEventListener("keydown", cycle);
     return () => window.removeEventListener("keydown", cycle);
   }, []);
-
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 80);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const hitAge = damageIndicator ? now - damageIndicator.timestamp : Number.POSITIVE_INFINITY;
-  const hitOpacity = damageIndicator ? Math.max(0, 1 - hitAge / 850) * damageIndicator.intensity : 0;
-
-  // Track wave changes during render instead of in an effect.
-  const [seenWave, setSeenWave] = useState(wave);
-  const [waveAnnouncedAt, setWaveAnnouncedAt] = useState<number | null>(null);
-  if (wave !== seenWave) {
-    setSeenWave(wave);
-    setWaveAnnouncedAt(wave > seenWave ? now : null);
-  }
-  const waveAnnouncement = waveAnnouncedAt !== null && now - waveAnnouncedAt < 2600 ? wave : null;
-
-  const visibleReceipts = pvePickupReceipts.filter((receipt) => now - receipt.collectedAt < 3200);
-  const visibleKills = killLog.filter((k) => now - k.timestamp < 3200);
-  const notifications = [
-    ...visibleKills.map(kill => ({ type: "kill" as const, key: `kill:${kill.id}`, timestamp: kill.timestamp, kill })),
-    ...visibleReceipts.map(receipt => ({ type: "pickup" as const, key: `pickup:${receipt.id}`, timestamp: receipt.collectedAt, receipt })),
-  ].sort((a, b) => a.timestamp - b.timestamp);
-
-  const enemyHitAge = lastEnemyHit ? now - lastEnemyHit.timestamp : Number.POSITIVE_INFINITY;
-  const enemyHitWindow = lastEnemyHit?.kill ? 560 : 320;
-  const enemyHitOpacity = Math.max(0, 1 - enemyHitAge / enemyHitWindow);
 
   return (
     <div data-combat-hud style={{ "--radar-scale": RADAR_SCALES[radarSize], width: `${10000 / display.hudScale}%`, height: `${10000 / display.hudScale}%`, transform: `scale(${display.hudScale / 100})`, transformOrigin: "top left" } as CSSProperties} className="pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden p-4 text-wf-ink sm:p-6">
@@ -145,179 +82,300 @@ export function HUD({ display, onDisplayChange }: { display: DisplaySettings; on
           [data-display-controls] > button { width: 30px; }
         }
       `}</style>
-      {/* Health vignette */}
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          opacity: Math.max(0, (100 - hp) / 100),
-          background: "radial-gradient(circle, transparent 42%, rgba(246,95,95,0.24) 100%)",
-        }}
-      />
-
-      {/* Critical health pulse border */}
-      {isLowHealth && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            boxShadow: "inset 0 0 60px rgba(246,95,95,0.22)",
-            animation: "title-flicker 1.6s ease-in-out infinite",
-          }}
-        />
-      )}
-
-      {/* Damage direction flash */}
-      {damageIndicator && hitOpacity > 0 && (
-        <div
-          className="absolute inset-0"
-          style={{
-            opacity: hitOpacity,
-            background: hitGradient(damageIndicator.angle),
-            boxShadow: `inset 0 0 ${24 + hitOpacity * 48}px rgba(246,95,95,${0.28 + hitOpacity * 0.34})`,
-          }}
-        />
-      )}
-
-      {/* Wave announcement */}
-      {waveAnnouncement !== null && (
-        <div
-          className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-start pt-[16vh]"
-          style={{ animation: "wave-announce 2.6s ease-out forwards" }}
-        >
-          <div className="text-center">
-            <div className="text-xs text-wf-dim">INCOMING_WAVE</div>
-            <div
-              className="mt-2 text-7xl font-light leading-none sm:text-8xl"
-              style={{ textShadow: "0 0 2px #000, 0 0 40px rgba(0,0,0,0.6)" }}
-            >
-              Wave {"// "}{waveAnnouncement.toString().padStart(2, "0")}
-            </div>
-            <div className="mt-3 text-xs text-wf-dim">ELIMINATE_ALL_CONTACTS</div>
-          </div>
-        </div>
-      )}
-
-      {/* Heading tape */}
-      <CompassTape heading={heading} />
-
-      {/* Top row */}
+      <HealthVignette />
+      <DamageFlash />
+      <WaveAnnouncement />
+      <CompassTape />
       <div className="relative z-10 flex items-start justify-between gap-4">
-        <div data-hud-metrics className="grid gap-3 sm:grid-cols-3">
-          <Metric label="SCORE" value={score.toString().padStart(6, "0")} />
-          <Metric label="WAVE" value={wave.toString().padStart(2, "0")} />
-          <Metric label="ENEMIES" value={enemiesRemaining.toString().padStart(2, "0")} />
-        </div>
-
-        <div className="flex items-start gap-3">
-          <CombatRadar enemies={pveEnemies} pickups={pvePickups} position={localPlayerPosition} heading={heading} selectedId={supply?.pickup.id} />
-
-
-        </div>
+        <CombatMetrics />
+        <div className="flex items-start gap-3"><HudRadar /></div>
       </div>
-
-      {/* Center: crosshair + enemy arrows + alerts */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
-        <div className={`relative h-20 w-20 transition-all duration-150 ${inSolution ? "scale-90 opacity-100" : "opacity-75"}`}>
-          <Reticle inSolution={inSolution} />
-          {/* Hit ring flash */}
-          {damageIndicator && hitOpacity > 0.1 && (
-            <div
-              className="absolute left-1/2 top-1/2 h-24 w-24 border border-wf-danger"
-              style={{
-                opacity: hitOpacity * 0.7,
-                transform: `translate(-50%, -50%) scale(${1 + (1 - hitOpacity) * 0.5})`,
-              }}
-            />
-          )}
-          {/* Outgoing hit marker */}
-          {enemyHitOpacity > 0 && (
-            <HitMarker kill={Boolean(lastEnemyHit?.kill)} opacity={enemyHitOpacity} />
-          )}
-        </div>
-
-        {nearestEnemies(pveEnemies, localPlayerPosition).map((enemy) => (
-          <NearbyEnemyArrow
-            key={enemy.id}
-            enemy={enemy}
-            heading={heading}
-            localPlayerPosition={localPlayerPosition}
-          />
-        ))}
-
-        {boundaryWarning && (
-          <div className="flex items-center gap-3 border border-wf-danger bg-black/70 px-5 py-3 text-sm font-medium text-wf-danger">
-            <AlertTriangle className="h-4 w-4" />
-            {boundaryWarning}
-          </div>
-        )}
-
-        {isLowHealth && (
-          <div
-            className="border border-wf-danger bg-wf-danger px-6 py-3 text-sm font-semibold text-black"
-            style={{ animation: "title-flicker 1.2s ease-in-out infinite" }}
-          >
-            AIRFRAME_CRITICAL
-          </div>
-        )}
-      </div>
-
-      <div data-hud-notifications className="absolute right-4 top-36 z-10 flex w-[min(48vw,240px)] flex-col gap-1 sm:right-6 sm:top-36 [@media(max-height:500px)]:top-4 [@media(max-height:500px)]:w-48">
-        <div role="log" aria-label="Flight notifications" aria-live="polite" aria-relevant="additions" className="flex flex-col gap-1">
-          {notifications.map(notification => {
-            const age = now - notification.timestamp;
-            const receipt = notification.type === "pickup" ? notification.receipt : null;
-            const presentation = receipt ? PICKUP_PRESENTATION[receipt.kind] : null;
-            return (
-              <div key={notification.key} data-flight-notification={notification.type} className="flex items-center gap-2 border-l-2 bg-black/70 px-2.5 py-2 text-xs" style={{ borderColor: presentation?.color ?? "#f2f2f0", opacity: Math.min(1, (3200 - age) / 450) }}>
-                {receipt && presentation ? <>
-                  <PickupIcon kind={receipt.kind} className="h-5 w-5 shrink-0 text-white" />
-                  <span>{receipt.amount > 0 ? `+${formatBenefit(receipt.amount)} ${presentation.unit} collected` : `${presentation.label} full · collected`}</span>
-                </> : notification.type === "kill" ? <>
-                  <Crosshair aria-hidden="true" className="h-5 w-5 shrink-0 text-wf-ink" />
-                  <span>{notification.kill.victim} destroyed</span>
-                </> : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Bottom row */}
+      <AimGuidance />
+      <FlightNotifications />
       <div data-hud-resources className="relative z-10 flex flex-col gap-4 max-sm:gap-2 sm:flex-row sm:items-end sm:justify-between [@media(max-height:500px)]:flex-row [@media(max-height:500px)]:items-end [@media(max-height:500px)]:justify-between">
         <div data-hud-flight className="flex flex-wrap gap-3 max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
-          <Telemetry icon={<Gauge />} label="ALTITUDE" value={Math.round(altitude)} unit="ft" detail={`ABOVE_GROUND ${Math.round(groundClearance)}`} />
-          <Telemetry icon={<Target />} label="SPEED" value={Math.round(speed)} unit="kmh" />
-          <div data-hud-health
-            className={`wf-frame flex min-w-64 flex-col justify-center p-4 transition-colors max-sm:min-w-32 max-sm:p-2 [@media(max-height:500px)]:min-w-28 [@media(max-height:500px)]:p-2 ${
-              isLowHealth ? "border-wf-danger" : ""
-            }`}
-          >
-            <div className="mb-3 flex items-center justify-between max-sm:mb-1 [@media(max-height:500px)]:mb-1">
-              <span className="flex items-center gap-2 text-[11px] font-medium text-wf-dim">
-                <HeartPulse className={`h-4 w-4 ${isLowHealth ? "text-wf-danger" : "text-wf-ink"}`} />
-                HEALTH
-              </span>
-              <span
-                className={`text-3xl font-light leading-none ${isLowHealth ? "text-wf-danger" : "text-wf-ink"}`}
-                style={isLowHealth ? { animation: "title-flicker 1.4s ease-in-out infinite" } : undefined}
-              >
-                {hp}%
-              </span>
-            </div>
-            <Progress
-              value={hp}
-              className={`h-[3px] rounded-none bg-wf-hair ${isLowHealth ? "[&>div]:bg-wf-danger" : "[&>div]:bg-wf-ink"}`}
-            />
-          </div>
+          <FlightReadouts />
+          <HealthReadout />
         </div>
-
         <div data-hud-weapons className="flex flex-wrap justify-end gap-3 max-sm:justify-start max-sm:gap-2 [@media(max-height:500px)]:gap-1.5">
-          <Weapon label="MG" count={ammo} low={ammo < 25} active={selectedWeapon === "mg"} shortcut="1" icon={<Shell />} />
-          <Weapon label="MISSILE" count={missiles} low={missiles === 0} active={selectedWeapon === "missile"} shortcut="2" icon={<Rocket />} />
+          <WeaponReadouts />
           <GameDisplayControls settings={display} onChange={onDisplayChange} />
         </div>
       </div>
     </div>
   );
+}
+
+// Only short-lived feedback owns a clock. Expired effects leave no idle interval running.
+function useFeedbackClock(expiresAt: number) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 80);
+    const timeout = window.setTimeout(() => {
+      setNow(Date.now());
+      window.clearInterval(interval);
+    }, remaining + 1);
+    return () => { window.clearInterval(interval); window.clearTimeout(timeout); };
+  }, [expiresAt]);
+  return now;
+}
+
+function HealthVignette() {
+  const hp = useGameStore(state => state.hp);
+  const isLowHealth = hp < 30;
+  return <>
+    {/* Health vignette */}
+    <div
+      className="absolute inset-0 transition-opacity duration-700"
+      style={{
+        opacity: Math.max(0, (100 - hp) / 100),
+        background: "radial-gradient(circle, transparent 42%, rgba(246,95,95,0.24) 100%)",
+      }}
+    />
+
+    {/* Critical health pulse border */}
+    {isLowHealth && (
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          boxShadow: "inset 0 0 60px rgba(246,95,95,0.22)",
+          animation: "title-flicker 1.6s ease-in-out infinite",
+        }}
+      />
+    )}
+  </>;
+}
+
+function DamageFlash() {
+  const damageIndicator = useGameStore(state => state.damageIndicator);
+  const timestamp = damageIndicator?.timestamp ?? 0;
+  const now = Math.max(useFeedbackClock(timestamp + 850), timestamp);
+  const hitOpacity = damageIndicator ? Math.max(0, 1 - (now - timestamp) / 850) * damageIndicator.intensity : 0;
+  return <>
+    {/* Damage direction flash */}
+    {damageIndicator && hitOpacity > 0 && (
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: hitOpacity,
+          background: hitGradient(damageIndicator.angle),
+          boxShadow: `inset 0 0 ${24 + hitOpacity * 48}px rgba(246,95,95,${0.28 + hitOpacity * 0.34})`,
+        }}
+      />
+    )}
+  </>;
+}
+
+function WaveAnnouncement() {
+  const wave = useGameStore(state => state.wave);
+  const [seenWave, setSeenWave] = useState(wave);
+  const [announcedWave, setAnnouncedWave] = useState<number | null>(null);
+  if (wave !== seenWave) {
+    setSeenWave(wave);
+    setAnnouncedWave(wave > seenWave ? wave : null);
+  }
+  return announcedWave === null ? null : <WaveBanner key={announcedWave} wave={announcedWave} />;
+}
+
+function WaveBanner({ wave }: { wave: number }) {
+  const [announcedAt] = useState(Date.now);
+  const now = useFeedbackClock(announcedAt + 2600);
+  const waveAnnouncement = now - announcedAt < 2600 ? wave : null;
+  return <>
+    {/* Wave announcement */}
+    {waveAnnouncement !== null && (
+      <div
+        className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-start pt-[16vh]"
+        style={{ animation: "wave-announce 2.6s ease-out forwards" }}
+      >
+        <div className="text-center">
+          <div className="text-xs text-wf-dim">INCOMING_WAVE</div>
+          <div
+            className="mt-2 text-7xl font-light leading-none sm:text-8xl"
+            style={{ textShadow: "0 0 2px #000, 0 0 40px rgba(0,0,0,0.6)" }}
+          >
+            Wave {"// "}{waveAnnouncement.toString().padStart(2, "0")}
+          </div>
+          <div className="mt-3 text-xs text-wf-dim">ELIMINATE_ALL_CONTACTS</div>
+        </div>
+      </div>
+    )}
+  </>;
+}
+
+function CombatMetrics() {
+  const { score, wave, enemiesRemaining } = useGameStore(useShallow(state => ({
+    score: state.score, wave: state.wave, enemiesRemaining: state.enemiesRemaining,
+  })));
+  return <div data-hud-metrics className="grid gap-3 sm:grid-cols-3">
+    <Metric label="SCORE" value={score.toString().padStart(6, "0")} />
+    <Metric label="WAVE" value={wave.toString().padStart(2, "0")} />
+    <Metric label="ENEMIES" value={enemiesRemaining.toString().padStart(2, "0")} />
+  </div>;
+}
+
+function HudRadar() {
+  const { pveEnemies, pvePickups, localPlayerPosition, altitude, heading, ammo, maxAmmo, missiles, maxMissiles, hp, maxHp } = useGameStore(useShallow(state => ({
+    pveEnemies: state.pveEnemies, pvePickups: state.pvePickups, localPlayerPosition: state.localPlayerPosition,
+    altitude: state.altitude, heading: state.heading, ammo: state.ammo, maxAmmo: state.maxAmmo,
+    missiles: state.missiles, maxMissiles: state.maxMissiles, hp: state.hp, maxHp: state.maxHp,
+  })));
+  const supply = findUsefulPickup(pvePickups, { ammo, maxAmmo, missiles, maxMissiles, hp, maxHp },
+    [localPlayerPosition[0], altitude - 5, localPlayerPosition[1]], heading, true);
+  return <CombatRadar enemies={pveEnemies} pickups={pvePickups} position={localPlayerPosition} heading={heading} selectedId={supply?.pickup.id} />;
+}
+
+function AimGuidance() {
+  const { inSolution, isLowHealth, boundaryWarning } = useGameStore(useShallow(state => ({
+    inSolution: Boolean(state.targetLock?.inSolution), isLowHealth: state.hp < 30, boundaryWarning: state.boundaryWarning,
+  })));
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
+      <div className={`relative h-20 w-20 transition-all duration-150 ${inSolution ? "scale-90 opacity-100" : "opacity-75"}`}>
+        <Reticle inSolution={inSolution} />
+        <HitFeedback />
+      </div>
+
+      <EnemyDirections />
+
+      {boundaryWarning && (
+        <div className="flex items-center gap-3 border border-wf-danger bg-black/70 px-5 py-3 text-sm font-medium text-wf-danger">
+          <AlertTriangle className="h-4 w-4" />
+          {boundaryWarning}
+        </div>
+      )}
+
+      {isLowHealth && (
+        <div
+          className="border border-wf-danger bg-wf-danger px-6 py-3 text-sm font-semibold text-black"
+          style={{ animation: "title-flicker 1.2s ease-in-out infinite" }}
+        >
+          AIRFRAME_CRITICAL
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EnemyDirections() {
+  const { pveEnemies, localPlayerPosition, heading } = useGameStore(useShallow(state => ({
+    pveEnemies: state.pveEnemies, localPlayerPosition: state.localPlayerPosition, heading: state.heading,
+  })));
+  return nearestEnemies(pveEnemies, localPlayerPosition).map(enemy =>
+    <NearbyEnemyArrow key={enemy.id} enemy={enemy} heading={heading} localPlayerPosition={localPlayerPosition} />);
+}
+
+function HitFeedback() {
+  const { damageIndicator, lastEnemyHit } = useGameStore(useShallow(state => ({
+    damageIndicator: state.damageIndicator, lastEnemyHit: state.lastEnemyHit,
+  })));
+  const damageAt = damageIndicator?.timestamp ?? 0;
+  const enemyHitAt = lastEnemyHit?.timestamp ?? 0;
+  const enemyHitWindow = lastEnemyHit?.kill ? 560 : 320;
+  const now = Math.max(useFeedbackClock(Math.max(damageAt + 850, enemyHitAt + enemyHitWindow)), damageAt, enemyHitAt);
+  const hitOpacity = damageIndicator ? Math.max(0, 1 - (now - damageAt) / 850) * damageIndicator.intensity : 0;
+  const enemyHitOpacity = Math.max(0, 1 - (now - enemyHitAt) / enemyHitWindow);
+  return <>
+    {/* Hit ring flash */}
+    {damageIndicator && hitOpacity > 0.1 && (
+      <div
+        className="absolute left-1/2 top-1/2 h-24 w-24 border border-wf-danger"
+        style={{
+          opacity: hitOpacity * 0.7,
+          transform: `translate(-50%, -50%) scale(${1 + (1 - hitOpacity) * 0.5})`,
+        }}
+      />
+    )}
+    {/* Outgoing hit marker */}
+    {enemyHitOpacity > 0 && (
+      <HitMarker kill={Boolean(lastEnemyHit?.kill)} opacity={enemyHitOpacity} />
+    )}
+  </>;
+}
+
+function FlightNotifications() {
+  const { pvePickupReceipts, killLog } = useGameStore(useShallow(state => ({
+    pvePickupReceipts: state.pvePickupReceipts, killLog: state.killLog,
+  })));
+  const latest = Math.max(0, ...pvePickupReceipts.map(receipt => receipt.collectedAt), ...killLog.map(kill => kill.timestamp));
+  const now = Math.max(useFeedbackClock(latest + 3200), latest);
+  const notifications = [
+    ...killLog.filter(kill => now - kill.timestamp < 3200).map(kill => ({ type: "kill" as const, key: `kill:${kill.id}`, timestamp: kill.timestamp, kill })),
+    ...pvePickupReceipts.filter(receipt => now - receipt.collectedAt < 3200).map(receipt => ({ type: "pickup" as const, key: `pickup:${receipt.id}`, timestamp: receipt.collectedAt, receipt })),
+  ].sort((a, b) => a.timestamp - b.timestamp);
+  return (
+    <div data-hud-notifications className="absolute right-4 top-36 z-10 flex w-[min(48vw,240px)] flex-col gap-1 sm:right-6 sm:top-36 [@media(max-height:500px)]:top-4 [@media(max-height:500px)]:w-48">
+      <div role="log" aria-label="Flight notifications" aria-live="polite" aria-relevant="additions" className="flex flex-col gap-1">
+        {notifications.map(notification => {
+          const age = now - notification.timestamp;
+          const receipt = notification.type === "pickup" ? notification.receipt : null;
+          const presentation = receipt ? PICKUP_PRESENTATION[receipt.kind] : null;
+          return (
+            <div key={notification.key} data-flight-notification={notification.type} className="flex items-center gap-2 border-l-2 bg-black/70 px-2.5 py-2 text-xs" style={{ borderColor: presentation?.color ?? "#f2f2f0", opacity: Math.min(1, (3200 - age) / 450) }}>
+              {receipt && presentation ? <>
+                <PickupIcon kind={receipt.kind} className="h-5 w-5 shrink-0 text-white" />
+                <span>{receipt.amount > 0 ? `+${formatBenefit(receipt.amount)} ${presentation.unit} collected` : `${presentation.label} full · collected`}</span>
+              </> : notification.type === "kill" ? <>
+                <Crosshair aria-hidden="true" className="h-5 w-5 shrink-0 text-wf-ink" />
+                <span>{notification.kill.victim} destroyed</span>
+              </> : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FlightReadouts() {
+  const { altitude, groundClearance, speed } = useGameStore(useShallow(state => ({
+    altitude: Math.round(state.altitude), groundClearance: Math.round(state.groundClearance), speed: Math.round(state.speed),
+  })));
+  return <>
+    <Telemetry icon={<Gauge />} label="ALTITUDE" value={altitude} unit="ft" detail={`ABOVE_GROUND ${groundClearance}`} />
+    <Telemetry icon={<Target />} label="SPEED" value={speed} unit="kmh" />
+  </>;
+}
+
+function HealthReadout() {
+  const hp = useGameStore(state => state.hp);
+  const isLowHealth = hp < 30;
+  return (
+    <div data-hud-health
+      className={`wf-frame flex min-w-64 flex-col justify-center p-4 transition-colors max-sm:min-w-32 max-sm:p-2 [@media(max-height:500px)]:min-w-28 [@media(max-height:500px)]:p-2 ${
+        isLowHealth ? "border-wf-danger" : ""
+      }`}
+    >
+      <div className="mb-3 flex items-center justify-between max-sm:mb-1 [@media(max-height:500px)]:mb-1">
+        <span className="flex items-center gap-2 text-[11px] font-medium text-wf-dim">
+          <HeartPulse className={`h-4 w-4 ${isLowHealth ? "text-wf-danger" : "text-wf-ink"}`} />
+          HEALTH
+        </span>
+        <span
+          className={`text-3xl font-light leading-none ${isLowHealth ? "text-wf-danger" : "text-wf-ink"}`}
+          style={isLowHealth ? { animation: "title-flicker 1.4s ease-in-out infinite" } : undefined}
+        >
+          {hp}%
+        </span>
+      </div>
+      <Progress
+        value={hp}
+        className={`h-[3px] rounded-none bg-wf-hair ${isLowHealth ? "[&>div]:bg-wf-danger" : "[&>div]:bg-wf-ink"}`}
+      />
+    </div>
+  );
+}
+
+function WeaponReadouts() {
+  const { ammo, missiles, selectedWeapon } = useGameStore(useShallow(state => ({
+    ammo: state.ammo, missiles: state.missiles, selectedWeapon: state.selectedWeapon,
+  })));
+  return <>
+    <Weapon label="MG" count={ammo} low={ammo < 25} active={selectedWeapon === "mg"} shortcut="1" icon={<Shell />} />
+    <Weapon label="MISSILE" count={missiles} low={missiles === 0} active={selectedWeapon === "missile"} shortcut="2" icon={<Rocket />} />
+  </>;
 }
 
 function formatBenefit(amount: number) {
@@ -515,7 +573,8 @@ const COMPASS_PX_PER_DEG = 3;
 const COMPASS_LABELS: Record<number, string> = { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" };
 const COMPASS_TICKS = Array.from({ length: 49 }, (_, index) => index * 15 - 180);
 
-function CompassTape({ heading }: { heading: number }) {
+function CompassTape() {
+  const heading = useGameStore(state => state.heading);
   // Yaw is counter-clockwise from -Z; compass bearings run clockwise from north (-Z).
   const bearing = (((-heading) % 360) + 360) % 360;
 

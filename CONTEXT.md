@@ -143,6 +143,10 @@ The homepage is a client component with the start screen and links to the global
 
 Zustand bridges the frame-based simulation and React UI. It holds aircraft resources and telemetry, enemies, pickups, wave progression, score, combat feedback, and run timestamps. The run lifecycle helpers start, pause, resume, finish, and reset a run. Its states are `idle` (start screen), `playing`, and `finished`.
 
+Flight publishes position and full-precision telemetry together through `publishFlight`; the store derives the combat-boundary warning in the same observable update. Identical frames and held weapon selections do not publish redundant updates, and target-lock publication retains the existing ten-unit distance threshold while reporting target or firing-solution changes immediately. A reset clears flight data along with the previous run's combat feedback. Simulation inputs still update every frame.
+
+The Combat HUD keeps subscriptions local to the readout: radar and enemy directions follow movement, the compass follows heading, flight instruments follow their rounded display values, and score, health, weapons, and aiming feedback follow their own state. Short-lived damage flashes, hit markers, wave announcements, and collection/kill notifications own local wall-clock timers that stop at expiry. Those visual effects continue to expire while flight is paused. The HUD layout has no whole-store subscription or permanent refresh timer.
+
 ## Run And Wave Progression
 
 The Wave progression module owns initial wave creation, enemy movement and attack deadlines, wave clear rewards, resupply, and pickup collection. `PveDirector` supplies frame time and renders the shared state. Progression deadlines use active run time from the lifecycle clock, so pauses preserve their remaining wait even if no frame renders while paused. Timers for removed enemies are discarded. Enemy damage resolves before collection; defeat prevents repairs and further attack feedback in that frame. The game and Worker validation share wave counts, clear bonuses, and the inter-wave interval from `pveRules.ts`.
@@ -214,11 +218,11 @@ ADRs preserve the context and reasoning of their original decisions. Read each s
 - `src/components/game/Environment.tsx`: terrain mesh and collider, ocean, instanced vegetation, lighting, clouds, and fog
 - `src/components/game/AirplaneModel.tsx`: shared aircraft appearance with role colors and scale supplied by the scene
 - `src/components/game/Projectiles.tsx`: visual machine-gun tracers; hit resolution happens when firing
-- `src/components/ui/HUD.tsx`: combat readouts, radar, compass, aiming feedback, damage feedback, and kill feed
+- `src/components/ui/HUD.tsx`: focused combat readouts, radar, compass, aiming feedback, and local expiry of visual feedback and notifications
 - `src/components/ui/GameOver.tsx`: run summary, qualifying name entry, score save, and replay/exit actions
 - `src/components/ui/GlobalScoreboardPanel.tsx`: global score loading, unavailable state and retry
 - `src/components/ui/LocalScoreboardTable.tsx`: shared ranking table, retaining its original filename
-- `src/store/useGameStore.ts`: runtime state, enemy damage and kill scoring, resource collection, and reset
+- `src/store/useGameStore.ts`: coherent flight publication, runtime state, enemy damage and kill scoring, resource collection, and reset
 - `src/lib/runLifecycle.ts`: run timestamps, pause/resume, lifecycle transitions and result submission
 - `src/lib/gameAudio.ts`: procedural effects, shared audio context, voice cleanup, mix limits, and local audio preferences
 - `src/components/ui/GameAudioControls.tsx`: accessible volume and mute controls shared by entry and HUD settings

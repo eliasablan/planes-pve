@@ -201,8 +201,7 @@ describe("Wave progression through the frame interface", () => {
     expect(state().missiles).toBe(3);
     run.step(10_000);
     expect(Object.keys(state().pvePickups)).toEqual([crate.id]);
-    state().setLocalPlayerPosition([crate.position[0], crate.position[2]]);
-    state().setFlightData({ altitude: crate.position[1] + 5, groundClearance: 500, speed: 0, pitch: 0, roll: 0, heading: 0 });
+    state().publishFlight({ localPlayerPosition: [crate.position[0], crate.position[2]], altitude: crate.position[1] + 5, groundClearance: 500, speed: 0, pitch: 0, roll: 0, heading: 0 });
     run.step();
     expect(state().ammo).toBe(60);
     expect(state().pvePickups).toEqual({});

@@ -41,7 +41,7 @@ export function Airplane() {
   const invulnerabilityDuration = 3000;
   const lastDamage = useRef(0);
 
-  const { warningRadius, damageRadius } = WORLD_TOPOLOGY.combatBoundary;
+  const { damageRadius } = WORLD_TOPOLOGY.combatBoundary;
 
   useEffect(() => {
     spawnTime.current = Date.now();
@@ -58,8 +58,6 @@ export function Airplane() {
     const translation = rb.current.translation();
     const basis = getFlightBasis(rotation);
     
-    game.setLocalPlayerPosition([translation.x, translation.z]);
-
     const currentSpeed = getBodySpeed(rb.current);
     
     if (translation.y < WORLD_TOPOLOGY.seaLevel + 0.5) {
@@ -77,7 +75,10 @@ export function Airplane() {
     }
 
     // 6. TELEMETRY
-    game.setFlightData(getFlightTelemetry(translation, currentSpeed, basis.rotation));
+    game.publishFlight({
+      localPlayerPosition: [translation.x, translation.z],
+      ...getFlightTelemetry(translation, currentSpeed, basis.rotation),
+    });
 
     // 7. TARGET LOCK
     const { lock, fired } = firing.update({
@@ -86,14 +87,7 @@ export function Airplane() {
       origin: [translation.x, translation.y, translation.z],
       forward: [basis.forward.x, basis.forward.y, basis.forward.z],
     });
-    const currentLock = useGameStore.getState().targetLock;
-    if (
-      lock?.id !== currentLock?.id ||
-      lock?.inSolution !== currentLock?.inSolution ||
-      (lock && currentLock && Math.abs(lock.distance - currentLock.distance) >= 10)
-    ) {
-      game.setTargetLock(lock);
-    }
+    game.setTargetLock(lock);
 
     // Tracers remain visual feedback for accepted machine-gun shots.
     const now = Date.now();
@@ -104,12 +98,6 @@ export function Airplane() {
     }
 
     const distToCenter = Math.sqrt(translation.x * translation.x + translation.z * translation.z);
-    if (distToCenter > warningRadius) {
-      game.setBoundaryWarning("Return to combat airspace");
-    } else {
-      game.setBoundaryWarning(null);
-    }
-
     if (distToCenter > damageRadius && now - lastDamage.current > 1000) {
       lastDamage.current = now;
       applyLocalDamage(DAMAGE.boundary);
