@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { useGameStore, type PickupState } from "../store/useGameStore";
-import { resetLocalMatch, startLocalMatch } from "./matchLifecycle";
+import { resetRun, startRun } from "./runLifecycle";
 import { findUsefulPickup, getPickupBenefit } from "./pveSupplies";
 
 const resources = { ammo: 120, maxAmmo: 180, missiles: 3, maxMissiles: 5, hp: 100, maxHp: 100 };
@@ -102,8 +102,8 @@ describe("pickup collection receipts", () => {
     expect(useGameStore.getState().pvePickupReceipts).toHaveLength(32);
     expect(useGameStore.getState().pvePickupReceipts[0].id).toBe("8");
     state.spawnPvePickups([pickup("remaining", "ammo")]);
-    resetLocalMatch();
-    startLocalMatch();
+    resetRun();
+    startRun();
     const restarted = useGameStore.getState();
     expect(restarted.pvePickups).toEqual({});
     expect(restarted.pvePickupReceipts).toEqual([]);

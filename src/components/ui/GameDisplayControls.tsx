@@ -1,7 +1,7 @@
 "use client";
 
 import { Maximize, Minimize, Pause, Settings2, X } from "lucide-react";
-import { pauseLocalMatch } from "@/lib/matchLifecycle";
+import { pauseRun } from "@/lib/runLifecycle";
 import { useEffect, useId, useState } from "react";
 import { GameAudioControls } from "./GameAudioControls";
 
@@ -74,7 +74,7 @@ export function GameDisplayControls({ settings, onChange }: {
       if (event.key === "Escape") { event.stopPropagation(); closePanel(); }
       else if (event.target instanceof HTMLElement && (event.target.matches("input,select,textarea") || event.key === " ")) event.stopPropagation();
     }} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onMouseMove={event => event.stopPropagation()}>
-      <button aria-label="Pause" title="Pause [P]" onClick={pauseLocalMatch} className="wf-frame flex w-10 items-center justify-center text-wf-ink hover:border-wf-ink">
+      <button aria-label="Pause" title="Pause [P]" onClick={pauseRun} className="wf-frame flex w-10 items-center justify-center text-wf-ink hover:border-wf-ink">
         <Pause className="h-4 w-4" />
       </button>
       <button aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} title="Fullscreen [F]" onClick={toggleFullscreen} className="wf-frame flex w-10 items-center justify-center text-wf-ink hover:border-wf-ink">

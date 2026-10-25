@@ -198,7 +198,7 @@ function EnemyAircraft({ enemy }: { enemy: EnemyState }) {
 
   return (
     <group position={enemy.position} rotation={[0, enemy.heading + Math.PI, 0]} scale={stats.scale}>
-      <AirplaneModel hp={enemy.hp} variant="remote" playerColor={stats.color} />
+      <AirplaneModel hp={enemy.hp} variant="enemy" playerColor={stats.color} />
       <Text position={[0, 2.6, 0]} fontSize={0.42} color={stats.color} anchorX="center" anchorY="middle">
         {enemy.role.toUpperCase()}
       </Text>

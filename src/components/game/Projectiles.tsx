@@ -1,7 +1,6 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { RigidBody, RapierRigidBody, vec3 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useGameStore } from "@/store/useGameStore";
@@ -10,7 +9,6 @@ import { hasTerrainLineOfSight } from "@/lib/terrainHeight";
 interface BulletProps {
   position: [number, number, number];
   rotation: [number, number, number, number];
-  onHit: () => void;
 }
 
 const TRACER_SPEED = 420;
@@ -63,51 +61,4 @@ export function Bullet({ position, rotation }: BulletProps) {
       </mesh>
     </group>
   );
-}
-
-export function Missile({ position, rotation, onHit }: BulletProps & { targetId?: string }) {
-  const rb = useRef<RapierRigidBody>(null);
-  const [alive, setAlive] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setAlive(false), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useFrame(() => {
-    if (!rb.current || !alive || useGameStore.getState().paused) return;
-    const q = new THREE.Quaternion(...rotation);
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-    rb.current.setLinvel(vec3(forward).multiplyScalar(50), true);
-    // Simple homing logic could be added here
-  });
-
-  if (!alive) return null;
-
-  return (
-    <RigidBody
-      ref={rb}
-      position={position}
-      rotation={quaternionToEulerTuple(rotation)}
-      sensor
-      onIntersectionEnter={onHit}
-      colliders="ball"
-    >
-      <group>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.5]} />
-          <meshStandardMaterial color="red" />
-        </mesh>
-        <mesh position={[0, 0, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.1, 0.2]} />
-          <meshStandardMaterial color="darkred" />
-        </mesh>
-      </group>
-    </RigidBody>
-  );
-}
-
-function quaternionToEulerTuple(rotation: [number, number, number, number]) {
-  const euler = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(...rotation));
-  return [euler.x, euler.y, euler.z] as [number, number, number];
 }

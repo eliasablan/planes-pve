@@ -10,12 +10,10 @@ export type Controls = {
   yawLeft: boolean;
   yawRight: boolean;
   fire: boolean;
-  flare: boolean;
   brake: boolean;
   selectMG: boolean;
   selectMissile: boolean;
   mouseControlEnabled: boolean;
-  showLargeMap: boolean;
   mouseX: number;
   mouseY: number;
 };
@@ -31,12 +29,10 @@ export function useControls() {
     yawLeft: false,
     yawRight: false,
     fire: false,
-    flare: false,
     brake: false,
     selectMG: false,
     selectMissile: false,
     mouseControlEnabled: true,
-    showLargeMap: false,
     mouseX: 0,
     mouseY: 0,
   });
@@ -57,12 +53,8 @@ export function useControls() {
         case " ": setControls((c) => ({ ...c, fire: true })); break;
         case "1": setControls((c) => ({ ...c, selectMG: true })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: true })); break;
-        case "x": setControls((c) => ({ ...c, flare: true })); break;
         case "o": 
           if (!e.repeat) setControls((c) => ({ ...c, mouseControlEnabled: !c.mouseControlEnabled })); 
-          break;
-        case "m": 
-          if (!e.repeat) setControls((c) => ({ ...c, showLargeMap: !c.showLargeMap })); 
           break;
       }
     };
@@ -81,7 +73,6 @@ export function useControls() {
         case " ": setControls((c) => ({ ...c, fire: false })); break;
         case "1": setControls((c) => ({ ...c, selectMG: false })); break;
         case "2": setControls((c) => ({ ...c, selectMissile: false })); break;
-        case "x": setControls((c) => ({ ...c, flare: false })); break;
       }
     };
 
@@ -101,7 +92,7 @@ export function useControls() {
       if (e.button === 0) setControls((c) => ({ ...c, fire: false }));
     };
 
-    const releaseInput = () => setControls(c => ({ ...c, throttleUp: false, throttleDown: false, rollLeft: false, rollRight: false, pitchUp: false, pitchDown: false, yawLeft: false, yawRight: false, fire: false, flare: false, brake: false, selectMG: false, selectMissile: false }));
+    const releaseInput = () => setControls(c => ({ ...c, throttleUp: false, throttleDown: false, rollLeft: false, rollRight: false, pitchUp: false, pitchDown: false, yawLeft: false, yawRight: false, fire: false, brake: false, selectMG: false, selectMissile: false }));
     window.addEventListener("blur", releaseInput);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);

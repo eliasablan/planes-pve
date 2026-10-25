@@ -6,7 +6,7 @@ import { MutableRefObject, Suspense, useEffect, useMemo, useRef, useState } from
 import * as THREE from "three";
 import { useGameStore } from "@/store/useGameStore";
 
-type AirplaneVariant = "local" | "remote";
+type AirplaneVariant = "player" | "enemy";
 
 const PIXABAY_BIPLANE_PATH = "/assets/game/models/airplanes/pixabay-biplane-low-poly-131.glb";
 
@@ -19,7 +19,7 @@ interface AirplaneModelProps {
 
 export function AirplaneModel({
   hp,
-  variant = "local",
+  variant = "player",
   playerColor = "#d9e2ec",
   propellerRef,
 }: AirplaneModelProps) {
@@ -53,7 +53,7 @@ export function AirplaneModel({
 
 function PixabayBiplaneModel({
   hp,
-  variant = "local",
+  variant = "player",
   playerColor = "#d9e2ec",
   propellerRef,
 }: AirplaneModelProps) {
@@ -65,7 +65,7 @@ function PixabayBiplaneModel({
   const model = useMemo(() => {
     const clone = scene.clone(true);
     const bodyColor = new THREE.Color(hp < 15 ? "#222222" : playerColor);
-    const accentColor = new THREE.Color(variant === "local" ? "#d8a24a" : "#3b82f6");
+    const accentColor = new THREE.Color(variant === "player" ? "#d8a24a" : "#3b82f6");
 
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -99,7 +99,7 @@ function PixabayBiplaneModel({
   });
 
   return (
-    <group scale={variant === "local" ? 0.46 : 0.44} rotation={[0, Math.PI, 0]}>
+    <group scale={variant === "player" ? 0.46 : 0.44} rotation={[0, Math.PI, 0]}>
       <primitive object={model} />
       <group ref={spinRef} position={[0, 0, -2.12]}>
         <mesh rotation={[0, 0, Math.PI / 4]}>
@@ -115,7 +115,7 @@ function PixabayBiplaneModel({
 
 function ProceduralAirplaneModel({
   hp,
-  variant = "local",
+  variant = "player",
   playerColor = "#d9e2ec",
   propellerRef,
 }: AirplaneModelProps) {
@@ -131,7 +131,7 @@ function ProceduralAirplaneModel({
       roughness: 0.38,
     });
     const accent = new THREE.MeshStandardMaterial({
-      color: variant === "local" ? "#f8f9fa" : "#8ecae6",
+      color: variant === "player" ? "#f8f9fa" : "#8ecae6",
       metalness: 0.25,
       roughness: 0.42,
     });
@@ -160,7 +160,7 @@ function ProceduralAirplaneModel({
       metalness: 0.05,
     });
     const canvas = new THREE.MeshStandardMaterial({
-      color: variant === "local" ? "#e9d8a6" : "#bfdbfe",
+      color: variant === "player" ? "#e9d8a6" : "#bfdbfe",
       roughness: 0.72,
       metalness: 0.05,
     });
@@ -176,7 +176,7 @@ function ProceduralAirplaneModel({
   });
 
   return (
-    <group scale={variant === "local" ? 1 : 0.95}>
+    <group scale={variant === "player" ? 1 : 0.95}>
       <mesh castShadow receiveShadow rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.22, 0.36, 2.9, 10, 1]} />
         <primitive object={materials.body} attach="material" />

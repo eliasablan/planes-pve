@@ -2,7 +2,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { beginGameAudio, finishGameAudio, stopGameAudio } from "@/lib/gameAudio";
 import { clearRunTracking, getCurrentRunSession, startRunTracking } from "@/lib/scoreService";
 
-export function startLocalMatch(matchId: string | null = null) {
+export function startRun() {
   const state = useGameStore.getState();
   // Re-enable audio after Strict Mode runs the scene's cleanup and then repeats its mount effect.
   beginGameAudio();
@@ -10,7 +10,6 @@ export function startLocalMatch(matchId: string | null = null) {
   if (state.gameStatus === "playing" && state.startTime !== null) return;
   pausedAt = null;
   startRunTracking();
-  state.setMatchId(matchId);
   state.setStartTime(Date.now());
   state.setEndTime(null);
   state.setGameStatus("playing");
@@ -18,14 +17,14 @@ export function startLocalMatch(matchId: string | null = null) {
 
 let pausedAt: number | null = null;
 
-export function pauseLocalMatch() {
+export function pauseRun() {
   const state = useGameStore.getState();
   if (state.gameStatus !== "playing" || state.paused || state.hp <= 0) return;
   pausedAt = Date.now();
   state.setPaused(true);
 }
 
-export function resumeLocalMatch() {
+export function resumeRun() {
   const state = useGameStore.getState();
   if (!state.paused) return;
   // Shift the run clock past the pause so it neither counts as flight time nor eats the start-of-run grace period.
@@ -34,7 +33,7 @@ export function resumeLocalMatch() {
   state.setPaused(false);
 }
 
-export function finishLocalMatch() {
+export function finishRun() {
   const state = useGameStore.getState();
   if (state.gameStatus === "finished") return;
   finishGameAudio();
@@ -44,7 +43,7 @@ export function finishLocalMatch() {
   void getCurrentRunSession()?.finish(getRunResult(ended)).catch(() => {});
 }
 
-export function resetLocalMatch() {
+export function resetRun() {
   stopGameAudio();
   const state = useGameStore.getState();
   if (state.gameStatus === "playing") {
@@ -54,7 +53,6 @@ export function resetLocalMatch() {
   clearRunTracking();
   pausedAt = null;
   state.resetGame();
-  state.setMatchId(null);
   state.setStartTime(null);
   state.setEndTime(null);
 }

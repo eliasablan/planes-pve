@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { resetLocalMatch } from "@/lib/matchLifecycle";
+import { resetRun } from "@/lib/runLifecycle";
 import { unlockGameAudio } from "@/lib/gameAudio";
 import { FLIGHT_CONTROLS } from "@/lib/flightControls";
 import { IslandBackdrop } from "@/components/ui/IslandBackdrop";
@@ -21,7 +21,7 @@ export default function Home() {
   const [inRun, setInRun] = useState(false);
 
   const startRun = () => {
-    resetLocalMatch();
+    resetRun();
     unlockGameAudio();
     setInRun(true);
   };

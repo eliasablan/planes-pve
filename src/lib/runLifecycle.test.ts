@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { useGameStore } from "../store/useGameStore";
-import { finishLocalMatch, pauseLocalMatch, resetLocalMatch, resumeLocalMatch, startLocalMatch } from "./matchLifecycle";
+import { finishRun, pauseRun, resetRun, resumeRun, startRun } from "./runLifecycle";
 import { clearRunTracking, getCurrentRunSession } from "./scoreService";
 
 let now = 1000;
@@ -28,37 +28,37 @@ afterEach(() => {
 });
 
 test("strict-mode repeated start registers one run; finish excludes pauses and is sent once", async () => {
-  startLocalMatch();
-  startLocalMatch();
+  startRun();
+  startRun();
   now = 2000;
-  pauseLocalMatch();
+  pauseRun();
   now = 12000;
-  resumeLocalMatch();
+  resumeRun();
   now = 14000;
-  finishLocalMatch();
-  finishLocalMatch();
+  finishRun();
+  finishRun();
   await getCurrentRunSession()!.sync();
   expect(requests.filter(r => r.path === "/api/runs")).toHaveLength(1);
   expect(requests.at(-1)?.body).toEqual({ score: 0, wave: 1, kills: 0, durationMs: 3000, status: "completed" });
 });
 
 test("exit during pause records active duration and a restart uses a fresh credential", async () => {
-  startLocalMatch();
+  startRun();
   const abandoned = getCurrentRunSession()!;
   now = 2000;
-  pauseLocalMatch();
+  pauseRun();
   now = 12000;
-  resetLocalMatch();
+  resetRun();
   await abandoned.sync();
   expect(requests.at(-1)?.body).toEqual({ score: 0, wave: 1, kills: 0, durationMs: 1000, status: "abandoned" });
-  startLocalMatch();
+  startRun();
   const registrations = requests.filter(r => r.path === "/api/runs");
   expect(registrations).toHaveLength(2);
   expect(registrations[0].body.requestId).not.toBe(registrations[1].body.requestId);
 });
 
 test("failed finish can retry the same frozen metrics, without duplicate concurrent submissions", async () => {
-  startLocalMatch();
+  startRun();
   let failed = false;
   network.mockImplementation((async (input, options) => {
     if (String(input).endsWith("/finish") && !failed) {
@@ -68,7 +68,7 @@ test("failed finish can retry the same frozen metrics, without duplicate concurr
     return recordRequest(input, options);
   }) as typeof fetch);
   now = 4000;
-  finishLocalMatch();
+  finishRun();
   const session = getCurrentRunSession()!;
   await expect(session.sync()).rejects.toThrow();
   expect(session.getSnapshot().status).toBe("error");

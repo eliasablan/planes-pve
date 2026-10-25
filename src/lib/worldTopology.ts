@@ -1,19 +1,14 @@
 // Scale reference: the GLB player biplane spans 2.6 units (≈7 m at the HUD's speed scale, 1 u ≈ 2.8 m).
 // Trees, rocks and relief are sized against that span; see docs/plans/2026-10-24-relieve-continuidad.md.
 export const WORLD_TOPOLOGY = {
-  // Legacy tactical-map extent (inherited Minimap only); the combat boundary below is larger.
-  mapWorldSize: 4000,
   // Mean radius where grass gives way to the beach, and mean shoreline radius (terrain meets the sea).
   islandRadius: 1000,
   coastRadius: 1050,
   // Ocean surface height. Telemetry altitude is measured from here (physical y + 5).
   seaLevel: -5,
   oceanColor: "#1d6f9f",
-  mapOceanColor: "#001d3d",
   sandColor: "#c2b280",
   grassColor: "#2d6a4f",
-  mountainColor: "#1b4332",
-  coastlineColor: "#40916c",
   // Relief control points: each is the crest of a massif with its footprint radius and crest height.
   // `ridges` joins them into connected crests; the height query in terrainHeight.ts reads both.
   mountains: [
@@ -37,12 +32,3 @@ export const WORLD_TOPOLOGY = {
   // Fixed combat airspace limits (warning, then damage), unchanged by the relief work.
   combatBoundary: { warningRadius: 3800, damageRadius: 4600 },
 } as const;
-
-export function worldToMapPoint(x: number, z: number, mapSize: number) {
-  const scale = mapSize / WORLD_TOPOLOGY.mapWorldSize;
-  return {
-    x: mapSize / 2 + x * scale,
-    y: mapSize / 2 + z * scale,
-    scale,
-  };
-}

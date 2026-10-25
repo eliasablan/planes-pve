@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Home, Play } from "lucide-react";
 import { FLIGHT_CONTROLS } from "@/lib/flightControls";
-import { resumeLocalMatch } from "@/lib/matchLifecycle";
+import { resumeRun } from "@/lib/runLifecycle";
 import { PICKUP_PRESENTATION } from "@/lib/pickupPresentation";
 import { ROLE_STATS } from "@/lib/pveRules";
 import { useGameStore, type EnemyRole, type PickupKind } from "@/store/useGameStore";
@@ -28,7 +28,7 @@ export function PauseMenu({ onExit }: { onExit?: () => void }) {
   }, []);
 
   const resume = () => {
-    resumeLocalMatch();
+    resumeRun();
     document.querySelector<HTMLElement>("[data-game-shell]")?.focus({ preventScroll: true });
   };
 

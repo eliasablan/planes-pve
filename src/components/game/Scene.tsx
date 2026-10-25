@@ -12,7 +12,7 @@ import { HUD } from "../ui/HUD";
 import { useDisplaySettings } from "../ui/GameDisplayControls";
 import { GameOver } from "../ui/GameOver";
 import { PauseMenu } from "../ui/PauseMenu";
-import { pauseLocalMatch, resetLocalMatch, resumeLocalMatch, startLocalMatch } from "@/lib/matchLifecycle";
+import { pauseRun, resetRun, resumeRun, startRun } from "@/lib/runLifecycle";
 import { stopGameAudio, unlockGameAudio } from "@/lib/gameAudio";
 
 function configureRenderer(state: RootState) {
@@ -32,7 +32,7 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
   const isFinished = hp <= 0 || gameStatus === "finished";
 
   useEffect(() => {
-    startLocalMatch();
+    startRun();
     return stopGameAudio;
   }, []);
 
@@ -41,10 +41,10 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
       if ((event.code !== "KeyP" && event.key !== "Escape") || event.repeat || event.ctrlKey || event.metaKey || event.altKey ||
         (event.target instanceof HTMLElement && event.target.matches("input,select,textarea,[contenteditable]"))) return;
       if (useGameStore.getState().paused) {
-        resumeLocalMatch();
+        resumeRun();
         document.querySelector<HTMLElement>("[data-game-shell]")?.focus({ preventScroll: true });
       } else {
-        pauseLocalMatch();
+        pauseRun();
       }
     };
     window.addEventListener("keydown", togglePause);
@@ -52,13 +52,13 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
   }, []);
 
   const handleRestart = () => {
-    resetLocalMatch();
+    resetRun();
     unlockGameAudio();
-    startLocalMatch();
+    startRun();
   };
 
   const handleExit = () => {
-    resetLocalMatch();
+    resetRun();
     onExit?.();
   };
 
@@ -79,7 +79,7 @@ export default function Scene({ onExit }: { onExit?: () => void }) {
             <Suspense fallback={null}>
               <Physics gravity={[0, 0, 0]} paused={paused}>
                 <Environment />
-                <Airplane userId="solo-pilot" username="Solo Pilot" />
+                <Airplane />
                 <PveDirector />
               </Physics>
             </Suspense>
