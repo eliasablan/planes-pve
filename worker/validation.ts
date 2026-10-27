@@ -1,5 +1,5 @@
 import type { RunResult } from "../src/lib/scoreboard";
-import { getWaveClearBonus, getWaveEnemyCount, INTER_WAVE_DELAY_MS } from "../src/lib/pveRules";
+import { GAME_VERSION, type GameVersion, getWaveClearBonus, getWaveEnemyCount, INTER_WAVE_DELAY_MS } from "../src/lib/pveRules";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -47,7 +47,7 @@ export function onlyKeys(body: Record<string, unknown>, keys: string[]) {
   if (Object.keys(body).some(key => !keys.includes(key))) throw new ApiError(400, "Unexpected request fields.");
 }
 
-export function validateResult(body: Record<string, unknown>, elapsedMs: number): RunResult & { status: "completed" | "abandoned" } {
+export function validateResult(body: Record<string, unknown>, elapsedMs: number, gameVersion: GameVersion = GAME_VERSION): RunResult & { status: "completed" | "abandoned" } {
   onlyKeys(body, ["score", "wave", "kills", "durationMs", "status"]);
   const bounds = { score: [0, 100_000_000], wave: [1, 10_000], kills: [0, 80_000], durationMs: [0, 604_800_000] };
   for (const [key, [min, max]] of Object.entries(bounds)) {
@@ -62,10 +62,10 @@ export function validateResult(body: Record<string, unknown>, elapsedMs: number)
   let previousKills = 0;
   let previousBonus = 0;
   for (let wave = 1; wave < result.wave; wave++) {
-    previousKills += getWaveEnemyCount(wave);
+    previousKills += getWaveEnemyCount(wave, gameVersion);
     previousBonus += getWaveClearBonus(wave);
   }
-  const currentEnemies = getWaveEnemyCount(result.wave);
+  const currentEnemies = getWaveEnemyCount(result.wave, gameVersion);
   const maxBonus = previousBonus + (result.kills === previousKills + currentEnemies ? getWaveClearBonus(result.wave) : 0);
   if (result.kills < previousKills || result.kills > previousKills + currentEnemies ||
     result.score < result.kills * 100 + previousBonus || result.score > result.kills * 260 + maxBonus ||

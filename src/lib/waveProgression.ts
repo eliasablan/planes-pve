@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { EnemyRole, EnemyState, PickupKind, PickupState, useGameStore } from "@/store/useGameStore";
 import { getWaveClearBonus, getWaveEnemyCount, INTER_WAVE_DELAY_MS, ROLE_STATS } from "./pveRules";
 import { hasTerrainLineOfSight, minimumAirborneY } from "./terrainHeight";
-import { WORLD_TOPOLOGY } from "./worldTopology";
 
 type WaveState = Pick<ReturnType<typeof useGameStore.getState>,
   | "gameStatus" | "hp" | "paused" | "startTime" | "wave" | "ammo"
@@ -18,8 +17,6 @@ const ENEMY_ATTACK_INTERVAL_MS = 2300;
 const EMERGENCY_RESUPPLY_DELAY_MS = 5000;
 const ENEMY_TERRAIN_CLEARANCE = 30;
 const PICKUP_TERRAIN_CLEARANCE = 28;
-const SPAWN_HALF_ARC = 70 * Math.PI / 180;
-const SPAWN_BOUNDARY_MARGIN = 50;
 
 /** One instance per run. The frame adapter supplies time; progression owns all gameplay ordering. */
 export function createWaveProgression({ getState, applyDamage }: {
@@ -143,29 +140,20 @@ function createWave(wave: number, state: Pick<WaveState, "localPlayerPosition" |
   const extras: EnemyRole[] = ["fighter", "scout", "bomber"];
   for (let i = 0; composition.length < getWaveEnemyCount(wave); i++) composition.push(extras[i % extras.length]);
 
-  const radius = 500 - Math.min(100, (wave - 1) * 10);
-  const limit = WORLD_TOPOLOGY.combatBoundary.damageRadius - SPAWN_BOUNDARY_MARGIN;
-  const center = new THREE.Vector2(...state.localPlayerPosition).clampLength(0, limit);
-  const centerDistance = center.length();
+  const nearRadius = Math.max(240, 500 - (wave - 1) * 10);
+  const bandSpacing = wave <= 3 ? 0 : 60;
+  const halfArc = THREE.MathUtils.degToRad(Math.min(85, 70 + (wave - 1) * 2));
   // Heading 0 faces -Z; +90 faces -X, matching flight and radar.
-  let bearing = -Math.PI / 2 - THREE.MathUtils.degToRad(state.heading);
-  if (centerDistance + radius > limit) {
-    // Fit the whole arc inside combat airspace by turning it inward, rather than clamping
-    // individual enemies onto the edge and collapsing their separation.
-    const inward = Math.atan2(-center.y, -center.x);
-    const availableHalfArc = Math.acos(THREE.MathUtils.clamp(
-      (centerDistance ** 2 + radius ** 2 - limit ** 2) / (2 * centerDistance * radius), -1, 1,
-    ));
-    const maxOffset = Math.max(0, availableHalfArc - SPAWN_HALF_ARC);
-    const offset = Math.atan2(Math.sin(bearing - inward), Math.cos(bearing - inward));
-    bearing = inward + THREE.MathUtils.clamp(offset, -maxOffset, maxOffset);
-  }
+  const bearing = -Math.PI / 2 - THREE.MathUtils.degToRad(state.heading);
 
   return composition.map((role, index) => {
     const stats = ROLE_STATS[role];
-    const angle = bearing - SPAWN_HALF_ARC + 2 * SPAWN_HALF_ARC * index / (composition.length - 1);
-    const x = center.x + Math.cos(angle) * radius;
-    const z = center.y + Math.sin(angle) * radius;
+    // Alternating bands stagger arrival; flip the near band each wave to vary the formation.
+    const radius = nearRadius + ((index + wave) % 2) * bandSpacing;
+    const angle = bearing - halfArc + 2 * halfArc * index / (composition.length - 1);
+    // Spawn rings stay centered at the map origin, independently of the pilot's position.
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
     return {
       id: `wave-${wave}-${role}-${index}-${crypto.randomUUID().slice(0, 6)}`,
       role,

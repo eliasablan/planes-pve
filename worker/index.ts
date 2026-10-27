@@ -1,6 +1,7 @@
 import type { D1Database, RateLimit } from "@cloudflare/workers-types";
 import { isValidArcadeName, normalizeArcadeName, SCOREBOARD_LIMIT, type ScoreEntry } from "../src/lib/scoreboard";
 import { ApiError, hashToken, onlyKeys, readBody, validateResult } from "./validation";
+import { GAME_VERSION, type GameVersion } from "../src/lib/pveRules";
 
 export interface Env {
   DB: D1Database;
@@ -13,6 +14,7 @@ type RunRow = {
   id: string;
   token_hash: string;
   started_at: string;
+  game_version: GameVersion;
   status: string;
   score: number | null;
   wave: number | null;
@@ -54,8 +56,10 @@ async function handleApi(request: Request, env: Env) {
   }
   if (isStart) {
     const body = await readBody(request);
-    onlyKeys(body, ["requestId", "recoverOnly"]);
-    if (typeof body.requestId !== "string" || (body.recoverOnly !== undefined && typeof body.recoverOnly !== "boolean")) {
+    onlyKeys(body, ["requestId", "recoverOnly", "gameVersion"]);
+    const gameVersion = body.gameVersion ?? "survival-v1";
+    if (typeof body.requestId !== "string" || (body.recoverOnly !== undefined && typeof body.recoverOnly !== "boolean") ||
+      (gameVersion !== "survival-v1" && gameVersion !== GAME_VERSION)) {
       throw new ApiError(400, "Invalid registration request.");
     }
     const tokenHash = await hashToken(body.requestId);
@@ -64,7 +68,7 @@ async function handleApi(request: Request, env: Env) {
     if (!body.recoverOnly) {
       await env.DB.prepare(`INSERT INTO runs (id, token_hash, started_at, country, game_version)
         VALUES (?, ?, ?, ?, ?) ON CONFLICT(token_hash) DO NOTHING`)
-        .bind(crypto.randomUUID(), tokenHash, startedAt, country && /^[A-Z]{2}$/.test(country) && country !== "XX" ? country : null, "survival-v1").run();
+        .bind(crypto.randomUUID(), tokenHash, startedAt, country && /^[A-Z]{2}$/.test(country) && country !== "XX" ? country : null, gameVersion).run();
     }
     const run = await env.DB.prepare("SELECT id, started_at FROM runs WHERE token_hash = ?").bind(tokenHash).first<{ id: string; started_at: string }>();
     if (!run) throw new ApiError(404, "This run could not be registered. Please start a new run when the service is available.");
@@ -81,7 +85,7 @@ async function handleApi(request: Request, env: Env) {
   if (!run) throw new ApiError(404, "Run not found.");
   const body = await readBody(request);
   if (route[2] === "finish") {
-    const result = validateResult(body, Date.now() - Date.parse(run.started_at));
+    const result = validateResult(body, Date.now() - Date.parse(run.started_at), run.game_version);
     // The predicate makes simultaneous retries atomic; metrics become immutable on the first finish.
     await env.DB.prepare(`UPDATE runs SET status = ?, finished_at = ?, score = ?, wave = ?, kills = ?, duration_ms = ?
       WHERE id = ? AND token_hash = ? AND status = 'active'`)

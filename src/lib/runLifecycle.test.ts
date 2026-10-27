@@ -39,6 +39,7 @@ test("strict-mode repeated start registers one run; finish excludes pauses and i
   finishRun();
   await getCurrentRunSession()!.sync();
   expect(requests.filter(r => r.path === "/api/runs")).toHaveLength(1);
+  expect(requests[0].body.gameVersion).toBe("survival-v2");
   expect(requests.at(-1)?.body).toEqual({ score: 0, wave: 1, kills: 0, durationMs: 3000, status: "completed" });
 });
 

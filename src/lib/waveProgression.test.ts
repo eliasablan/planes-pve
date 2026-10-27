@@ -54,13 +54,36 @@ function addPickup(id: string, kind: PickupKind, position: [number, number, numb
 }
 
 describe("Wave progression through the frame interface", () => {
-  test("initializes one wave, caps composition at eight, and keeps enemies above terrain", () => {
+  test("enemy numbers keep growing at least every three waves through wave 30", () => {
+    const run = scenario();
+    const counts: number[] = [];
+    for (let wave = 1; wave <= 30; wave++) {
+      counts.push(Object.keys(state().pveEnemies).length);
+      clearWave();
+      run.step();
+      run.step(2400);
+    }
+    for (let wave = 4; wave <= 30; wave++) {
+      expect(counts[wave - 1], `enemy count at wave ${wave} versus wave ${wave - 3}`).toBeGreaterThan(counts[wave - 4]);
+    }
+  });
+
+  test("wave 30 spawns closer to the map center than wave 15", () => {
+    const distances = [15, 30].map(wave => {
+      useGameStore.setState({ wave, pveEnemies: {} });
+      scenario();
+      const enemies = Object.values(state().pveEnemies);
+      return enemies.reduce((sum, e) => sum + Math.hypot(e.position[0], e.position[2]), 0) / enemies.length;
+    });
+    expect(distances[1]).toBeLessThan(distances[0]);
+  });
+
+  test("initializes one wave and keeps its role composition and terrain clearance", () => {
     const compositions = [
       [1, ["scout", "fighter", "bomber"]],
       [3, ["scout", "fighter", "bomber", "fighter"]],
       [5, ["scout", "fighter", "bomber", "fighter", "scout"]],
       [11, ["scout", "fighter", "bomber", "fighter", "scout", "bomber", "fighter", "scout"]],
-      [100, ["scout", "fighter", "bomber", "fighter", "scout", "bomber", "fighter", "scout"]],
     ] as const;
     for (const [wave, roles] of compositions) {
       useGameStore.setState({ wave, pveEnemies: {} });
@@ -77,7 +100,15 @@ describe("Wave progression through the frame interface", () => {
     }
   });
 
-  test("spawns ahead and to the sides of the current aircraft position and heading", () => {
+  test("accelerates enemy growth after wave 17 and caps simultaneous aircraft at 24", () => {
+    for (const [wave, count] of [[1, 3], [3, 4], [11, 8], [17, 11], [18, 12], [20, 14], [30, 24], [100, 24], [10_000, 24]]) {
+      useGameStore.setState({ wave, pveEnemies: {} });
+      scenario();
+      expect(Object.values(state().pveEnemies), `wave ${wave}`).toHaveLength(count);
+    }
+  });
+
+  test("centers the spawn radius on the map while orienting the arc with the aircraft heading", () => {
     for (const heading of [0, 90, 180, 270, -90, 450]) {
       useGameStore.setState({ pveEnemies: {}, localPlayerPosition: [1300, -900], altitude: 805, heading });
       scenario();
@@ -85,8 +116,8 @@ describe("Wave progression through the frame interface", () => {
       const enemies = Object.values(state().pveEnemies);
       expect(enemies).toHaveLength(3);
       for (const e of enemies) {
-        const dx = e.position[0] - 1300;
-        const dz = e.position[2] + 900;
+        const dx = e.position[0];
+        const dz = e.position[2];
         const distance = Math.hypot(dx, dz);
         expect(distance).toBeCloseTo(500);
         const forwardAlignment = (-dx * Math.sin(angle) - dz * Math.cos(angle)) / distance;
@@ -96,32 +127,34 @@ describe("Wave progression through the frame interface", () => {
     }
   });
 
-  test("later waves stay within a bounded radius instead of expanding across the map", () => {
-    for (const [wave, radius] of [[1, 500], [5, 460], [11, 400], [50, 400], [10_000, 400]]) {
+  test("later waves use staggered bands measured from the map center", () => {
+    for (const [wave, near, far] of [[1, 500, 500], [3, 480, 480], [5, 460, 520], [11, 400, 460], [20, 310, 370], [30, 240, 300], [50, 240, 300], [10_000, 240, 300]]) {
       useGameStore.setState({ wave, pveEnemies: {}, localPlayerPosition: [-1200, 700] });
       scenario();
-      for (const e of Object.values(state().pveEnemies)) {
-        expect(Math.hypot(e.position[0] + 1200, e.position[2] - 700)).toBeCloseTo(radius);
-      }
+      const distances = Object.values(state().pveEnemies).map(e => Math.hypot(e.position[0], e.position[2]));
+      expect(Math.min(...distances)).toBeCloseTo(near);
+      expect(Math.max(...distances)).toBeCloseTo(far);
     }
   });
 
-  test("edge spawns stay inside combat airspace, nearby, and separated", () => {
+  test("flying beyond the boundary does not move the spawn rings away from the map center", () => {
     const limit = WORLD_TOPOLOGY.combatBoundary.damageRadius;
     for (const bearing of [0, Math.PI / 4, Math.PI, -Math.PI / 2]) {
       for (const heading of [0, 90, 180, 270]) {
-        const x = Math.cos(bearing) * limit;
-        const z = Math.sin(bearing) * limit;
+        const x = Math.cos(bearing) * (limit + 250);
+        const z = Math.sin(bearing) * (limit + 250);
         useGameStore.setState({ wave: 50, pveEnemies: {}, localPlayerPosition: [x, z], heading });
         scenario();
         const enemies = Object.values(state().pveEnemies);
-        expect(enemies).toHaveLength(8);
+        expect(enemies).toHaveLength(24);
         for (const e of enemies) {
           expect(Math.hypot(e.position[0], e.position[2])).toBeLessThanOrEqual(limit - 50 + 1e-8);
-          expect(Math.hypot(e.position[0] - x, e.position[2] - z)).toBeLessThanOrEqual(550);
+          const radius = Math.hypot(e.position[0], e.position[2]);
+          expect(radius).toBeGreaterThanOrEqual(240 - 1e-8);
+          expect(radius).toBeLessThanOrEqual(300 + 1e-8);
           expect(e.position[1]).toBeGreaterThanOrEqual(minimumAirborneY(e.position[0], e.position[2], 30));
           for (const other of enemies) {
-            if (e.id !== other.id) expect(Math.hypot(e.position[0] - other.position[0], e.position[2] - other.position[2])).toBeGreaterThan(100);
+            if (e.id !== other.id) expect(Math.hypot(e.position[0] - other.position[0], e.position[2] - other.position[2])).toBeGreaterThan(50);
           }
         }
       }
@@ -140,7 +173,7 @@ describe("Wave progression through the frame interface", () => {
     run.step(2399);
     expect(state().score).toBe(725);
     expect(state().pveEnemies).toEqual({});
-    // Placement follows the pilot at arrival, after flying during the inter-wave break.
+    // Flying during the break changes heading and altitude, but the spawn center stays fixed.
     useGameStore.setState({ localPlayerPosition: [1000, -700], altitude: 805, heading: 90 });
     run.step(1, 1);
     expect(state().wave).toBe(2);
@@ -148,7 +181,7 @@ describe("Wave progression through the frame interface", () => {
     expect(Object.keys(state().pvePickups)).toEqual(supplyIds);
     // A new wave has not moved in the frame that spawned it.
     const first = Object.values(state().pveEnemies)[0];
-    expect(Math.hypot(first.position[0] - 1000, first.position[2] + 700)).toBeCloseTo(490);
+    expect(Math.hypot(first.position[0], first.position[2])).toBeCloseTo(490);
     expect(Math.abs(first.position[1] - 800)).toBeLessThanOrEqual(24);
     run.step(16, 1);
     expect(state().pveEnemies[first.id].position).not.toEqual(first.position);
@@ -386,7 +419,7 @@ describe("Wave progression through the frame interface", () => {
       const result = { score: s.score, wave: s.wave, kills: s.localKills, durationMs: now - (s.startTime ?? now), status: "completed" as const };
       expect(validateResult(result, now - 10_000)).toEqual(result);
     };
-    for (let wave = 1; wave <= 12; wave++) {
+    for (let wave = 1; wave <= 30; wave++) {
       assertValid();
       for (const id of Object.keys(state().pveEnemies)) {
         state().damagePveEnemy(id, 1000);

@@ -1,4 +1,5 @@
 import type { RunResult, ScoreEntry } from "./scoreboard";
+import { GAME_VERSION } from "./pveRules";
 
 export class ScoreServiceError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -58,7 +59,7 @@ export class RunSession {
   private async register() {
     for (let attempt = 0; ; attempt++) {
       try {
-        this.registration = await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token });
+        this.registration = await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token, gameVersion: GAME_VERSION });
         this.update("ready");
         return;
       } catch (error) {
@@ -88,7 +89,7 @@ export class RunSession {
     await this.startPromise;
     this.update("syncing");
     // A lost registration response can be recovered; a run is never created retroactively at game over.
-    this.registration ??= await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token, recoverOnly: true });
+    this.registration ??= await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token, gameVersion: GAME_VERSION, recoverOnly: true });
     await scoreRequest(`/api/runs/${this.registration.runId}/finish`, this.result, this.token);
     this.update("synced");
   }

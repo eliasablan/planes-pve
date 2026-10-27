@@ -24,8 +24,8 @@ async function call(path, body, credential, headers = {}) {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
-async function start(credential = token()) {
-  const response = await call("/api/runs", { requestId: credential });
+async function start(credential = token(), gameVersion) {
+  const response = await call("/api/runs", { requestId: credential, ...(gameVersion ? { gameVersion } : {}) });
   assert.equal(response.status, 200);
   return { ...(await response.json()), credential };
 }
@@ -88,6 +88,23 @@ test("concurrent different results for one run accept exactly one payload", asyn
   const run = await start();
   const responses = await Promise.all([finish(run), finish(run, { ...result, score: 160 })]);
   assert.deepEqual(responses.map(r => r.status).sort(), [200, 409]);
+});
+
+test("validates old and new wave counts using each run's registered rules", async () => {
+  const legacy = await start();
+  const current = await start(token(), "survival-v2");
+  const metrics = kills => ({ score: kills * 100 + 8170, wave: 20, kills, durationMs: 60_000, status: "completed" });
+  await db.prepare("UPDATE runs SET started_at = ?").bind(new Date(Date.now() - 60_000).toISOString()).run();
+  assert.equal((await db.prepare("SELECT game_version FROM runs WHERE id = ?").bind(legacy.runId).first()).game_version, "survival-v1");
+  assert.equal((await db.prepare("SELECT game_version FROM runs WHERE id = ?").bind(current.runId).first()).game_version, "survival-v2");
+  assert.equal((await finish(legacy, metrics(140))).status, 400);
+  assert.equal((await finish(current, metrics(122))).status, 400);
+  assert.equal((await finish(legacy, metrics(122))).status, 200);
+  assert.equal((await finish(current, metrics(140))).status, 200);
+  const recovered = await call("/api/runs", { requestId: legacy.credential, gameVersion: "survival-v2", recoverOnly: true });
+  assert.equal((await recovered.json()).runId, legacy.runId);
+  assert.equal((await db.prepare("SELECT game_version FROM runs WHERE id = ?").bind(legacy.runId).first()).game_version, "survival-v1");
+  assert.equal((await call("/api/runs", { requestId: token(), gameVersion: "unknown" })).status, 400);
 });
 
 test("orders and cuts ten results using every tie-break, retaining the rest of history", async () => {

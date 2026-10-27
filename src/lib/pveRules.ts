@@ -1,9 +1,16 @@
 import type { EnemyRole } from "@/store/useGameStore";
 
 export const INTER_WAVE_DELAY_MS = 2400;
+export const GAME_VERSION = "survival-v2";
+export type GameVersion = "survival-v1" | typeof GAME_VERSION;
 
-export function getWaveEnemyCount(wave: number) {
-  return 3 + Math.min(5, Math.floor((wave - 1) / 2));
+export function getWaveEnemyCount(wave: number, gameVersion: GameVersion = GAME_VERSION) {
+  // Open tabs running the previous rules must still be able to finish their registered run.
+  if (gameVersion === "survival-v1") return 3 + Math.min(5, Math.floor((wave - 1) / 2));
+  // Grow every two waves through 17, then every wave. Bound rendering cost at 24 aircraft.
+  const earlyGrowth = Math.floor(Math.min(wave - 1, 16) / 2);
+  const lateGrowth = Math.min(13, Math.max(0, wave - 17));
+  return 3 + earlyGrowth + lateGrowth;
 }
 
 export function getWaveClearBonus(wave: number) {

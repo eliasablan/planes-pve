@@ -59,7 +59,8 @@ export default function DocumentationPage() {
         <p>Rewards stop at capacity. A box is consumed even if you are already full. If you run out of gun ammunition while enemies remain and no ammo box is available, an <strong>emergency ammo box appears after 5 seconds</strong>.</p>
       </GuideSection>
       <GuideSection id="survival" title="Waves, terrain and survival">
-        <p>Every wave starts with a scout, a fighter and a bomber. One extra aircraft joins every two waves, up to <strong>8 enemies per wave</strong>. The next wave arrives <strong>2.4 seconds</strong> after the last enemy is destroyed.</p>
+        <p>Every wave starts with a scout, a fighter and a bomber. One extra aircraft joins every two waves through wave 17, then every wave, reaching <strong>24 enemies at wave 30</strong>. Later waves keep that maximum. The next wave arrives <strong>2.4 seconds</strong> after the last enemy is destroyed.</p>
+        <p>Enemies spawn in bands around the centre of the map. The inner radius starts at 500 world units and shrinks to 240 as waves advance. From wave 4, a second band appears 60 units farther out. The formation widens with each wave and its sector follows your heading, while the centre stays fixed. Keep checking the radar.</p>
         <p><strong>Hitting the ground or the sea is fatal.</strong> Watch your ground clearance, especially when diving or turning near a ridge. Terrain can provide cover from enemy fire, but you still need room to manoeuvre.</p>
         <p>The combat area has a fixed boundary. A warning appears beyond 3,800 world units from the centre; beyond 4,600, your aircraft takes <strong>20 damage per second</strong>. Turn back when the warning appears.</p>
       </GuideSection>
