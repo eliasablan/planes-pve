@@ -22,6 +22,7 @@
   ],
   "ratelimits": [
     { "name": "RUN_START_LIMITER", "namespace_id": "1792886401", "simple": { "limit": 20, "period": 60 } },
-    { "name": "API_LIMITER", "namespace_id": "1792886402", "simple": { "limit": 120, "period": 60 } }
+    { "name": "API_LIMITER", "namespace_id": "1792886402", "simple": { "limit": 120, "period": 60 } },
+    { "name": "ADMIN_LOGIN_LIMITER", "namespace_id": "1792886403", "simple": { "limit": 5, "period": 60 } }
   ]
 }

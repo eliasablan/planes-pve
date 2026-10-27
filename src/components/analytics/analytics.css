@@ -1,0 +1,26 @@
+.ac-root { color-scheme: dark; letter-spacing: 0; }
+.ac-panel { min-width: 0; border: 1px solid #27313c; border-radius: 8px; background: #0d141c; padding: 24px; }
+.ac-label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 12px; color: #a9b5c4; }
+.ac-input { min-width: 0; min-height: 40px; border: 1px solid #394656; border-radius: 4px; padding: 9px 11px; background: #080d12; color: #f2f2f0; font: inherit; font-size: 14px; }
+.ac-input::placeholder { color: #77869b; }
+.ac-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; border: 1px solid #394656; border-radius: 4px; padding: 8px 12px; color: #d7e1ec; font-size: 12px; cursor: pointer; }
+.ac-button:hover:not(:disabled) { background: #1c2b3a; border-color: #6c849e; color: white; }
+.ac-button:disabled { opacity: .45; cursor: not-allowed; }
+.ac-primary { background: #bddfff; border-color: #bddfff; color: #09121c; font-weight: 600; }
+.ac-primary:hover:not(:disabled) { background: #e1f0ff; border-color: #e1f0ff; color: #09121c; }
+.ac-selected { border-color: #9fcfff; background: #183047; color: #cbe6ff; }
+.ac-preset { border-bottom: 1px solid #394656; padding: 4px 9px; font-size: 12px; color: #bbc9d9; cursor: pointer; }
+.ac-preset:hover { border-color: #9fcfff; color: #cbe6ff; }
+.ac-link { color: #b4d9fb; text-align: left; cursor: pointer; }
+.ac-link:hover { color: #e3f2ff; text-decoration: underline; }
+.ac-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ac-table th { padding: 10px 14px 12px 0; color: #8fa1b6; font-weight: 400; white-space: nowrap; border-bottom: 1px solid #394656; }
+.ac-table td { padding: 13px 14px 13px 0; border-bottom: 1px solid #202c38; color: #d0d8e2; }
+.ac-table tbody tr:last-child td { border-bottom: none; }
+.ac-table tbody tr:hover { background: #ffffff03; }
+.ac-status { display: inline-flex; border-radius: 4px; padding: 3px 7px; font-size: 11px; }
+.ac-status-completed { color: #b4d9fb; background: #183047; }
+.ac-status-abandoned { color: #edca95; background: #382d1c; }
+.ac-status-active { color: #b7c1ce; background: #27313c; }
+.ac-root :focus-visible { outline: 2px solid #9fcfff; outline-offset: 3px; }
+@media (max-width: 640px) { .ac-panel { padding: 18px; } }

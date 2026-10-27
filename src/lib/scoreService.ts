@@ -1,5 +1,6 @@
 import type { RunResult, ScoreEntry } from "./scoreboard";
 import { GAME_VERSION } from "./pveRules";
+import { getBrowserIdentity } from "./browserIdentity";
 
 export class ScoreServiceError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -34,6 +35,7 @@ export type RunSnapshot = { status: RunStatus; error: string | null; runId?: str
 
 export class RunSession {
   private token = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")).join("");
+  private browserId = getBrowserIdentity();
   private registration: RunRegistration | null = null;
   private startPromise: Promise<void>;
   private result?: RunResult & { status: "completed" | "abandoned" };
@@ -59,7 +61,7 @@ export class RunSession {
   private async register() {
     for (let attempt = 0; ; attempt++) {
       try {
-        this.registration = await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token, gameVersion: GAME_VERSION });
+        this.registration = await scoreRequest<RunRegistration>("/api/runs", { requestId: this.token, gameVersion: GAME_VERSION, browserId: this.browserId });
         this.update("ready");
         return;
       } catch (error) {

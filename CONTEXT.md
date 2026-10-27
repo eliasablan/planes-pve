@@ -189,7 +189,7 @@ The current implementation uses Cloudflare D1 through a same-origin Worker API, 
 
 A run must have a positive score and qualify for the top 10 before the game-over screen offers name entry. Entries are ordered by score descending, wave reached descending, kills descending, duration ascending, and then server name-save time ascending (run ID resolves identical timestamps). Names are normalized to uppercase letters and digits and must be 3–12 characters long. Reusing a name creates another run entry rather than updating a profile. A concurrent better result can displace a score between showing the form and saving it; the result remains in history.
 
-Run registration begins at takeoff without blocking flight. D1 assigns the run ID and original server timestamp and records only approximate country from Cloudflare request metadata; it stores no raw IP. A random per-run browser credential is stored only as a hash in D1. Finishing records score, wave, kills and active duration independently of the original start time; explicit exit records abandonment. Closing a tab can leave an `active` history row, which means unfinished rather than proof of ongoing play. Registration, finish and name retries are idempotent; conflicting completed metrics or names return a conflict. Lost start responses can be recovered without creating a run retroactively.
+Run registration begins at takeoff without blocking flight. D1 assigns the run ID and original server timestamp and records approximate country from Cloudflare request metadata; it stores no raw IP. New clients persist a random browser-profile ID under `planes-pve:browser:v1`; the Worker stores its SHA-256 hash. With `ANALYTICS_SALT`, the Worker also stores an HMAC-SHA-256 network ID derived from the connecting IP. Old clients and rows can lack either identifier. A random per-run browser credential is stored only as a hash in D1. Finishing records score, wave, kills and active duration independently of the original start time; explicit exit records abandonment. Closing a tab can leave an `active` history row, which means unfinished rather than proof of ongoing play. Registration, finish and name retries are idempotent; conflicting completed metrics or names return a conflict. Lost start responses can be recovered without creating a run retroactively.
 
 Network failures leave gameplay available and appear as recoverable errors at game over or on the ranking page. Pending results live in memory: retry before leaving the game-over screen; refresh or exit can lose an unsent result. Basic rate limits, request size limits and survival plausibility checks reduce abuse but do not establish score authenticity.
 
@@ -197,19 +197,24 @@ The game-over and ranking views share one React Query ranking cache for the curr
 
 Saving a result preserves its final metrics, not the run's playable state. Active runs and recovery supplies are not saved for resumption.
 
+The unlinked `/control-de-vuelo` route is a private analytics dashboard. Its static shell declares noindex; `/api/admin/session` authenticates an `ADMIN_PASSWORD` of at least 24 characters and issues an eight-hour HMAC-signed HttpOnly cookie. All `/api/admin/stats` reads require that cookie. Cookies are Secure on HTTPS and scoped to `/api/admin`; responses use no-store. The private API fails closed if no valid password is configured. An independent five-attempts-per-minute login rate limit supplements the existing API limit. Local secrets belong in ignored `.dev.vars`, production secrets in the Worker; see README for setup.
+
+Dashboard filters cover inclusive UTC start dates, country, status, game version and literal name/browser/network ID search. D1 aggregates the whole selection in one batch and paginates only the run table (25 rows). Activity, country and status charts accompany distinct names/browser/network counts, identification coverage, duration/score/wave summaries, and the top 12 identities per grouping. Unknown IDs remain unknown; none of these estimates is presented as verified people or physical equipment. There is no online-player claim, heartbeat or retroactive identification.
+
 ## Planned Features And Historical Context
 
 ADRs preserve the context and reasoning of their original decisions. Read each status and its successor links before applying historical guidance; this document describes the current implementation.
 
 - [ADR 0014](docs/adr/0014-host-on-workers-and-store-survival-runs-in-d1.md) supersedes the PostgreSQL/Next.js API plan and local scoreboard phase with Workers hosting and D1 history.
 - Streak multipliers and graduated collision damage appeared in the earlier domain description but are not implemented in the active loop. The pause screen is implemented: P/Escape freezes physics, simulation and active run duration while leaving the scene visible.
-- Waves are endless, but enemy count stops increasing at eight and role statistics remain fixed. Broader difficulty escalation is future balancing work.
+- Waves are endless, but enemy count stops increasing at 24 from wave 30 and role statistics remain fixed. Broader difficulty escalation is future balancing work.
 - Completed prompts and temporary browser evidence were retired; Git history preserves the versioned material. Use the [completed-session summary](docs/plans/2026-10-23-prompts-mejoras-juego.md#seguimiento-de-sesiones), this context and the PvE ADRs for current scope and delivery records.
 
 ## Source Map
 
 - `src/app/page.tsx`: start screen and entry into a fresh run
 - `src/app/leaderboard/page.tsx`: global scoreboard page
+- `src/app/control-de-vuelo/page.tsx`, `src/components/analytics/*`: unlinked private statistics page, filters, charts and tables
 - `src/app/docs/page.tsx`: asset credits and licensing
 - `src/components/game/Scene.tsx`: PvE scene, immediate run start, game over, restart, and exit
 - `src/components/game/Airplane.tsx`: player flight, firing input/tracer rendering, collisions, and combat boundary
@@ -234,7 +239,10 @@ ADRs preserve the context and reasoning of their original decisions. Read each s
 - `src/lib/scoreQueries.ts`: shared ranking freshness/retry policy and Arcade name saves that update the cache
 - `src/components/ScoreQueryProvider.tsx`: browser-session query cache shared across navigation
 - `worker/index.ts`, `worker/validation.ts`: same-origin D1 API, request validation and basic abuse controls
+- `worker/admin.ts`, `worker/adminAuth.ts`, `worker/analytics.ts`: private session authentication and filtered statistics
+- `src/lib/browserIdentity.ts`, `src/lib/gameAnalytics.ts`: optional browser identity and shared statistics contract
 - `migrations/0001_runs.sql`: history schema and ranking index
+- `migrations/0002_run_analytics.sql`: nullable anonymous browser/network IDs and history indexes
 - `wrangler.jsonc`: Workers assets, D1 and rate-limit bindings
 - `src/lib/localScoreboard.ts`: preserved legacy local persistence helpers
 - `src/lib/localScoreboard.test.ts`: existing scoreboard validation and ordering tests

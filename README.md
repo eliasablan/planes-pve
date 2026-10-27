@@ -29,7 +29,7 @@ bun run lint
 
 ## Cloudflare deployment
 
-The nonsecret account ID, D1 database ID, Worker name and rate-limit namespaces are in `wrangler.jsonc`. The `DB` binding is available only inside the Worker. No database URL, public token or application environment secret is required. Wrangler's OAuth login or a restricted CI API token supplies deployment credentials; never commit credentials or enable verbose HTTP logging around authenticated package managers.
+The nonsecret account ID, D1 database ID, Worker name and rate-limit namespaces are in `wrangler.jsonc`. The `DB` binding is available only inside the Worker. Gameplay needs no database URL or public token. The private statistics panel uses two Worker secrets described below. Wrangler's OAuth login or a restricted CI API token supplies deployment credentials; never commit credentials or enable verbose HTTP logging around authenticated package managers.
 
 For this account, authenticate with the needed deployment scopes when necessary:
 
@@ -44,7 +44,7 @@ The former Vercel project can remain available for rollback. Do not delete it or
 
 ## Scores and game history
 
-At takeoff, `POST /api/runs` uses a random browser credential to register one server-generated run ID, server start timestamp, approximate country from `request.cf`, game rules version and mode. The credential is hashed in D1. Country can be unavailable or reflect a VPN; raw IP is not persisted. Explicit exit records `abandoned`; closing a tab may leave an `active` (unfinished) history row.
+At takeoff, `POST /api/runs` uses a random browser credential to register one server-generated run ID, server start timestamp, approximate country from `request.cf`, game rules version and mode. The credential is hashed in D1. New clients also send an optional random, persistent browser identifier from `planes-pve:browser:v1` in local storage; D1 stores its SHA-256 hash. When `ANALYTICS_SALT` is configured, the Worker records an HMAC-SHA-256 network identifier from the Cloudflare connecting IP. Country can be unavailable or reflect a VPN; raw IP is not persisted. Explicit exit records `abandoned`; closing a tab may leave an `active` (unfinished) history row.
 
 `POST /api/runs/:id/finish` records immutable score, wave, kills, active duration, finish timestamp and terminal status. Pauses affect active duration without shifting the original server start time. `POST /api/runs/:id/name` attaches a normalized 3–12 character arcade name to a completed positive result. All runs are retained, including zero scores, unnamed and displaced results. Repeated names can label different runs. Identical retries preserve the first timestamps; conflicting finishes or names return HTTP 409.
 
@@ -60,6 +60,26 @@ Backups include hashed run credentials and country history: store them privately
 Failures leave flight playable and appear as an unavailable service, never as an empty ranking or a successful save. Retry before leaving game over: pending results and credentials are in memory and do not survive refresh. A lost registration response can recover an existing run, but an offline run is never backdated into a new database entry. Old browser scores under `planes-pve:scoreboard:v1` remain untouched and are not uploaded. Audio and display preferences continue using local storage.
 
 Requests have a 2 KiB JSON limit, origin checks, per-run bearer ownership, integer/range checks and broad survival plausibility checks. Rate-limit bindings allow approximately 20 registrations and 120 other API requests per minute per connecting IP in each Cloudflare location; shared networks share that allowance. [Cloudflare's limits are approximate and per location](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), and are not a strict global quota. The browser still computes results, so these controls do not make scores cheat-proof.
+
+## Private flight statistics
+
+Open `/control-de-vuelo` directly. It has no links from the game or navigation and declares `noindex, nofollow, noarchive`. The static page contains only the login shell; every statistics request is authenticated by the Worker. Hiding the URL is not the access control.
+
+For local development, create `.dev.vars` using `.dev.vars.example` and set independent random values for `ADMIN_PASSWORD` (24–256 characters) and `ANALYTICS_SALT`. `openssl rand -hex 32` can generate each value. Keep `.dev.vars` private; it is ignored by Git. Before publishing the panel, set the same two bindings as Cloudflare secrets:
+
+```bash
+bunx wrangler secret put ADMIN_PASSWORD
+bunx wrangler secret put ANALYTICS_SALT
+bun run deploy
+```
+
+Enter the admin password at the first prompt and the independent salt at the second. The usual deploy applies `0002_run_analytics.sql` before publishing the Worker. Without a valid admin password, the API stays closed with HTTP 503; gameplay continues. Without the salt, network IDs remain unavailable. Changing `ADMIN_PASSWORD` invalidates existing sessions. Keep `ANALYTICS_SALT` stable so a network retains its ID across releases.
+
+Login uses an eight-hour signed `HttpOnly`, `SameSite=Strict` cookie, marked `Secure` on HTTPS, scoped to `/api/admin`. Passwords never enter local storage or a public build variable. Login attempts have a separate limit of five per minute per IP. Private API responses disable caching. Logout deletes the browser's session cookie; sessions expire at their original eight-hour deadline.
+
+The dashboard shows activity by day (or month for periods longer than 90 days), countries, completed/abandoned/unfinished counts, distinct names/browsers/networks, coverage, score/wave/duration summaries, the 12 most frequent identities in each grouping, and a history table with 25 rows per page. Dates, country (including unknown), status, rules version and name/ID search filter every panel. Dates are inclusive UTC days applied to run start. Search matches a complete name without case sensitivity or an ID prefix, treating SQL wildcards literally. Chart data is also available in a table. Summary totals cover the entire selection rather than the current history page.
+
+Names, browser profiles and anonymized networks are separate estimates, not verified people or physical computers. Browsers may be shared or reset; networks may be shared or change; names are only available when a player saved a result. Existing rows retain null IDs and are counted in run/country totals but not fabricated into unique players. Coverage shows how many selected runs have each identifier. An unfinished run means no final result was received, not proof that someone is online. Scores, waves and durations are only available for runs with a terminal result; no heartbeat or live player tracking is added.
 
 ## Project continuity
 

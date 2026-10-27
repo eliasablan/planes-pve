@@ -2,12 +2,17 @@ import type { D1Database, RateLimit } from "@cloudflare/workers-types";
 import { isValidArcadeName, normalizeArcadeName, SCOREBOARD_LIMIT, type ScoreEntry } from "../src/lib/scoreboard";
 import { ApiError, hashToken, onlyKeys, readBody, validateResult } from "./validation";
 import { GAME_VERSION, type GameVersion } from "../src/lib/pveRules";
+import { handleAdmin } from "./admin";
+import { privateId } from "./adminAuth";
 
 export interface Env {
   DB: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
   RUN_START_LIMITER: RateLimit;
   API_LIMITER: RateLimit;
+  ADMIN_LOGIN_LIMITER: RateLimit;
+  ADMIN_PASSWORD?: string;
+  ANALYTICS_SALT?: string;
 }
 
 type RunRow = {
@@ -44,31 +49,35 @@ async function handleApi(request: Request, env: Env) {
   const limiter = isStart ? env.RUN_START_LIMITER : env.API_LIMITER;
   if (!(await limiter.limit({ key: ip })).success) throw new ApiError(429, "Too many requests. Please retry in a minute.");
 
-  if (request.method === "POST") {
+  if (!["GET", "HEAD"].includes(request.method)) {
     const origin = request.headers.get("Origin");
     if ((origin && origin !== url.origin) || request.headers.get("Sec-Fetch-Site") === "cross-site") {
       throw new ApiError(403, "Cross-origin submissions are not allowed.");
     }
   }
+  if (url.pathname.startsWith("/api/admin/")) return handleAdmin(request, env);
   if (url.pathname === "/api/leaderboard") {
     if (request.method !== "GET") throw new ApiError(405, "Method not allowed.");
     return json({ scores: await leaderboard(env) });
   }
   if (isStart) {
     const body = await readBody(request);
-    onlyKeys(body, ["requestId", "recoverOnly", "gameVersion"]);
+    onlyKeys(body, ["requestId", "recoverOnly", "gameVersion", "browserId"]);
     const gameVersion = body.gameVersion ?? "survival-v1";
     if (typeof body.requestId !== "string" || (body.recoverOnly !== undefined && typeof body.recoverOnly !== "boolean") ||
-      (gameVersion !== "survival-v1" && gameVersion !== GAME_VERSION)) {
+      (gameVersion !== "survival-v1" && gameVersion !== GAME_VERSION) ||
+      (body.browserId !== undefined && (typeof body.browserId !== "string" || !/^[a-f0-9]{64}$/.test(body.browserId)))) {
       throw new ApiError(400, "Invalid registration request.");
     }
     const tokenHash = await hashToken(body.requestId);
     const startedAt = new Date().toISOString();
     const country = (request as Request & { cf?: { country?: string } }).cf?.country;
     if (!body.recoverOnly) {
-      await env.DB.prepare(`INSERT INTO runs (id, token_hash, started_at, country, game_version)
-        VALUES (?, ?, ?, ?, ?) ON CONFLICT(token_hash) DO NOTHING`)
-        .bind(crypto.randomUUID(), tokenHash, startedAt, country && /^[A-Z]{2}$/.test(country) && country !== "XX" ? country : null, gameVersion).run();
+      const browserId = typeof body.browserId === "string" ? await hashToken(body.browserId) : null;
+      const networkId = env.ANALYTICS_SALT && ip !== "local" ? await privateId(env.ANALYTICS_SALT, `network:${ip}`) : null;
+      await env.DB.prepare(`INSERT INTO runs (id, token_hash, started_at, country, game_version, browser_id, network_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(token_hash) DO NOTHING`)
+        .bind(crypto.randomUUID(), tokenHash, startedAt, country && /^[A-Z]{2}$/.test(country) && !["XX", "T1"].includes(country) ? country : null, gameVersion, browserId, networkId).run();
     }
     const run = await env.DB.prepare("SELECT id, started_at FROM runs WHERE token_hash = ?").bind(tokenHash).first<{ id: string; started_at: string }>();
     if (!run) throw new ApiError(404, "This run could not be registered. Please start a new run when the service is available.");
@@ -118,12 +127,15 @@ const worker = {
     } catch (error) {
       if (error instanceof ApiError) {
         const response = json({ error: error.message }, error.status);
+        if (new URL(request.url).pathname.startsWith("/api/admin/")) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
         if (error.status === 429) response.headers.set("Retry-After", "60");
         return response;
       }
       // Do not log request bodies, bearer credentials, IP addresses, or database error details.
-      console.error("Score service unavailable");
-      return json({ error: "Scores are temporarily unavailable. Please retry; your flight can continue." }, 503);
+      console.error("Game data service unavailable");
+      return json({ error: new URL(request.url).pathname.startsWith("/api/admin/")
+        ? "No se pudieron cargar las estadísticas. Vuelve a intentarlo."
+        : "Scores are temporarily unavailable. Please retry; your flight can continue." }, 503);
     }
   },
 };
