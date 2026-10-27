@@ -12,6 +12,7 @@ export interface Env {
   API_LIMITER: RateLimit;
   ADMIN_LOGIN_LIMITER: RateLimit;
   ADMIN_PASSWORD?: string;
+  ADMIN_SESSION_SECRET?: string;
   ANALYTICS_SALT?: string;
 }
 

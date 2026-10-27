@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { adminCookie, createAdminSession, hasAdminSession, passwordMatches, privateId, requireAdminPassword } from "./adminAuth";
+import { adminCookie, adminSigningKey, createAdminSession, hasAdminSession, passwordMatches, privateId, requireAdminPassword } from "./adminAuth";
 import { analyticsFilter } from "./analytics";
 
 const password = "an-independent-long-admin-password";
@@ -21,7 +21,9 @@ test("admin sessions expire, are signed for one origin and cannot survive a pass
 
 test("private keys are required, cookie settings protect sessions and passwords are compared correctly", async () => {
   expect(() => requireAdminPassword(undefined)).toThrow();
-  expect(() => requireAdminPassword("weak")).toThrow();
+  expect(() => requireAdminPassword("")).toThrow();
+  expect(() => requireAdminPassword("x".repeat(257))).toThrow();
+  expect(requireAdminPassword("test")).toBe("test");
   expect(requireAdminPassword(password)).toBe(password);
   expect(await passwordMatches(password, password)).toBe(true);
   expect(await passwordMatches(`${password}x`, password)).toBe(false);
@@ -32,6 +34,20 @@ test("private keys are required, cookie settings protect sessions and passwords 
   expect(cookie).toContain("Secure");
   expect(adminCookie(new Request("http://localhost:8787"), "session")).not.toContain("Secure");
   expect(adminCookie(new Request(origin), null)).toContain("Max-Age=0");
+});
+
+test("short login passwords work while session signatures require an independent secret", async () => {
+  const shortPassword = "test";
+  const secret = "a-random-session-secret-at-least-32-characters";
+  expect(await passwordMatches(shortPassword, requireAdminPassword(shortPassword))).toBe(true);
+  await expect(adminSigningKey(shortPassword, undefined)).rejects.toThrow();
+  await expect(adminSigningKey(shortPassword, "short")).rejects.toThrow();
+  const key = await adminSigningKey(shortPassword, secret);
+  const session = await createAdminSession(key, origin, now);
+  expect(await hasAdminSession(request(session), key, now)).toBe(true);
+  expect(await hasAdminSession(request(await createAdminSession(shortPassword, origin, now)), key, now)).toBe(false);
+  expect(await hasAdminSession(request(session), await adminSigningKey("new-password", secret), now)).toBe(false);
+  expect(await hasAdminSession(request(session), await adminSigningKey(shortPassword, `${secret}-rotated`), now)).toBe(false);
 });
 
 test("network identifiers are stable, keyed and do not contain the IP", async () => {

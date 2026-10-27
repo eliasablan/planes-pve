@@ -9,7 +9,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
   compatibilityDate: "2026-10-24",
   d1Databases: ["DB"],
   cf: { country: "VE" },
-  bindings: { ADMIN_PASSWORD: "test-admin-password-for-integration", ANALYTICS_SALT: "test-independent-analytics-salt" },
+  bindings: { ADMIN_PASSWORD: "test", ADMIN_SESSION_SECRET: "integration-session-secret-at-least-32-characters", ANALYTICS_SALT: "test-independent-analytics-salt" },
   ratelimits: {
     RUN_START_LIMITER: { namespace_id: "1001", simple: { limit: 100000, period: 60 } },
     API_LIMITER: { namespace_id: "1002", simple: { limit: 100000, period: 60 } },
@@ -198,7 +198,7 @@ test("rate-limit exhaustion returns 429 with a retry delay before any database w
 });
 
 async function adminLogin() {
-  const response = await call("/api/admin/session", { password: "test-admin-password-for-integration" });
+  const response = await call("/api/admin/session", { password: "test" });
   assert.equal(response.status, 200);
   const cookie = response.headers.get("set-cookie");
   assert.match(cookie, /HttpOnly/);
@@ -211,7 +211,7 @@ const stats = (cookie, query = "") => call(`/api/admin/stats${query ? `?${query}
 test("private analytics require a signed cookie; login and logout enforce origin and disable caching", async () => {
   assert.equal((await call("/api/admin/stats")).status, 401);
   assert.equal((await call("/api/admin/session", { password: "wrong" })).status, 401);
-  assert.equal((await call("/api/admin/session", { password: "test-admin-password-for-integration" }, undefined, { Origin: "https://other.test" })).status, 403);
+  assert.equal((await call("/api/admin/session", { password: "test" }, undefined, { Origin: "https://other.test" })).status, 403);
   const cookie = await adminLogin();
   const response = await stats(cookie);
   assert.equal(response.status, 200);
@@ -328,7 +328,7 @@ test("unconfigured admin access fails closed and login has a separate attempt li
   for (const configured of [false, true]) {
     const instance = new Miniflare(convertV4MiniflareOptions({
       modules: true, scriptPath: ".wrangler/test-worker.mjs", compatibilityDate: "2026-10-24", d1Databases: ["DB"],
-      bindings: configured ? { ADMIN_PASSWORD: "test-admin-password-for-integration" } : {},
+      bindings: configured ? { ADMIN_PASSWORD: "test", ADMIN_SESSION_SECRET: "integration-session-secret-at-least-32-characters" } : {},
       ratelimits: {
         API_LIMITER: { namespace_id: "3001", simple: { limit: 100, period: 60 } },
         ADMIN_LOGIN_LIMITER: { namespace_id: "3002", simple: { limit: 1, period: 60 } },

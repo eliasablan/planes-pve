@@ -29,7 +29,7 @@ bun run lint
 
 ## Cloudflare deployment
 
-The nonsecret account ID, D1 database ID, Worker name and rate-limit namespaces are in `wrangler.jsonc`. The `DB` binding is available only inside the Worker. Gameplay needs no database URL or public token. The private statistics panel uses two Worker secrets described below. Wrangler's OAuth login or a restricted CI API token supplies deployment credentials; never commit credentials or enable verbose HTTP logging around authenticated package managers.
+The nonsecret account ID, D1 database ID, Worker name and rate-limit namespaces are in `wrangler.jsonc`. The `DB` binding is available only inside the Worker. Gameplay needs no database URL or public token. The private statistics panel uses three Worker secrets described below. Wrangler's OAuth login or a restricted CI API token supplies deployment credentials; never commit credentials or enable verbose HTTP logging around authenticated package managers.
 
 For this account, authenticate with the needed deployment scopes when necessary:
 
@@ -65,15 +65,16 @@ Requests have a 2 KiB JSON limit, origin checks, per-run bearer ownership, integ
 
 Open `/control-de-vuelo` directly. It has no links from the game or navigation and declares `noindex, nofollow, noarchive`. The static page contains only the login shell; every statistics request is authenticated by the Worker. Hiding the URL is not the access control.
 
-For local development, create `.dev.vars` using `.dev.vars.example` and set independent random values for `ADMIN_PASSWORD` (24–256 characters) and `ANALYTICS_SALT`. `openssl rand -hex 32` can generate each value. Keep `.dev.vars` private; it is ignored by Git. Before publishing the panel, set the same two bindings as Cloudflare secrets:
+For local development, create `.dev.vars` using `.dev.vars.example` and set the chosen `ADMIN_PASSWORD` (1–256 characters), an independent random `ADMIN_SESSION_SECRET` (at least 32 characters) and an independent random `ANALYTICS_SALT`. `openssl rand -hex 32` can generate each random secret. The session secret protects cookie signatures independently of the login password's length. Keep `.dev.vars` private; it is ignored by Git. Before publishing the panel, set the three bindings as Cloudflare secrets:
 
 ```bash
 bunx wrangler secret put ADMIN_PASSWORD
+bunx wrangler secret put ADMIN_SESSION_SECRET
 bunx wrangler secret put ANALYTICS_SALT
 bun run deploy
 ```
 
-Enter the admin password at the first prompt and the independent salt at the second. The usual deploy applies `0002_run_analytics.sql` before publishing the Worker. Without a valid admin password, the API stays closed with HTTP 503; gameplay continues. Without the salt, network IDs remain unavailable. Changing `ADMIN_PASSWORD` invalidates existing sessions. Keep `ANALYTICS_SALT` stable so a network retains its ID across releases.
+Enter the chosen admin password, the random session secret and the independent salt at their respective prompts. Alternatively, `bunx wrangler deploy --secrets-file <private-json-or-env-file>` publishes code and secrets in one operation after the build and remote migrations; secrets omitted from that file are preserved. The usual deploy applies `0002_run_analytics.sql` before publishing the Worker. Without the password or a valid session secret, the API stays closed with HTTP 503; gameplay continues. Without the salt, network IDs remain unavailable. Changing `ADMIN_PASSWORD` or `ADMIN_SESSION_SECRET` invalidates existing sessions. Keep `ANALYTICS_SALT` stable so a network retains its ID across releases.
 
 Login uses an eight-hour signed `HttpOnly`, `SameSite=Strict` cookie, marked `Secure` on HTTPS, scoped to `/api/admin`. Passwords never enter local storage or a public build variable. Login attempts have a separate limit of five per minute per IP. Private API responses disable caching. Logout deletes the browser's session cookie; sessions expire at their original eight-hour deadline.
 

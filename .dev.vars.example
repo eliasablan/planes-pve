@@ -1,4 +1,6 @@
-# Local Worker secrets. Copy to .dev.vars and replace both values with independent random secrets.
-# ADMIN_PASSWORD must contain at least 24 characters; never use NEXT_PUBLIC_ variables for these.
+# Local Worker secrets. Copy to .dev.vars and set the chosen login password.
+# Generate independent random values for ADMIN_SESSION_SECRET (at least 32 characters) and ANALYTICS_SALT.
+# Never use NEXT_PUBLIC_ variables for these.
 ADMIN_PASSWORD=
+ADMIN_SESSION_SECRET=
 ANALYTICS_SALT=
